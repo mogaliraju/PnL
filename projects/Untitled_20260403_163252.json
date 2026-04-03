@@ -1,0 +1,157 @@
+{
+  "approvals": {
+    "prepared_by": "",
+    "reviewed_by": "",
+    "approved_by": ""
+  },
+  "attachments": {
+    "customer_po": false,
+    "cloud4c_quote": false,
+    "partner_proposal": false
+  },
+  "export_filename": "Benline_PnL_June_2025",
+  "export_path": "C:/Users/15743/Downloads",
+  "funding": {
+    "marketing": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    },
+    "management": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    },
+    "discount": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    }
+  },
+  "pnl_roles": [],
+  "project": {
+    "company": "AutomatonsX",
+    "customer": "",
+    "location": "",
+    "reference": "",
+    "proposal_date": "",
+    "customer_first_touch_point": "",
+    "project_description": "",
+    "partner": "",
+    "payment_terms": "",
+    "duration_months": null
+  },
+  "rate_card": [
+    {
+      "level": "L1",
+      "rate": 7
+    },
+    {
+      "level": "L2",
+      "rate": 20
+    },
+    {
+      "level": "L3",
+      "rate": 25
+    },
+    {
+      "level": "L4",
+      "rate": 29
+    },
+    {
+      "level": "L5",
+      "rate": 35
+    },
+    {
+      "level": "L6",
+      "rate": 48
+    },
+    {
+      "level": "L8",
+      "rate": 65
+    },
+    {
+      "level": "Onsite",
+      "rate": 100
+    }
+  ],
+  "releases": [],
+  "resources": [],
+  "role_catalog": [
+    {
+      "group": "Data Engineering",
+      "roles": [
+        "Junior Data Engineer",
+        "Data Engineer",
+        "Senior Data Engineer",
+        "Lead Data Engineer",
+        "Principal Data Engineer",
+        "Data Architect",
+        "ETL Developer",
+        "Data Pipeline Engineer",
+        "DataOps Engineer",
+        "Database Administrator",
+        "Data Modeler",
+        "Big Data Engineer",
+        "Cloud Data Engineer"
+      ]
+    },
+    {
+      "group": "Power BI & Analytics",
+      "roles": [
+        "Power BI Developer",
+        "Senior Power BI Developer",
+        "Power BI Architect",
+        "BI Developer",
+        "BI Analyst",
+        "Analytics Engineer",
+        "Data Analyst",
+        "Senior Data Analyst",
+        "Dashboard Developer",
+        "Reporting Analyst",
+        "Data Visualization Specialist"
+      ]
+    },
+    {
+      "group": "Architecture & Leadership",
+      "roles": [
+        "Solution Architect",
+        "Principal Architect",
+        "Enterprise Architect",
+        "Technical Lead",
+        "Data Lead",
+        "Head of Data"
+      ]
+    },
+    {
+      "group": "Project & Product",
+      "roles": [
+        "Project Manager",
+        "Program Manager",
+        "Delivery Manager",
+        "Scrum Master",
+        "Business Analyst",
+        "Product Owner"
+      ]
+    },
+    {
+      "group": "Support & Pre-Sales",
+      "roles": [
+        "Sales Manager",
+        "Presales Architect",
+        "DevOps Engineer",
+        "Cloud Engineer",
+        "QA Engineer",
+        "Technical Writer"
+      ]
+    }
+  ],
+  "_meta": {
+    "name": "Untitled",
+    "id": "Untitled_20260403_163252",
+    "saved_at": "2026-04-03T16:32:52"
+  }
+}

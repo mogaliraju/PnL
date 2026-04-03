@@ -19,7 +19,11 @@
       <span class="navbar-brand fw-bold fs-6 mb-0 p-0">PnL Application</span>
       <span class="text-muted-nav">AutomatonsX</span>
     </div>
-    <div class="ms-auto d-flex gap-2">
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      <span id="current_project_badge" class="badge text-bg-light text-dark d-none"></span>
+      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#projectsModal">
+        <i class="bi bi-folder2-open me-1"></i>Projects
+      </button>
       <button class="btn btn-outline-light btn-sm" onclick="saveAll()">
         <i class="bi bi-floppy me-1"></i>Save
       </button>
@@ -29,6 +33,42 @@
     </div>
   </div>
 </nav>
+
+<!-- ===== PROJECTS MODAL ===== -->
+<div class="modal fade" id="projectsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--ax-grad)">
+        <h5 class="modal-title text-white"><i class="bi bi-folder2-open me-2"></i>Saved Projects</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Save current as new project -->
+        <div class="card mb-3">
+          <div class="card-header fw-bold"><i class="bi bi-floppy me-1"></i>Save Current Project As</div>
+          <div class="card-body">
+            <div class="input-group">
+              <input type="text" class="form-control" id="save_project_name" placeholder="Project name…"/>
+              <button class="btn btn-primary" onclick="saveAsProject()">
+                <i class="bi bi-floppy me-1"></i>Save
+              </button>
+              <button class="btn btn-outline-secondary" onclick="newProject()">
+                <i class="bi bi-plus-circle me-1"></i>New Project
+              </button>
+            </div>
+            <div class="form-text">Leave blank to use customer name + timestamp.</div>
+          </div>
+        </div>
+
+        <!-- Saved projects list -->
+        <div id="projects-list">
+          <div class="text-center text-muted py-4"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="container-fluid px-4 py-3">
 

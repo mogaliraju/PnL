@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify, send_file
@@ -11,7 +12,10 @@ from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data.json')
+BASE_DIR     = os.path.dirname(__file__)
+DATA_FILE    = os.path.join(BASE_DIR, 'data.json')
+PROJECTS_DIR = os.path.join(BASE_DIR, 'projects')
+os.makedirs(PROJECTS_DIR, exist_ok=True)
 
 
 def load_data():
@@ -24,6 +28,11 @@ def save_data(data):
         json.dump(data, f, indent=2)
 
 
+def safe_filename(name):
+    return re.sub(r'[^a-zA-Z0-9_\-]', '_', name.strip())
+
+
+# ── Current working project ──────────────────────────────────
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -38,6 +47,65 @@ def get_data():
 def update_data():
     data = request.json
     save_data(data)
+    return jsonify({'status': 'ok'})
+
+
+# ── Saved projects ────────────────────────────────────────────
+@app.route('/api/projects', methods=['GET'])
+def list_projects():
+    projects = []
+    for fname in sorted(os.listdir(PROJECTS_DIR)):
+        if fname.endswith('.json'):
+            path = os.path.join(PROJECTS_DIR, fname)
+            try:
+                with open(path) as f:
+                    d = json.load(f)
+                meta = d.get('_meta', {})
+                projects.append({
+                    'id':         fname[:-5],
+                    'name':       meta.get('name', fname[:-5]),
+                    'customer':   d.get('project', {}).get('customer', ''),
+                    'saved_at':   meta.get('saved_at', ''),
+                })
+            except Exception:
+                pass
+    return jsonify(projects)
+
+
+@app.route('/api/projects', methods=['POST'])
+def save_project():
+    data = request.json
+    name = data.get('_meta', {}).get('name') or \
+           data.get('project', {}).get('customer') or 'Untitled'
+    pid  = safe_filename(name) + '_' + datetime.now().strftime('%Y%m%d_%H%M%S')
+    data['_meta'] = {
+        'name':     name,
+        'id':       pid,
+        'saved_at': datetime.now().isoformat(timespec='seconds')
+    }
+    path = os.path.join(PROJECTS_DIR, pid + '.json')
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+    save_data(data)   # also update current working copy
+    return jsonify({'status': 'ok', 'id': pid, 'name': name})
+
+
+@app.route('/api/projects/<pid>', methods=['GET'])
+def load_project(pid):
+    path = os.path.join(PROJECTS_DIR, pid + '.json')
+    if not os.path.exists(path):
+        return jsonify({'error': 'Not found'}), 404
+    with open(path) as f:
+        data = json.load(f)
+    save_data(data)   # set as current working copy
+    return jsonify(data)
+
+
+@app.route('/api/projects/<pid>', methods=['DELETE'])
+def delete_project(pid):
+    path = os.path.join(PROJECTS_DIR, pid + '.json')
+    if os.path.exists(path):
+        os.remove(path)
     return jsonify({'status': 'ok'})
 
 

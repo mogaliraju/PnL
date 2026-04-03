@@ -474,6 +474,122 @@ function renderCatalogList() {
 }
 
 // ============================================================
+// PROJECTS — save / load / delete
+// ============================================================
+async function loadProjectsList() {
+  const res  = await fetch('/api/projects');
+  const list = await res.json();
+  const el   = document.getElementById('projects-list');
+
+  if (!list.length) {
+    el.innerHTML = `<div class="text-center text-muted py-4">
+      <i class="bi bi-inbox me-1"></i>No saved projects yet. Save the current project above.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-dark">
+        <tr><th>Project Name</th><th>Customer</th><th>Saved At</th><th style="width:130px"></th></tr>
+      </thead>
+      <tbody>
+        ${list.map(p => `
+          <tr>
+            <td class="fw-semibold">${esc(p.name)}</td>
+            <td>${esc(p.customer)}</td>
+            <td class="text-muted small">${p.saved_at ? p.saved_at.replace('T',' ') : ''}</td>
+            <td class="text-center">
+              <button class="btn btn-primary btn-sm me-1" onclick="loadProject('${esc(p.id)}','${esc(p.name)}')">
+                <i class="bi bi-folder2-open"></i> Open
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="deleteProject('${esc(p.id)}')">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function saveAsProject() {
+  collectAll();
+  const nameInput = document.getElementById('save_project_name').value.trim();
+  const name = nameInput || appData.project?.customer || 'Untitled';
+  const payload = { ...appData, _meta: { name } };
+  const res  = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const json = await res.json();
+  if (res.ok) {
+    document.getElementById('save_project_name').value = '';
+    updateProjectBadge(json.name);
+    loadProjectsList();
+    showToast(`Saved as "${json.name}"`, 'success');
+  } else {
+    showToast('Save failed', 'danger');
+  }
+}
+
+async function loadProject(id, name) {
+  const res  = await fetch(`/api/projects/${id}`);
+  if (!res.ok) { showToast('Could not load project', 'danger'); return; }
+  appData = await res.json();
+  populateAll();
+  updateProjectBadge(name);
+  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  showToast(`Loaded: ${name}`, 'success');
+}
+
+async function deleteProject(id) {
+  if (!confirm('Delete this saved project?')) return;
+  await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+  loadProjectsList();
+}
+
+function newProject() {
+  if (!confirm('Start a new blank project? Unsaved changes will be lost.')) return;
+  // Reset to blank slate keeping role catalog and rate card
+  const catalog  = appData.role_catalog;
+  const rateCard = appData.rate_card;
+  appData = {
+    project: { company: 'AutomatonsX', customer: '', location: '', reference: '',
+                proposal_date: '', customer_first_touch_point: '', project_description: '',
+                partner: 'AutomatonsX', payment_terms: 'As per proposal', duration_months: null },
+    resources: [], pnl_roles: [], releases: [],
+    rate_card: rateCard, role_catalog: catalog,
+    attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
+    funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
+    approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
+    export_filename: ''
+  };
+  populateAll();
+  updateProjectBadge('New Project');
+  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  showToast('New project ready', 'primary');
+}
+
+function updateProjectBadge(name) {
+  const el = document.getElementById('current_project_badge');
+  if (!name) { el.classList.add('d-none'); return; }
+  el.textContent = name;
+  el.classList.remove('d-none');
+}
+
+// Load projects list when modal opens and pre-fill name
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('projectsModal')
+    ?.addEventListener('show.bs.modal', () => {
+      loadProjectsList();
+      const customer = appData.project?.customer || '';
+      const nameEl = document.getElementById('save_project_name');
+      if (nameEl && !nameEl.value) nameEl.value = customer ? `${customer} PnL` : '';
+    });
+});
+
+// ============================================================
 // FUNDING & APPROVALS
 // ============================================================
 function populateFundingApprovals() {
