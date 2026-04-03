@@ -12,12 +12,13 @@
 <body>
 
 <!-- Navbar -->
-<nav class="navbar navbar-dark" style="background:#1F3864;">
+<nav class="navbar ax-navbar navbar-dark">
   <div class="container-fluid d-flex align-items-center gap-3">
-    <span class="navbar-brand fw-bold fs-5 mb-0">
-      <i class="bi bi-graph-up-arrow me-2"></i>PnL Application
-    </span>
-    <span class="text-white-50 small">AutomatonsX</span>
+    <img src="/static/img/logo.svg" height="42" width="42" alt="AutomatonsX" style="border-radius:8px;"/>
+    <div class="d-flex flex-column lh-1">
+      <span class="navbar-brand fw-bold fs-6 mb-0 p-0">PnL Application</span>
+      <span class="text-muted-nav">AutomatonsX</span>
+    </div>
     <div class="ms-auto d-flex gap-2">
       <button class="btn btn-outline-light btn-sm" onclick="saveAll()">
         <i class="bi bi-floppy me-1"></i>Save

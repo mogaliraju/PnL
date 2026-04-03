@@ -1,14 +1,50 @@
 {
-  "project": {
-    "company": "Test"
+  "approvals": {
+    "prepared_by": "",
+    "reviewed_by": "",
+    "approved_by": ""
   },
-  "resources": [],
-  "rate_card": [],
-  "pnl_roles": [],
-  "releases": [],
-  "attachments": {},
-  "funding": {},
-  "approvals": {},
+  "attachments": {
+    "customer_po": false,
+    "cloud4c_quote": false,
+    "partner_proposal": false
+  },
+  "export_filename": "Benline_PnL_June_2025",
   "export_path": "C:/Users/15743/Downloads",
-  "export_filename": "Benline_PnL_June_2025"
+  "funding": {
+    "marketing": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    },
+    "management": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    },
+    "discount": {
+      "method": "",
+      "reference": "",
+      "currency": "USD",
+      "value": null
+    }
+  },
+  "pnl_roles": [],
+  "project": {
+    "company": "AutomatonsX",
+    "customer": "",
+    "location": "",
+    "reference": "",
+    "proposal_date": "",
+    "customer_first_touch_point": "",
+    "project_description": "",
+    "partner": "",
+    "payment_terms": "",
+    "duration_months": null
+  },
+  "rate_card": [],
+  "releases": [],
+  "resources": []
 }
