@@ -161,7 +161,13 @@ function updateSummary() {
 // ============================================================
 // RESOURCES
 // ============================================================
+const _resRoleSelects = {};
+
 function renderResources() {
+  // Destroy old TomSelect instances
+  Object.values(_resRoleSelects).forEach(ts => { try { ts.destroy(); } catch(e){} });
+  Object.keys(_resRoleSelects).forEach(k => delete _resRoleSelects[k]);
+
   const rateMap = {};
   (appData.rate_card || []).forEach(r => { rateMap[r.level] = r.rate; });
   const resources = appData.resources || [];
@@ -182,15 +188,14 @@ function renderResources() {
       `<option value="${l}" ${l === res.level ? 'selected' : ''}>${l}</option>`
     ).join('');
 
+    const roleSelId = `res_role_sel_${i}`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
-      <td><input type="text" class="form-control form-control-sm" value="${esc(res.role)}"
-          onchange="appData.resources[${i}].role=this.value; updateSummary()"/></td>
+      <td><select id="${roleSelId}"></select></td>
       <td>
         <select class="form-select form-select-sm" onchange="appData.resources[${i}].level=this.value; renderResources(); updateSummary();">
           ${levelOpts}
-          <option value="${res.level}" ${!levels.includes(res.level)?'selected':''} style="font-style:italic">${!levels.includes(res.level)?res.level:''}</option>
         </select>
       </td>
       <td><input type="number" class="form-control form-control-sm" value="${res.hours ?? ''}" min="0"
@@ -203,6 +208,29 @@ function renderResources() {
         </button>
       </td>`;
     tbody.appendChild(tr);
+
+    // Grouped Tom Select using role catalog
+    const groups = {};
+    allCatalogRoles().forEach(r => {
+      if (!groups[r.group]) groups[r.group] = [];
+      groups[r.group].push({ value: r.value, text: r.text });
+    });
+    const ts = new TomSelect(`#${roleSelId}`, {
+      options: allCatalogRoles(),
+      optgroups: Object.entries(groups).map(([label, options]) => ({ label, options })),
+      optgroupField: 'group',
+      labelField: 'text',
+      valueField: 'value',
+      searchField: 'text',
+      create(input) {
+        addRoleToCatalog(input, 'Custom');
+        return { value: input, text: input, group: 'Custom' };
+      },
+      placeholder: 'Search or type role…',
+      onChange(val) { appData.resources[i].role = val; updateSummary(); }
+    });
+    if (res.role) ts.setValue(res.role, true);
+    _resRoleSelects[i] = ts;
   });
 
   document.getElementById('tot_hours').textContent = totalHours;
@@ -212,7 +240,8 @@ function renderResources() {
 function addResource() {
   if (!appData.resources) appData.resources = [];
   const defaultLevel = appData.rate_card?.[0]?.level || 'L3';
-  appData.resources.push({ id: Date.now(), role: 'New Role', level: defaultLevel, hours: 0 });
+  const defaultRole  = allCatalogRoles()[0]?.value || '';
+  appData.resources.push({ id: Date.now(), role: defaultRole, level: defaultLevel, hours: 0 });
   renderResources();
   updateSummary();
 }
