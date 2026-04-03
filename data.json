@@ -44,7 +44,40 @@
     "payment_terms": "",
     "duration_months": null
   },
-  "rate_card": [],
+  "rate_card": [
+    {
+      "level": "L1",
+      "rate": 7
+    },
+    {
+      "level": "L2",
+      "rate": 20
+    },
+    {
+      "level": "L3",
+      "rate": 25
+    },
+    {
+      "level": "L4",
+      "rate": 29
+    },
+    {
+      "level": "L5",
+      "rate": 35
+    },
+    {
+      "level": "L6",
+      "rate": 48
+    },
+    {
+      "level": "L8",
+      "rate": 65
+    },
+    {
+      "level": "Onsite",
+      "rate": 100
+    }
+  ],
   "releases": [],
   "resources": []
 }
