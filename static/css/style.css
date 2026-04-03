@@ -118,3 +118,11 @@ body {
 .ts-dropdown .selected { background: var(--ax-mid) !important; color: #fff !important; }
 
 input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+
+/* Rate cell highlight */
+.rate-cell {
+  background: linear-gradient(135deg, #EDE9FE, #F5F3FF);
+  color: var(--ax-dark);
+  font-size: 14px;
+  border-left: 3px solid var(--ax-mid) !important;
+}

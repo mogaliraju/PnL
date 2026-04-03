@@ -221,7 +221,7 @@ function renderResources() {
       </td>
       <td><input type="number" class="form-control form-control-sm" value="${res.hours ?? ''}" min="0"
           onchange="appData.resources[${i}].hours=parseFloat(this.value)||0; renderResources(); updateSummary();"/></td>
-      <td class="text-end text-muted small">$${rate.toFixed(2)}</td>
+      <td class="text-end fw-bold rate-cell">$${rate.toFixed(2)}</td>
       <td class="text-end fw-semibold">${fmtMoney(cost)}</td>
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeResource(${i})" title="Remove">
