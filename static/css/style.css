@@ -1,0 +1,106 @@
+body {
+  background: #f0f2f5;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+}
+
+.nav-tabs .nav-link {
+  color: #444;
+  font-weight: 500;
+}
+.nav-tabs .nav-link.active {
+  color: #1F3864;
+  font-weight: 700;
+  border-bottom: 2px solid #1F3864;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border-radius: 8px;
+}
+.card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0 !important;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+.summary-box {
+  border-radius: 10px;
+  padding: 16px 10px;
+  margin: 4px;
+}
+.summary-label {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1F3864;
+}
+
+.table thead th {
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.table td input.form-control,
+.table td select.form-control,
+.table td input.form-control-sm,
+.table td select.form-select-sm {
+  font-size: 13px;
+}
+
+.btn-icon {
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+/* Rate bar chart */
+.rate-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.rate-bar-label {
+  width: 60px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+.rate-bar-track {
+  flex: 1;
+  background: #e9ecef;
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+.rate-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2E75B6, #1F3864);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.rate-bar-val {
+  width: 50px;
+  font-size: 12px;
+  color: #555;
+}
+
+.toast {
+  background: #1F3864;
+  color: white;
+}
+.toast.bg-danger { background: #dc3545 !important; }
+.toast.bg-success { background: #198754 !important; }
+.toast-body { color: white; }
+
+input[type=number]::-webkit-inner-spin-button { opacity: 1; }

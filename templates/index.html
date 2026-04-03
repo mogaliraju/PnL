@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PnL Application — AutomatonsX</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark" style="background:#1F3864;">
+  <div class="container-fluid d-flex align-items-center gap-3">
+    <span class="navbar-brand fw-bold fs-5 mb-0">
+      <i class="bi bi-graph-up-arrow me-2"></i>PnL Application
+    </span>
+    <span class="text-white-50 small">AutomatonsX</span>
+    <div class="ms-auto d-flex gap-2">
+      <button class="btn btn-outline-light btn-sm" onclick="saveAll()">
+        <i class="bi bi-floppy me-1"></i>Save
+      </button>
+      <button class="btn btn-success btn-sm" onclick="exportExcel()">
+        <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-3">
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="mainTabs">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project Info</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-resources"><i class="bi bi-people me-1"></i>Resources</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-releases"><i class="bi bi-calendar-event me-1"></i>Releases</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-person-badge me-1"></i>PnL Roles</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funding"><i class="bi bi-cash-stack me-1"></i>Funding & Approvals</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-export"><i class="bi bi-gear me-1"></i>Export Settings</a></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ===== PROJECT INFO ===== -->
+    <div class="tab-pane fade show active" id="tab-project">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-building me-1"></i>Company & Customer</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Company Name</label>
+                <input type="text" class="form-control" id="proj_company" placeholder="AutomatonsX"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Customer Name</label>
+                <input type="text" class="form-control" id="proj_customer" placeholder="Benline"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="proj_location" placeholder="Singapore"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Reference</label>
+                <input type="text" class="form-control" id="proj_reference"/>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-file-text me-1"></i>Proposal Details</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Proposal Date</label>
+                <input type="date" class="form-control" id="proj_proposal_date"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Customer First Touch Point</label>
+                <input type="text" class="form-control" id="proj_first_touch"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Project Description</label>
+                <input type="text" class="form-control" id="proj_description"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Partner</label>
+                <input type="text" class="form-control" id="proj_partner"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Payment Terms</label>
+                <input type="text" class="form-control" id="proj_payment_terms" placeholder="As per proposal"/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Duration (Months)</label>
+                <input type="number" class="form-control" id="proj_duration" min="1"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Computed summary card -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-calculator me-1"></i>Cost Summary (live)</div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-md-3">
+                  <div class="summary-box bg-warning-subtle">
+                    <div class="summary-label">Input Cost (USD)</div>
+                    <div class="summary-value" id="sum_input_cost">—</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="summary-box bg-success-subtle">
+                    <div class="summary-label">Sell Cost / Revenue (USD)</div>
+                    <div class="summary-value" id="sum_sell_cost">—</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="summary-box bg-info-subtle">
+                    <div class="summary-label">Markup (USD)</div>
+                    <div class="summary-value" id="sum_markup">—</div>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="summary-box bg-primary-subtle">
+                    <div class="summary-label">Gross Margin %</div>
+                    <div class="summary-value" id="sum_margin">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RESOURCES ===== -->
+    <div class="tab-pane fade" id="tab-resources">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">Resources (Costing Calculation)</h6>
+        <button class="btn btn-primary btn-sm" onclick="addResource()">
+          <i class="bi bi-plus-circle me-1"></i>Add Resource
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Role / Name</th>
+              <th>Level</th>
+              <th>Hours</th>
+              <th>Rate ($/hr)</th>
+              <th>Cost (USD)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="resources-tbody"></tbody>
+          <tfoot>
+            <tr class="table-warning fw-bold">
+              <td colspan="3" class="text-end">Total</td>
+              <td id="tot_hours">0</td>
+              <td></td>
+              <td id="tot_cost">$0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>Sell Cost = Input Cost ÷ 0.6 (40% gross margin target)</p>
+    </div>
+
+    <!-- ===== RATE CARD ===== -->
+    <div class="tab-pane fade" id="tab-ratecard">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">Rate Card</h6>
+        <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
+          <i class="bi bi-plus-circle me-1"></i>Add Level
+        </button>
+      </div>
+      <div class="row">
+        <div class="col-md-5">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th>#</th>
+                  <th>Level</th>
+                  <th>Rate ($/hr)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ratecard-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-bar-chart me-1"></i>Rate Visualization</div>
+            <div class="card-body" id="rate-chart-area"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RELEASES ===== -->
+    <div class="tab-pane fade" id="tab-releases">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">Release Plan</h6>
+        <button class="btn btn-primary btn-sm" onclick="addRelease()">
+          <i class="bi bi-plus-circle me-1"></i>Add Release
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small">
+          <thead class="table-dark">
+            <tr>
+              <th>Release</th>
+              <th>Entities</th>
+              <th>EC+Time Off</th>
+              <th>Payroll Countries</th>
+              <th>EC Payroll</th>
+              <th>ABAP/CPI/PTP</th>
+              <th>BTP</th>
+              <th>RCM+ONB+OFFB</th>
+              <th>PMGM</th>
+              <th>LMS</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="releases-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== PNL ROLES ===== -->
+    <div class="tab-pane fade" id="tab-pnl-roles">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">PnL Sheet Roles (appear on the PnL summary)</h6>
+        <button class="btn btn-primary btn-sm" onclick="addPnlRole()">
+          <i class="bi bi-plus-circle me-1"></i>Add Role
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Role / Name</th>
+              <th>Partner</th>
+              <th>Payment Terms</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pnl-roles-tbody"></tbody>
+        </table>
+      </div>
+      <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>The first role row will carry Revenue and Cost figures from the Costing Calculation sheet.</p>
+    </div>
+
+    <!-- ===== FUNDING & APPROVALS ===== -->
+    <div class="tab-pane fade" id="tab-funding">
+      <div class="row g-3">
+        <!-- Attachments -->
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-paperclip me-1"></i>Attachments</div>
+            <div class="card-body">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="att_customer_po"/>
+                <label class="form-check-label" for="att_customer_po">Customer PO attached</label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="att_cloud4c"/>
+                <label class="form-check-label" for="att_cloud4c">Cloud4C Quote attached</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="att_partner"/>
+                <label class="form-check-label" for="att_partner">Partner proposal attached</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Funding -->
+        <div class="col-md-8">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-cash-stack me-1"></i>Funding / Rebates</div>
+            <div class="card-body">
+              <table class="table table-sm table-bordered align-middle">
+                <thead class="table-secondary">
+                  <tr><th>Type</th><th>Method</th><th>Reference</th><th>Currency</th><th>Value (USD)</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-bold">Marketing</td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mkt_method"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mkt_ref"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mkt_currency" value="USD"/></td>
+                    <td><input type="number" class="form-control form-control-sm" id="fund_mkt_value" step="0.01"/></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold">Management</td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mgmt_method"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mgmt_ref"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_mgmt_currency" value="USD"/></td>
+                    <td><input type="number" class="form-control form-control-sm" id="fund_mgmt_value" step="0.01"/></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold">Discount</td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_disc_method"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_disc_ref"/></td>
+                    <td><input type="text" class="form-control form-control-sm" id="fund_disc_currency" value="USD"/></td>
+                    <td><input type="number" class="form-control form-control-sm" id="fund_disc_value" step="0.01"/></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Approvals -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-pen me-1"></i>Approvals</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Prepared By</label>
+                  <input type="text" class="form-control" id="appr_prepared_by"/>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Reviewed By</label>
+                  <input type="text" class="form-control" id="appr_reviewed_by"/>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Approved By</label>
+                  <input type="text" class="form-control" id="appr_approved_by"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPORT SETTINGS ===== -->
+    <div class="tab-pane fade" id="tab-export">
+      <div class="col-md-5">
+        <div class="card">
+          <div class="card-header fw-bold"><i class="bi bi-file-earmark-excel me-1"></i>Export Settings</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Filename prefix <span class="text-muted small">(optional override)</span></label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="export_filename" placeholder="Auto from project name"/>
+                <span class="input-group-text text-muted">.xlsx</span>
+              </div>
+              <div class="form-text">Leave blank to auto-generate from customer name.</div>
+            </div>
+            <div class="alert alert-secondary py-2 small mb-4">
+              <i class="bi bi-file-earmark-excel me-1 text-success"></i>
+              Final filename: <strong id="filename_preview">…</strong>
+            </div>
+            <button class="btn btn-success w-100" onclick="exportExcel()">
+              <i class="bi bi-file-earmark-excel me-1"></i>Download Excel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+</div><!-- /container -->
+
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+  <div id="toast" class="toast align-items-center" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toast-body">Saved!</div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
