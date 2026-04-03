@@ -220,9 +220,9 @@ function renderResources() {
         </select>
       </td>
       <td><input type="number" class="form-control form-control-sm" value="${res.hours ?? ''}" min="0"
-          onchange="appData.resources[${i}].hours=parseFloat(this.value)||0; renderResources(); updateSummary();"/></td>
-      <td class="text-end fw-bold rate-cell">$${rate.toFixed(2)}</td>
-      <td class="text-end fw-semibold">${fmtMoney(cost)}</td>
+          oninput="updateResourceCost(${i}, this.value)"/></td>
+      <td class="text-end fw-bold rate-cell" id="res_rate_${i}">$${rate.toFixed(2)}</td>
+      <td class="text-end fw-semibold" id="res_cost_${i}">${fmtMoney(cost)}</td>
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeResource(${i})" title="Remove">
           <i class="bi bi-trash3"></i>
@@ -233,6 +233,29 @@ function renderResources() {
 
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
+}
+
+function updateResourceCost(i, hoursVal) {
+  const hours = parseFloat(hoursVal) || 0;
+  appData.resources[i].hours = hours;
+
+  const rateMap = {};
+  (appData.rate_card || []).forEach(r => { rateMap[r.level] = r.rate; });
+  const rate = rateMap[appData.resources[i].level] || 0;
+  const cost = hours * rate;
+
+  const costEl = document.getElementById(`res_cost_${i}`);
+  if (costEl) costEl.textContent = fmtMoney(cost);
+
+  // Recalculate totals
+  let totalHours = 0, totalCost = 0;
+  (appData.resources || []).forEach(r => {
+    totalHours += (r.hours || 0);
+    totalCost  += (r.hours || 0) * (rateMap[r.level] || 0);
+  });
+  document.getElementById('tot_hours').textContent = totalHours;
+  document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
+  updateSummary();
 }
 
 function onResGroupChange(i, groupName) {
