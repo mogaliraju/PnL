@@ -299,6 +299,17 @@ function removeResource(i) {
 // ============================================================
 // RATE CARD
 // ============================================================
+function collectRateCard() {
+  const rows = document.querySelectorAll('#ratecard-tbody tr');
+  rows.forEach((row, i) => {
+    if (!appData.rate_card[i]) return;
+    const levelInput = row.querySelector('input[type="text"]');
+    const rateInput  = row.querySelector('input[type="number"]');
+    if (levelInput) appData.rate_card[i].level = levelInput.value.trim();
+    if (rateInput)  appData.rate_card[i].rate  = parseFloat(rateInput.value) || 0;
+  });
+}
+
 function renderRateCard() {
   const rc = appData.rate_card || [];
   const tbody = document.getElementById('ratecard-tbody');
@@ -309,9 +320,9 @@ function renderRateCard() {
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
-          onchange="appData.rate_card[${i}].level=this.value; renderResources(); renderRateChart(); updateSummary();"/></td>
+          oninput="appData.rate_card[${i}].level=this.value; renderRateChart();"/></td>
       <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-          onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; renderResources(); renderRateChart(); updateSummary();"/></td>
+          oninput="appData.rate_card[${i}].rate=parseFloat(this.value)||0; renderRateChart(); renderResources(); updateSummary();"/></td>
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
           <i class="bi bi-trash3"></i>
@@ -747,9 +758,9 @@ function updateFilenamePreview() {
 // ============================================================
 function collectAll() {
   collectProject();
+  collectRateCard();
   collectFundingApprovals();
   collectExportSettings();
-  // Resources and rate card are updated in-place via onchange handlers
 }
 
 async function saveAll() {
