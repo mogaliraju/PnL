@@ -79,5 +79,74 @@
     }
   ],
   "releases": [],
-  "resources": []
+  "resources": [],
+  "role_catalog": [
+    {
+      "group": "Data Engineering",
+      "roles": [
+        "Junior Data Engineer",
+        "Data Engineer",
+        "Senior Data Engineer",
+        "Lead Data Engineer",
+        "Principal Data Engineer",
+        "Data Architect",
+        "ETL Developer",
+        "Data Pipeline Engineer",
+        "DataOps Engineer",
+        "Database Administrator",
+        "Data Modeler",
+        "Big Data Engineer",
+        "Cloud Data Engineer"
+      ]
+    },
+    {
+      "group": "Power BI & Analytics",
+      "roles": [
+        "Power BI Developer",
+        "Senior Power BI Developer",
+        "Power BI Architect",
+        "BI Developer",
+        "BI Analyst",
+        "Analytics Engineer",
+        "Data Analyst",
+        "Senior Data Analyst",
+        "Dashboard Developer",
+        "Reporting Analyst",
+        "Data Visualization Specialist"
+      ]
+    },
+    {
+      "group": "Architecture & Leadership",
+      "roles": [
+        "Solution Architect",
+        "Principal Architect",
+        "Enterprise Architect",
+        "Technical Lead",
+        "Data Lead",
+        "Head of Data"
+      ]
+    },
+    {
+      "group": "Project & Product",
+      "roles": [
+        "Project Manager",
+        "Program Manager",
+        "Delivery Manager",
+        "Scrum Master",
+        "Business Analyst",
+        "Product Owner"
+      ]
+    },
+    {
+      "group": "Support & Pre-Sales",
+      "roles": [
+        "Sales Manager",
+        "Presales Architect",
+        "DevOps Engineer",
+        "Cloud Engineer",
+        "QA Engineer",
+        "Technical Writer"
+      ]
+    }
+  ]
 }

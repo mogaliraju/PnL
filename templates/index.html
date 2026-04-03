@@ -241,27 +241,64 @@
 
     <!-- ===== PNL ROLES ===== -->
     <div class="tab-pane fade" id="tab-pnl-roles">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0 fw-bold">PnL Sheet Roles (appear on the PnL summary)</h6>
-        <button class="btn btn-primary btn-sm" onclick="addPnlRole()">
-          <i class="bi bi-plus-circle me-1"></i>Add Role
-        </button>
+      <div class="row g-3">
+        <!-- Left: active PnL roles -->
+        <div class="col-lg-8">
+          <div class="card h-100">
+            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-person-badge me-1"></i>PnL Roles</span>
+              <button class="btn btn-primary btn-sm" onclick="addPnlRole()">
+                <i class="bi bi-plus-circle me-1"></i>Add Role
+              </button>
+            </div>
+            <div class="card-body p-2">
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0">
+                  <thead class="table-dark">
+                    <tr>
+                      <th style="width:32px">#</th>
+                      <th>Role</th>
+                      <th style="width:160px">Partner</th>
+                      <th style="width:160px">Payment Terms</th>
+                      <th style="width:36px"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="pnl-roles-tbody"></tbody>
+                </table>
+              </div>
+              <p class="text-muted small mb-0 mt-2 px-1">
+                <i class="bi bi-info-circle me-1"></i>First row carries Revenue &amp; Cost from Costing sheet.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: role catalog manager -->
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-journals me-1"></i>Role Catalog</div>
+            <div class="card-body">
+              <!-- Add new role to catalog -->
+              <div class="input-group input-group-sm mb-3">
+                <input type="text" class="form-control" id="new_catalog_role" placeholder="New role name…"/>
+                <select class="form-select" id="new_catalog_group" style="max-width:160px">
+                  <option value="Data Engineering">Data Engineering</option>
+                  <option value="Power BI & Analytics">Power BI &amp; Analytics</option>
+                  <option value="Architecture & Leadership">Architecture &amp; Leadership</option>
+                  <option value="Project & Product">Project &amp; Product</option>
+                  <option value="Support & Pre-Sales">Support &amp; Pre-Sales</option>
+                  <option value="Custom">Custom</option>
+                </select>
+                <button class="btn btn-primary" onclick="addToCatalog()">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+              <!-- Catalog grouped list -->
+              <div id="catalog-list" style="max-height:400px;overflow-y:auto;font-size:13px;"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Role / Name</th>
-              <th>Partner</th>
-              <th>Payment Terms</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="pnl-roles-tbody"></tbody>
-        </table>
-      </div>
-      <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>The first role row will carry Revenue and Cost figures from the Costing Calculation sheet.</p>
     </div>
 
     <!-- ===== FUNDING & APPROVALS ===== -->

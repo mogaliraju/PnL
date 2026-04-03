@@ -63,6 +63,7 @@ function populateAll() {
   renderRateCard();
   renderReleases();
   renderPnlRoles();
+  renderCatalogList();
   populateFundingApprovals();
   populateExportSettings();
   updateSummary();
@@ -325,17 +326,29 @@ function removeRelease(i) {
 // ============================================================
 // PNL ROLES
 // ============================================================
+const _pnlRoleSelects = {}; // track TomSelect instances by row index
+
+function allCatalogRoles() {
+  return (appData.role_catalog || []).flatMap(g =>
+    g.roles.map(r => ({ value: r, text: r, group: g.group }))
+  );
+}
+
 function renderPnlRoles() {
+  // Destroy existing TomSelect instances
+  Object.values(_pnlRoleSelects).forEach(ts => { try { ts.destroy(); } catch(e){} });
+  Object.keys(_pnlRoleSelects).forEach(k => delete _pnlRoleSelects[k]);
+
   const roles = appData.pnl_roles || [];
   const tbody = document.getElementById('pnl-roles-tbody');
   tbody.innerHTML = '';
 
   roles.forEach((role, i) => {
+    const selectId = `pnl_role_sel_${i}`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
-      <td><input type="text" class="form-control form-control-sm" value="${esc(role.name||'')}"
-          onchange="appData.pnl_roles[${i}].name=this.value"/></td>
+      <td><select id="${selectId}"></select></td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(role.partner||'')}"
           onchange="appData.pnl_roles[${i}].partner=this.value"/></td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(role.payment_terms||'')}"
@@ -346,18 +359,118 @@ function renderPnlRoles() {
         </button>
       </td>`;
     tbody.appendChild(tr);
+
+    // Build grouped options
+    const groups = {};
+    allCatalogRoles().forEach(r => {
+      if (!groups[r.group]) groups[r.group] = [];
+      groups[r.group].push({ value: r.value, text: r.text });
+    });
+    const optGroups = Object.entries(groups).map(([label, items]) => ({ label, options: items }));
+
+    const ts = new TomSelect(`#${selectId}`, {
+      options: allCatalogRoles(),
+      optgroups: optGroups,
+      optgroupField: 'group',
+      labelField: 'text',
+      valueField: 'value',
+      searchField: 'text',
+      create(input) {
+        // Add new role to catalog under Custom group
+        addRoleToCatalog(input, 'Custom');
+        return { value: input, text: input, group: 'Custom' };
+      },
+      placeholder: 'Search or type new role…',
+      onChange(val) { appData.pnl_roles[i].name = val; }
+    });
+
+    if (role.name) ts.setValue(role.name, true);
+    _pnlRoleSelects[i] = ts;
   });
+
+  renderCatalogList();
 }
 
 function addPnlRole() {
   if (!appData.pnl_roles) appData.pnl_roles = [];
-  appData.pnl_roles.push({ id: Date.now(), name: 'New Role', partner: '', payment_terms: '' });
+  const first = allCatalogRoles()[0];
+  appData.pnl_roles.push({
+    id: Date.now(),
+    name: first ? first.value : '',
+    partner: appData.project?.partner || '',
+    payment_terms: appData.project?.payment_terms || ''
+  });
   renderPnlRoles();
 }
 
 function removePnlRole(i) {
   appData.pnl_roles.splice(i, 1);
   renderPnlRoles();
+}
+
+// ============================================================
+// ROLE CATALOG MANAGEMENT
+// ============================================================
+function addRoleToCatalog(roleName, groupName) {
+  roleName = roleName.trim();
+  if (!roleName) return;
+  if (!appData.role_catalog) appData.role_catalog = [];
+  let group = appData.role_catalog.find(g => g.group === groupName);
+  if (!group) {
+    group = { group: groupName, roles: [] };
+    appData.role_catalog.push(group);
+    // Keep custom group select in sync
+    const sel = document.getElementById('new_catalog_group');
+    if (sel && ![...sel.options].some(o => o.value === groupName)) {
+      const opt = document.createElement('option');
+      opt.value = groupName; opt.textContent = groupName;
+      sel.appendChild(opt);
+    }
+  }
+  if (!group.roles.includes(roleName)) {
+    group.roles.push(roleName);
+    renderCatalogList();
+  }
+}
+
+function addToCatalog() {
+  const name = document.getElementById('new_catalog_role').value.trim();
+  const group = document.getElementById('new_catalog_group').value;
+  if (!name) { showToast('Enter a role name', 'danger'); return; }
+  addRoleToCatalog(name, group);
+  document.getElementById('new_catalog_role').value = '';
+  // Rebuild all open dropdowns to include the new option
+  renderPnlRoles();
+  showToast(`Added "${name}" to catalog`, 'success');
+}
+
+function removeFromCatalog(groupName, roleName) {
+  const group = (appData.role_catalog || []).find(g => g.group === groupName);
+  if (group) {
+    group.roles = group.roles.filter(r => r !== roleName);
+    renderPnlRoles();
+  }
+}
+
+function renderCatalogList() {
+  const el = document.getElementById('catalog-list');
+  if (!el) return;
+  const catalog = appData.role_catalog || [];
+  el.innerHTML = catalog.map(g => `
+    <div class="mb-2">
+      <div class="fw-semibold text-uppercase small mb-1" style="color:var(--ax-mid);letter-spacing:.5px">
+        ${esc(g.group)}
+      </div>
+      ${g.roles.map(r => `
+        <div class="d-flex justify-content-between align-items-center px-2 py-1 rounded mb-1"
+             style="background:var(--ax-tint2);">
+          <span>${esc(r)}</span>
+          <button class="btn btn-link btn-sm p-0 text-danger" style="font-size:12px"
+            onclick="removeFromCatalog('${esc(g.group)}','${esc(r)}')">
+            <i class="bi bi-x-circle"></i>
+          </button>
+        </div>`).join('')}
+    </div>`).join('');
 }
 
 // ============================================================
