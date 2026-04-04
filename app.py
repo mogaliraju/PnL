@@ -12,20 +12,47 @@ from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 
-BASE_DIR     = os.path.dirname(__file__)
-DATA_FILE    = os.path.join(BASE_DIR, 'data.json')
-PROJECTS_DIR = os.path.join(BASE_DIR, 'projects')
+BASE_DIR      = os.path.dirname(__file__)
+DATA_FILE     = os.path.join(BASE_DIR, 'data.json')
+SETTINGS_FILE = os.path.join(BASE_DIR, 'settings.json')
+PROJECTS_DIR  = os.path.join(BASE_DIR, 'projects')
 os.makedirs(PROJECTS_DIR, exist_ok=True)
+
+
+def load_settings():
+    if not os.path.exists(SETTINGS_FILE):
+        return {}
+    with open(SETTINGS_FILE, 'r') as f:
+        return json.load(f)
+
+
+def save_settings(s):
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(s, f, indent=2)
 
 
 def load_data():
     with open(DATA_FILE, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+    # Always inject the global standard rate card + role catalog
+    s = load_settings()
+    if s.get('rate_card'):
+        data['rate_card'] = s['rate_card']
+    if s.get('role_catalog'):
+        data['role_catalog'] = s['role_catalog']
+    return data
 
 
 def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=2)
+    # Persist rate card & role catalog as global standards
+    s = load_settings()
+    if data.get('rate_card'):
+        s['rate_card'] = data['rate_card']
+    if data.get('role_catalog'):
+        s['role_catalog'] = data['role_catalog']
+    save_settings(s)
 
 
 def safe_filename(name):
@@ -97,8 +124,26 @@ def load_project(pid):
         return jsonify({'error': 'Not found'}), 404
     with open(path) as f:
         data = json.load(f)
+    # Always use the current global standard rate card + role catalog
+    s = load_settings()
+    if s.get('rate_card'):
+        data['rate_card'] = s['rate_card']
+    if s.get('role_catalog'):
+        data['role_catalog'] = s['role_catalog']
     save_data(data)   # set as current working copy
     return jsonify(data)
+
+
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    s = request.json or {}
+    existing = load_settings()
+    if s.get('rate_card'):
+        existing['rate_card'] = s['rate_card']
+    if s.get('role_catalog'):
+        existing['role_catalog'] = s['role_catalog']
+    save_settings(existing)
+    return jsonify({'status': 'ok'})
 
 
 @app.route('/api/projects/<pid>', methods=['DELETE'])

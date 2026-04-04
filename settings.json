@@ -1,0 +1,16 @@
+{
+  "rate_card": [
+    {
+      "level": "L1",
+      "rate": 7
+    },
+    {
+      "level": "L2",
+      "rate": 20
+    },
+    {
+      "level": "L7",
+      "rate": 55
+    }
+  ]
+}

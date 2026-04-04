@@ -320,9 +320,9 @@ function renderRateCard() {
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
-          oninput="appData.rate_card[${i}].level=this.value; renderRateChart();"/></td>
+          oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
       <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-          oninput="appData.rate_card[${i}].rate=parseFloat(this.value)||0; renderRateChart(); renderResources(); updateSummary();"/></td>
+          oninput="appData.rate_card[${i}].rate=parseFloat(this.value)||0; renderRateChart(); renderResources(); updateSummary(); saveSettings();"/></td>
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
           <i class="bi bi-trash3"></i>
@@ -334,11 +334,23 @@ function renderRateCard() {
   renderRateChart();
 }
 
+function saveSettings() {
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      rate_card:    appData.rate_card,
+      role_catalog: appData.role_catalog
+    })
+  });
+}
+
 function addRateLevel() {
   if (!appData.rate_card) appData.rate_card = [];
   const nextNum = appData.rate_card.length + 1;
   appData.rate_card.push({ level: `L${nextNum}`, rate: 0 });
   renderRateCard();
+  saveSettings();
 }
 
 function removeRateLevel(i) {
@@ -346,6 +358,7 @@ function removeRateLevel(i) {
   renderRateCard();
   renderResources();
   updateSummary();
+  saveSettings();
 }
 
 function renderRateChart() {
@@ -523,8 +536,8 @@ function addToCatalog() {
   if (!name) { showToast('Enter a role name', 'danger'); return; }
   addRoleToCatalog(name, group);
   document.getElementById('new_catalog_role').value = '';
-  // Rebuild all open dropdowns to include the new option
   renderPnlRoles();
+  saveSettings();
   showToast(`Added "${name}" to catalog`, 'success');
 }
 
@@ -533,6 +546,7 @@ function removeFromCatalog(groupName, roleName) {
   if (group) {
     group.roles = group.roles.filter(r => r !== roleName);
     renderPnlRoles();
+    saveSettings();
   }
 }
 
