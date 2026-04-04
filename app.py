@@ -13,10 +13,18 @@ from openpyxl.utils import get_column_letter
 app = Flask(__name__)
 
 BASE_DIR      = os.path.dirname(__file__)
-DATA_FILE     = os.path.join(BASE_DIR, 'data.json')
-SETTINGS_FILE = os.path.join(BASE_DIR, 'settings.json')
-PROJECTS_DIR  = os.path.join(BASE_DIR, 'projects')
+# Use /data (Render persistent disk) when available, else local directory
+DATA_DIR      = os.environ.get('DATA_DIR', BASE_DIR)
+DATA_FILE     = os.path.join(DATA_DIR, 'data.json')
+SETTINGS_FILE = os.path.join(DATA_DIR, 'settings.json')
+PROJECTS_DIR  = os.path.join(DATA_DIR, 'projects')
 os.makedirs(PROJECTS_DIR, exist_ok=True)
+
+# Seed data.json from bundled copy if not yet present on disk
+_SEED_FILE = os.path.join(BASE_DIR, 'data.json')
+if not os.path.exists(DATA_FILE) and os.path.exists(_SEED_FILE) and DATA_DIR != BASE_DIR:
+    import shutil
+    shutil.copy(_SEED_FILE, DATA_FILE)
 
 
 def load_settings():
