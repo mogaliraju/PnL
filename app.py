@@ -3,7 +3,9 @@ import os
 import re
 from datetime import datetime
 from io import BytesIO
-from flask import Flask, render_template, request, jsonify, send_file
+from functools import wraps
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
 import openpyxl
 from openpyxl.styles import (
     Font, PatternFill, Alignment, Border, Side
@@ -11,13 +13,14 @@ from openpyxl.styles import (
 from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'ax-pnl-secret-2026-change-in-prod')
 
 BASE_DIR      = os.path.dirname(__file__)
-# Use /data (Render persistent disk) when available, else local directory
 DATA_DIR      = os.environ.get('DATA_DIR', BASE_DIR)
 DATA_FILE     = os.path.join(DATA_DIR, 'data.json')
 SETTINGS_FILE = os.path.join(DATA_DIR, 'settings.json')
 PROJECTS_DIR  = os.path.join(DATA_DIR, 'projects')
+USERS_FILE    = os.path.join(DATA_DIR, 'users.json')
 os.makedirs(PROJECTS_DIR, exist_ok=True)
 
 # Seed data.json from bundled copy if not yet present on disk
@@ -25,6 +28,56 @@ _SEED_FILE = os.path.join(BASE_DIR, 'data.json')
 if not os.path.exists(DATA_FILE) and os.path.exists(_SEED_FILE) and DATA_DIR != BASE_DIR:
     import shutil
     shutil.copy(_SEED_FILE, DATA_FILE)
+
+
+# ── Users ─────────────────────────────────────────────────────
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        # Create default admin on first run
+        admin = {
+            'admin': {
+                'password': generate_password_hash('admin123'),
+                'role': 'admin',
+                'name': 'Administrator',
+                'created_at': datetime.now().isoformat(timespec='seconds')
+            }
+        }
+        with open(USERS_FILE, 'w') as f:
+            json.dump(admin, f, indent=2)
+        return admin
+    with open(USERS_FILE, 'r') as f:
+        return json.load(f)
+
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
+
+
+def current_user():
+    return session.get('user')
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user'):
+            if request.is_json:
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect(url_for('login_page'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get('role') != 'admin':
+            if request.is_json:
+                return jsonify({'error': 'Admin only'}), 403
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated
 
 
 def load_settings():
@@ -67,18 +120,117 @@ def safe_filename(name):
     return re.sub(r'[^a-zA-Z0-9_\-]', '_', name.strip())
 
 
+# ── Auth routes ───────────────────────────────────────────────
+@app.route('/login', methods=['GET'])
+def login_page():
+    if session.get('user'):
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json or {}
+    username = data.get('username', '').strip().lower()
+    password = data.get('password', '')
+    users = load_users()
+    user = users.get(username)
+    if not user or not check_password_hash(user['password'], password):
+        return jsonify({'error': 'Invalid username or password'}), 401
+    session['user']     = username
+    session['role']     = user['role']
+    session['name']     = user.get('name', username)
+    return jsonify({'status': 'ok', 'role': user['role'], 'name': user.get('name', username)})
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
+
+
+# ── User management (admin only) ──────────────────────────────
+@app.route('/api/users', methods=['GET'])
+@login_required
+@admin_required
+def list_users():
+    users = load_users()
+    return jsonify([
+        {'username': u, 'name': d.get('name',''), 'role': d.get('role','user'),
+         'created_at': d.get('created_at','')}
+        for u, d in users.items()
+    ])
+
+
+@app.route('/api/users', methods=['POST'])
+@login_required
+@admin_required
+def create_user():
+    data = request.json or {}
+    username = data.get('username', '').strip().lower()
+    password = data.get('password', '').strip()
+    name     = data.get('name', '').strip()
+    role     = data.get('role', 'user')
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+    users = load_users()
+    if username in users:
+        return jsonify({'error': 'User already exists'}), 409
+    users[username] = {
+        'password':   generate_password_hash(password),
+        'role':       role,
+        'name':       name or username,
+        'created_at': datetime.now().isoformat(timespec='seconds')
+    }
+    save_users(users)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_user(username):
+    if username == 'admin':
+        return jsonify({'error': 'Cannot delete admin'}), 400
+    users = load_users()
+    users.pop(username, None)
+    save_users(users)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/users/<username>/password', methods=['POST'])
+@login_required
+def change_password(username):
+    # Admin can change anyone's; users can only change their own
+    if session.get('role') != 'admin' and session.get('user') != username:
+        return jsonify({'error': 'Forbidden'}), 403
+    data = request.json or {}
+    new_pw = data.get('password', '').strip()
+    if not new_pw:
+        return jsonify({'error': 'Password required'}), 400
+    users = load_users()
+    if username not in users:
+        return jsonify({'error': 'User not found'}), 404
+    users[username]['password'] = generate_password_hash(new_pw)
+    save_users(users)
+    return jsonify({'status': 'ok'})
+
+
 # ── Current working project ──────────────────────────────────
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 
 @app.route('/api/data', methods=['GET'])
+@login_required
 def get_data():
     return jsonify(load_data())
 
 
 @app.route('/api/data', methods=['POST'])
+@login_required
 def update_data():
     data = request.json
     save_data(data)
@@ -87,6 +239,7 @@ def update_data():
 
 # ── Saved projects ────────────────────────────────────────────
 @app.route('/api/projects', methods=['GET'])
+@login_required
 def list_projects():
     projects = []
     for fname in sorted(os.listdir(PROJECTS_DIR)):
@@ -108,6 +261,7 @@ def list_projects():
 
 
 @app.route('/api/projects', methods=['POST'])
+@login_required
 def save_project():
     data = request.json
     name = data.get('_meta', {}).get('name') or \
@@ -126,6 +280,7 @@ def save_project():
 
 
 @app.route('/api/projects/<pid>', methods=['GET'])
+@login_required
 def load_project(pid):
     path = os.path.join(PROJECTS_DIR, pid + '.json')
     if not os.path.exists(path):
@@ -142,7 +297,14 @@ def load_project(pid):
     return jsonify(data)
 
 
+@app.route('/api/me')
+@login_required
+def me():
+    return jsonify({'username': session['user'], 'role': session['role'], 'name': session['name']})
+
+
 @app.route('/api/settings', methods=['POST'])
+@login_required
 def update_settings():
     s = request.json or {}
     existing = load_settings()
@@ -155,6 +317,7 @@ def update_settings():
 
 
 @app.route('/api/projects/<pid>', methods=['DELETE'])
+@login_required
 def delete_project(pid):
     path = os.path.join(PROJECTS_DIR, pid + '.json')
     if os.path.exists(path):
@@ -163,6 +326,7 @@ def delete_project(pid):
 
 
 @app.route('/api/export', methods=['POST'])
+@login_required
 def export_excel():
     try:
         data = request.json

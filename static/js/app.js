@@ -3,6 +3,118 @@
 // ============================================================
 
 let appData = {};
+let currentUser = {};
+
+// ── Auth / session ───────────────────────────────────────────
+async function loadSession() {
+  const res = await fetch('/api/me');
+  if (!res.ok) { window.location.href = '/login'; return; }
+  currentUser = await res.json();
+  document.getElementById('nav_username').textContent = currentUser.name || currentUser.username;
+  document.getElementById('nav_role_label').textContent =
+    currentUser.role === 'admin' ? '👑 Administrator' : '👤 User';
+  if (currentUser.role === 'admin') {
+    document.getElementById('nav_admin_link').classList.remove('d-none');
+    // Load users modal on open
+    document.getElementById('usersModal')
+      ?.addEventListener('show.bs.modal', loadUsersList);
+  }
+}
+
+// ── User management ──────────────────────────────────────────
+async function loadUsersList() {
+  const res  = await fetch('/api/users');
+  const list = await res.json();
+  const el   = document.getElementById('users-list');
+  el.innerHTML = `
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-dark">
+        <tr><th>Username</th><th>Full Name</th><th>Role</th><th>Created</th><th style="width:120px"></th></tr>
+      </thead>
+      <tbody>
+        ${list.map(u => `
+          <tr>
+            <td class="fw-semibold">${esc(u.username)}</td>
+            <td>${esc(u.name)}</td>
+            <td><span class="badge ${u.role==='admin'?'text-bg-warning':'text-bg-secondary'}">${u.role}</span></td>
+            <td class="small text-muted">${u.created_at?.replace('T',' ') || ''}</td>
+            <td class="text-center">
+              <button class="btn btn-outline-primary btn-sm me-1"
+                onclick="adminResetPassword('${esc(u.username)}')" title="Reset password">
+                <i class="bi bi-key"></i>
+              </button>
+              ${u.username !== 'admin' ? `
+              <button class="btn btn-outline-danger btn-sm"
+                onclick="deleteUser('${esc(u.username)}')" title="Delete">
+                <i class="bi bi-trash3"></i>
+              </button>` : ''}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function createUser() {
+  const username = document.getElementById('new_user_username').value.trim();
+  const name     = document.getElementById('new_user_name').value.trim();
+  const password = document.getElementById('new_user_password').value.trim();
+  const role     = document.getElementById('new_user_role').value;
+  if (!username || !password) { showToast('Username and password required', 'danger'); return; }
+  const res = await fetch('/api/users', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ username, name, password, role })
+  });
+  const json = await res.json();
+  if (res.ok) {
+    document.getElementById('new_user_username').value = '';
+    document.getElementById('new_user_name').value = '';
+    document.getElementById('new_user_password').value = '';
+    loadUsersList();
+    showToast(`User "${username}" created`, 'success');
+  } else {
+    showToast(json.error || 'Failed', 'danger');
+  }
+}
+
+async function deleteUser(username) {
+  if (!confirm(`Delete user "${username}"?`)) return;
+  await fetch(`/api/users/${username}`, { method: 'DELETE' });
+  loadUsersList();
+  showToast(`User "${username}" deleted`, 'success');
+}
+
+async function adminResetPassword(username) {
+  const pw = prompt(`Set new password for "${username}":`);
+  if (!pw) return;
+  const res = await fetch(`/api/users/${username}/password`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ password: pw })
+  });
+  if (res.ok) showToast('Password updated', 'success');
+  else showToast('Failed', 'danger');
+}
+
+async function changePassword() {
+  const pw1 = document.getElementById('new_password').value;
+  const pw2 = document.getElementById('confirm_password').value;
+  if (!pw1) { showToast('Enter a password', 'danger'); return; }
+  if (pw1 !== pw2) { showToast('Passwords do not match', 'danger'); return; }
+  const res = await fetch(`/api/users/${currentUser.username}/password`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ password: pw1 })
+  });
+  if (res.ok) {
+    showToast('Password changed', 'success');
+    bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'))?.hide();
+    document.getElementById('new_password').value = '';
+    document.getElementById('confirm_password').value = '';
+  } else {
+    showToast('Failed', 'danger');
+  }
+}
 
 // ============================================================
 // COUNTRIES LIST
@@ -52,7 +164,9 @@ function showToast(msg, type = 'success') {
 
 // ---------- Load data on page ready ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadSession();
   const res = await fetch('/api/data');
+  if (!res.ok) { window.location.href = '/login'; return; }
   appData = await res.json();
   populateAll();
 });
