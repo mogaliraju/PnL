@@ -1,3 +1,11 @@
 __pycache__/
 *.pyc
 .claude/
+
+# Runtime data — never commit these
+data.json
+settings.json
+users.json
+*.log
+projects/
+data/versions/
