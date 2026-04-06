@@ -130,8 +130,7 @@
   <!-- Tabs -->
   <ul class="nav nav-tabs mb-3" id="mainTabs">
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project Info</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-resources"><i class="bi bi-people me-1"></i>Resources</a></li>
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-releases"><i class="bi bi-calendar-event me-1"></i>Releases</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
@@ -154,10 +153,11 @@
       </div>
     </div>
 
-    <!-- ===== PROJECT INFO ===== -->
+    <!-- ===== PROJECT (merged Info + Resources) ===== -->
     <div class="tab-pane fade show active" id="tab-project">
-      <div class="row g-3">
-        <div class="col-md-6">
+      <div class="row g-3 mb-3">
+        <!-- Company & Customer -->
+        <div class="col-md-4">
           <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-building me-1"></i>Company & Customer</div>
             <div class="card-body">
@@ -172,7 +172,7 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Location</label>
-                <select id="proj_location" class="form-select" placeholder="Search country…"></select>
+                <select id="proj_location" class="form-select"></select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Reference</label>
@@ -181,7 +181,8 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6">
+        <!-- Proposal Details -->
+        <div class="col-md-4">
           <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-file-text me-1"></i>Proposal Details</div>
             <div class="card-body">
@@ -212,79 +213,70 @@
             </div>
           </div>
         </div>
-
-        <!-- Computed summary card -->
-        <div class="col-12">
-          <div class="card">
+        <!-- Cost Summary -->
+        <div class="col-md-4">
+          <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-calculator me-1"></i>Cost Summary (live)</div>
-            <div class="card-body">
-              <div class="row text-center">
-                <div class="col-md-3">
-                  <div class="summary-box bg-warning-subtle">
-                    <div class="summary-label">Input Cost (USD)</div>
-                    <div class="summary-value" id="sum_input_cost">—</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="summary-box bg-success-subtle">
-                    <div class="summary-label">Sell Cost / Revenue (USD)</div>
-                    <div class="summary-value" id="sum_sell_cost">—</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="summary-box bg-info-subtle">
-                    <div class="summary-label">Markup (USD)</div>
-                    <div class="summary-value" id="sum_markup">—</div>
-                  </div>
-                </div>
-                <div class="col-md-3">
-                  <div class="summary-box bg-primary-subtle">
-                    <div class="summary-label">Gross Margin %</div>
-                    <div class="summary-value" id="sum_margin">—</div>
-                  </div>
-                </div>
+            <div class="card-body d-flex flex-column gap-3 justify-content-center">
+              <div class="summary-box bg-warning-subtle">
+                <div class="summary-label">Input Cost (USD)</div>
+                <div class="summary-value" id="sum_input_cost">—</div>
+              </div>
+              <div class="summary-box bg-success-subtle">
+                <div class="summary-label">Sell Cost / Revenue (USD)</div>
+                <div class="summary-value" id="sum_sell_cost">—</div>
+              </div>
+              <div class="summary-box bg-info-subtle">
+                <div class="summary-label">Markup (USD)</div>
+                <div class="summary-value" id="sum_markup">—</div>
+              </div>
+              <div class="summary-box bg-primary-subtle">
+                <div class="summary-label">Gross Margin %</div>
+                <div class="summary-value" id="sum_margin">—</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ===== RESOURCES ===== -->
-    <div class="tab-pane fade" id="tab-resources">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0 fw-bold">Resources (Costing Calculation)</h6>
-        <button class="btn btn-primary btn-sm" onclick="addResource()">
-          <i class="bi bi-plus-circle me-1"></i>Add Resource
-        </button>
+      <!-- Resources -->
+      <div class="card">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-people me-1"></i>Resources (Costing Calculation)</span>
+          <button class="btn btn-primary btn-sm" onclick="addResource()">
+            <i class="bi bi-plus-circle me-1"></i>Add Resource
+          </button>
+        </div>
+        <div class="card-body p-2">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead class="table-dark">
+                <tr>
+                  <th>#</th>
+                  <th>Group</th>
+                  <th>Role</th>
+                  <th>Level</th>
+                  <th>Hours</th>
+                  <th>Rate ($/hr)</th>
+                  <th>Cost (USD)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="resources-tbody"></tbody>
+              <tfoot>
+                <tr class="table-warning fw-bold">
+                  <td colspan="4" class="text-end">Total</td>
+                  <td id="tot_hours">0</td>
+                  <td></td>
+                  <td id="tot_cost">$0.00</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p class="text-muted small mb-0 mt-2 px-1"><i class="bi bi-info-circle me-1"></i>Sell Cost = Input Cost ÷ 0.6 (40% gross margin target)</p>
+        </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Group</th>
-              <th>Role</th>
-              <th>Level</th>
-              <th>Hours</th>
-              <th>Rate ($/hr)</th>
-              <th>Cost (USD)</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="resources-tbody"></tbody>
-          <tfoot>
-            <tr class="table-warning fw-bold">
-              <td colspan="4" class="text-end">Total</td>
-              <td id="tot_hours">0</td>
-              <td></td>
-              <td id="tot_cost">$0.00</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>Sell Cost = Input Cost ÷ 0.6 (40% gross margin target)</p>
     </div>
 
     <!-- ===== RATE CARD ===== -->
