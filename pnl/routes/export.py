@@ -30,8 +30,9 @@ def export_excel():
 
         save_data(data)
 
-        rate_map = {r['level']: r['rate'] for r in data.get('rate_card', [])}
-        costs    = compute_costs(data.get('resources', []), rate_map)
+        rate_map      = {r['level']: r['rate'] for r in data.get('rate_card', [])}
+        target_margin = float(data.get('target_margin', 0.40))
+        costs         = compute_costs(data.get('resources', []), rate_map, target_margin)
 
         wb  = build_workbook(data, costs)
         buf = BytesIO()

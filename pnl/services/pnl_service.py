@@ -2,12 +2,13 @@
 from typing import Any
 
 
-def compute_costs(resources: list, rate_map: dict) -> dict:
+def compute_costs(resources: list, rate_map: dict, target_margin: float = 0.40) -> dict:
     input_cost = sum(
         r.get('hours', 0) * rate_map.get(r.get('level', ''), 0)
         for r in resources
     )
-    sell_cost    = input_cost / 0.6 if input_cost > 0 else 0
+    divisor      = 1.0 - max(0.0, min(target_margin, 0.99))
+    sell_cost    = input_cost / divisor if input_cost > 0 else 0
     markup       = sell_cost - input_cost
     markup_pct   = markup / input_cost if input_cost > 0 else 0
     gross_margin = markup / sell_cost  if sell_cost  > 0 else 0

@@ -196,6 +196,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function populateAll() {
+  if (typeof appData.target_margin === 'number') {
+    _targetMargin = appData.target_margin;
+  }
   populateProject();
   renderResources();
   renderRateCard();
@@ -1195,6 +1198,7 @@ function collectAll() {
   collectRateCard();
   collectFundingApprovals();
   collectExportSettings();
+  appData.target_margin = _targetMargin;
 }
 
 async function saveAll() {
