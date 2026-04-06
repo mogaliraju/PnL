@@ -500,6 +500,7 @@ function collectRateCard() {
 }
 
 let _usdToInr = null;
+let _currentPid = null;   // PID of the project currently loaded in the editor
 let _targetMargin = 0.40; // default 40%
 
 async function loadExchangeRate() {
@@ -914,9 +915,9 @@ async function loadProjectAndSwitch(id, name) {
   const res = await fetch(`/api/projects/${id}`);
   if (!res.ok) { showToast('Could not load project', 'danger'); return; }
   appData = await res.json();
+  _currentPid = id;
   populateAll();
   updateProjectBadge(name);
-  // Switch to Project Info tab
   document.querySelector('[href="#tab-project"]')?.click();
   showToast(`Loaded: ${name}`, 'success');
 }
@@ -991,8 +992,10 @@ async function saveAsProject() {
   const json = await res.json();
   if (res.ok) {
     document.getElementById('save_project_name').value = '';
+    _currentPid = json.id;
     updateProjectBadge(json.name);
     loadProjectsList();
+    loadAllProjects();
     bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
     showToast(`Saved as "${json.name}"`, 'success');
   } else {
@@ -1004,9 +1007,11 @@ async function loadProject(id, name) {
   const res  = await fetch(`/api/projects/${id}`);
   if (!res.ok) { showToast('Could not load project', 'danger'); return; }
   appData = await res.json();
+  _currentPid = id;
   populateAll();
   updateProjectBadge(name);
-  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
   showToast(`Loaded: ${name}`, 'success');
 }
 
@@ -1046,9 +1051,10 @@ async function confirmRename(id) {
 
 function newProject() {
   if (!confirm('Start a new blank project? Unsaved changes will be lost.')) return;
-  // Reset to blank slate keeping role catalog and rate card
   const catalog  = appData.role_catalog;
   const rateCard = appData.rate_card;
+  _currentPid    = null;
+  _targetMargin  = 0.40;
   appData = {
     project: { company: 'AutomatonsX', customer: '', location: '', reference: '',
                 proposal_date: '', customer_first_touch_point: '', project_description: '',
@@ -1058,11 +1064,12 @@ function newProject() {
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
-    export_filename: ''
+    export_filename: '', target_margin: 0.40
   };
   populateAll();
   updateProjectBadge(null);
-  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
   showToast('New project ready', 'primary');
 }
 
@@ -1208,22 +1215,38 @@ async function saveAll() {
     const el = document.getElementById('proj_customer');
     el?.classList.add('is-invalid');
     el?.focus();
-    // Switch to Project Info tab
     document.querySelector('[href="#tab-project"]')?.click();
     showToast('Customer Name is required.', 'danger');
     return;
   }
-  try {
-    const res = await fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appData)
-    });
-    if (res.ok) showToast('Saved successfully!', 'success');
-    else showToast('Save failed', 'danger');
-  } catch (e) {
-    showToast('Error: ' + e.message, 'danger');
+
+  if (_currentPid) {
+    // Update existing project file
+    try {
+      const res = await fetch(`/api/projects/${_currentPid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appData)
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showToast('Project updated!', 'success');
+        _refreshAllProjectsIfVisible();
+      } else {
+        showToast('Save failed: ' + (json.error || ''), 'danger');
+      }
+    } catch (e) {
+      showToast('Error: ' + e.message, 'danger');
+    }
+  } else {
+    // No project loaded — open Save As modal
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('saveAsModal')).show();
   }
+}
+
+function _refreshAllProjectsIfVisible() {
+  // Always refresh All Projects data so it's up-to-date when user switches to it
+  loadAllProjects();
 }
 
 async function exportExcel() {

@@ -94,6 +94,35 @@ def load_project(pid):
     return jsonify(data)
 
 
+@bp.route('/api/projects/<pid>', methods=['PUT'])
+@login_required
+def update_project(pid):
+    path = os.path.join(PROJECTS_DIR, pid + '.json')
+    if not os.path.exists(path):
+        return jsonify({'error': 'Not found'}), 404
+    data = request.json or {}
+    try:
+        validate_payload(data)
+    except ValidationError as e:
+        return jsonify({'error': str(e)}), 400
+
+    # Preserve original _meta (id, name, created) but update saved_at/by
+    with open(path) as f:
+        existing = json.load(f)
+    meta = existing.get('_meta', {})
+    meta['saved_at'] = datetime.now().isoformat(timespec='seconds')
+    meta['saved_by'] = session.get('user', '')
+    data['_meta'] = meta
+
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    _snapshot_version(pid, data)
+    save_data(data)
+    log.info(f"Project '{pid}' updated by '{session.get('user')}'")
+    return jsonify({'status': 'ok', 'id': pid, 'name': meta.get('name', pid)})
+
+
 @bp.route('/api/projects/<pid>', methods=['DELETE'])
 @login_required
 def delete_project(pid):
