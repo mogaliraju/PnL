@@ -307,14 +307,19 @@
     <div class="tab-pane fade" id="tab-ratecard">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="mb-0 fw-bold">Rate Card</h6>
-        <div class="d-flex align-items-center gap-3">
-          <span id="fx-badge" class="badge bg-light text-dark border small d-none">
-            <i class="bi bi-currency-exchange me-1"></i>
-            <span id="fx-rate-label">Loading…</span>
-          </span>
-          <button class="btn btn-outline-secondary btn-sm" onclick="loadExchangeRate()" title="Refresh exchange rate">
-            <i class="bi bi-arrow-repeat"></i>
-          </button>
+        <div class="d-flex align-items-center gap-2">
+          <!-- INR rate — always visible, editable -->
+          <div class="input-group input-group-sm" style="width:240px">
+            <span class="input-group-text"><i class="bi bi-currency-exchange me-1"></i>1 USD =</span>
+            <input type="number" class="form-control" id="fx_rate_inline" min="1" step="0.01" placeholder="Loading…" title="USD to INR rate"/>
+            <span class="input-group-text">₹</span>
+            <button class="btn btn-outline-secondary" onclick="applyFxRateInline()" title="Apply">
+              <i class="bi bi-check-lg"></i>
+            </button>
+            <button class="btn btn-outline-secondary" onclick="loadExchangeRate()" title="Refresh live rate">
+              <i class="bi bi-arrow-repeat"></i>
+            </button>
+          </div>
           <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
             <i class="bi bi-plus-circle me-1"></i>Add Level
           </button>
@@ -329,7 +334,7 @@
                   <th>#</th>
                   <th>Level</th>
                   <th>Rate ($/hr)</th>
-                  <th id="inr-col-header" class="d-none">Rate (₹/hr)</th>
+                  <th id="inr-col-header">Rate (₹/hr)</th>
                   <th></th>
                 </tr>
               </thead>

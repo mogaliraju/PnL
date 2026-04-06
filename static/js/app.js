@@ -337,7 +337,8 @@ function applyFxRate() {
   if (isNaN(val) || val <= 0) { showToast('Enter a valid exchange rate', 'danger'); return; }
   _usdToInr = val;
   document.getElementById('fx-edit-row').classList.add('d-none');
-  document.getElementById('inr-col-header')?.classList.remove('d-none');
+  const inlineEl = document.getElementById('fx_rate_inline');
+  if (inlineEl) inlineEl.value = val.toFixed(2);
   renderRateCard();
   updateSummary();
   showToast(`USD → INR set to ₹${val.toFixed(2)}`, 'success');
@@ -499,24 +500,28 @@ let _usdToInr = null;
 let _targetMargin = 0.40; // default 40%
 
 async function loadExchangeRate() {
+  const inlineEl = document.getElementById('fx_rate_inline');
+  if (inlineEl) inlineEl.placeholder = 'Fetching…';
   try {
-    // Call directly from browser — avoids PythonAnywhere outbound restrictions
     const res = await fetch('https://open.er-api.com/v6/latest/USD');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const fx = await res.json();
     _usdToInr = fx.rates.INR;
-    const updated = fx.time_last_update_utc
-      ? fx.time_last_update_utc.replace(/ \+0000$/, ' UTC') : '';
-    document.getElementById('fx-rate-label').textContent =
-      `1 USD = ₹${_usdToInr.toFixed(2)}  ·  ${updated}`;
-    document.getElementById('fx-badge').classList.remove('d-none');
-    document.getElementById('inr-col-header').classList.remove('d-none');
+    if (inlineEl) inlineEl.value = _usdToInr.toFixed(2);
     renderRateCard();
     updateSummary();
   } catch (e) {
-    document.getElementById('fx-rate-label').textContent = 'Rate unavailable';
-    document.getElementById('fx-badge').classList.remove('d-none');
+    if (inlineEl) inlineEl.placeholder = 'Unavailable — enter manually';
   }
+}
+
+function applyFxRateInline() {
+  const val = parseFloat(document.getElementById('fx_rate_inline')?.value);
+  if (isNaN(val) || val <= 0) { showToast('Enter a valid exchange rate', 'danger'); return; }
+  _usdToInr = val;
+  renderRateCard();
+  updateSummary();
+  showToast(`USD → INR set to ₹${val.toFixed(2)}`, 'success');
 }
 
 function renderRateCard() {
