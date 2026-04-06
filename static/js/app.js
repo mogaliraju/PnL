@@ -232,7 +232,7 @@ function initLocationDropdown(currentValue) {
   if (locationSelect) { locationSelect.destroy(); locationSelect = null; }
 
   locationSelect = new TomSelect('#proj_location', {
-    placeholder: 'Search country…',
+    placeholder: '',
     allowEmptyOption: true,
     maxOptions: 250,
     onChange() { collectProject(); updateFilenamePreview(); }
