@@ -592,7 +592,7 @@ function renderPnlRoles() {
 
   const roles = appData.pnl_roles || [];
   const tbody = document.getElementById('pnl-roles-tbody');
-  tbody.innerHTML = '';
+  if (!tbody) return;
 
   roles.forEach((role, i) => {
     const selectId = `pnl_role_sel_${i}`;
