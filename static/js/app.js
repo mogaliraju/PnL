@@ -790,62 +790,50 @@ async function loadAllProjects() {
     return;
   }
 
-  const fmt = v => '$' + (v||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  const pct = v => ((v||0)*100).toFixed(1) + '%';
+  const fmt  = v => '$' + (v||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const pct  = v => ((v||0)*100).toFixed(1) + '%';
 
   container.innerHTML = `
-    <div class="row g-3">
-      ${list.map(p => {
-        const c = p.costs || {};
-        const margin = (c.gross_margin||0)*100;
-        const marginColor = margin >= 35 ? 'text-success' : margin >= 20 ? 'text-warning' : 'text-danger';
-        return `
-        <div class="col-xl-4 col-lg-6">
-          <div class="card h-100 shadow-sm" style="border-left:4px solid var(--ax-mid)">
-            <div class="card-body pb-2">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <h6 class="mb-0 fw-bold">${esc(p.name)}</h6>
-                  <small class="text-muted">${esc(p.customer || '—')}${p.location ? ' · ' + esc(p.location) : ''}</small>
-                </div>
-                <span class="badge bg-light text-dark border small">${p.duration ? p.duration + ' mo' : '—'}</span>
-              </div>
-              <div class="row g-2 text-center mb-2">
-                <div class="col-6">
-                  <div class="rounded p-2" style="background:#FEF3C7">
-                    <div class="small text-muted">Input Cost</div>
-                    <div class="fw-bold small">${fmt(c.input_cost)}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="rounded p-2" style="background:#F0FDF4">
-                    <div class="small text-muted">Revenue</div>
-                    <div class="fw-bold small">${fmt(c.sell_cost)}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="rounded p-2" style="background:#EDE9FE">
-                    <div class="small text-muted">Markup</div>
-                    <div class="fw-bold small">${fmt(c.markup)}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="rounded p-2" style="background:#F0FDF4">
-                    <div class="small text-muted">Gross Margin</div>
-                    <div class="fw-bold small ${marginColor}">${pct(c.gross_margin)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center py-2">
-              <small class="text-muted"><i class="bi bi-clock me-1"></i>${(p.saved_at||'').replace('T',' ').slice(0,16)}${p.saved_by ? ' · ' + esc(p.saved_by) : ''}</small>
-              <button class="btn btn-primary btn-sm" onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')">
-                <i class="bi bi-folder2-open me-1"></i>Open
-              </button>
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle" style="cursor:pointer">
+        <thead style="background:var(--ax-deep);color:#fff">
+          <tr>
+            <th class="text-center" style="width:48px">S.No</th>
+            <th>Customer</th>
+            <th>Project</th>
+            <th>Location</th>
+            <th class="text-center">Duration</th>
+            <th>Proposal Date</th>
+            <th class="text-end">Input Cost</th>
+            <th class="text-end">MarkUp</th>
+            <th class="text-end">Revenue</th>
+            <th class="text-end">Gross Margin</th>
+            <th>Saved At</th>
+            <th>Saved By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map((p, i) => {
+            const c = p.costs || {};
+            const margin = (c.gross_margin||0)*100;
+            const marginColor = margin >= 35 ? 'text-success fw-bold' : margin >= 20 ? 'text-warning fw-bold' : 'text-danger fw-bold';
+            return `<tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
+              <td class="text-center text-muted small">${i+1}</td>
+              <td class="fw-semibold">${esc(p.customer || '—')}</td>
+              <td>${esc(p.name)}</td>
+              <td class="text-muted small">${esc(p.location || '—')}</td>
+              <td class="text-center small">${p.duration ? p.duration + ' mo' : '—'}</td>
+              <td class="small text-muted">${esc(p.proposal_date || '—')}</td>
+              <td class="text-end small">${c.input_cost ? fmt(c.input_cost) : '—'}</td>
+              <td class="text-end small">${c.markup ? fmt(c.markup) : '—'}</td>
+              <td class="text-end small">${c.sell_cost ? fmt(c.sell_cost) : '—'}</td>
+              <td class="text-end small ${marginColor}">${c.gross_margin ? pct(c.gross_margin) : '—'}</td>
+              <td class="small text-muted">${(p.saved_at||'').replace('T',' ').slice(0,16)}</td>
+              <td class="small text-muted">${esc(p.saved_by || '—')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
     </div>`;
 }
 

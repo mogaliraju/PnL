@@ -29,13 +29,14 @@ def list_projects():
                 meta = d.get('_meta', {})
                 proj = d.get('project', {})
                 entry = {
-                    'id':       fname[:-5],
-                    'name':     meta.get('name', fname[:-5]),
-                    'customer': proj.get('customer', ''),
-                    'location': proj.get('location', ''),
-                    'duration': proj.get('duration_months', ''),
-                    'saved_at': meta.get('saved_at', ''),
-                    'saved_by': meta.get('saved_by', ''),
+                    'id':           fname[:-5],
+                    'name':         meta.get('name', fname[:-5]),
+                    'customer':     proj.get('customer', ''),
+                    'location':     proj.get('location', ''),
+                    'duration':     proj.get('duration_months', ''),
+                    'proposal_date':proj.get('proposal_date', ''),
+                    'saved_at':     meta.get('saved_at', ''),
+                    'saved_by':     meta.get('saved_by', ''),
                 }
                 if summary:
                     rate_map = {r['level']: r['rate'] for r in d.get('rate_card', [])}
