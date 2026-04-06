@@ -165,9 +165,23 @@ function showToast(msg, type = 'success') {
 // ---------- Load data on page ready ----------
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSession();
+  // Verify session is valid (will redirect to /login if not)
   const res = await fetch('/api/data');
   if (!res.ok) { window.location.href = '/login'; return; }
-  appData = await res.json();
+  // Load global settings (rate card + catalog) but start with a blank project
+  const serverData = await res.json();
+  appData = {
+    project: { company: 'AutomatonsX', customer: '', location: '', reference: '',
+                proposal_date: '', customer_first_touch_point: '', project_description: '',
+                partner: 'AutomatonsX', payment_terms: 'As per proposal', duration_months: null },
+    resources: [], pnl_roles: [], releases: [],
+    rate_card:    serverData.rate_card    || [],
+    role_catalog: serverData.role_catalog || [],
+    attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
+    funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
+    approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
+    export_filename: ''
+  };
   populateAll();
   loadExchangeRate();
   // Open All Projects tab on first load — no active project yet
