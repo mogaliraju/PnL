@@ -607,6 +607,7 @@ function renderRateChart() {
 function renderReleases() {
   const releases = appData.releases || [];
   const tbody = document.getElementById('releases-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   releases.forEach((rel, i) => {
@@ -1096,9 +1097,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 function populateFundingApprovals() {
   const att = appData.attachments || {};
-  document.getElementById('att_customer_po').checked = !!att.customer_po;
-  document.getElementById('att_cloud4c').checked = !!att.cloud4c_quote;
-  document.getElementById('att_partner').checked = !!att.partner_proposal;
+  const elPo = document.getElementById('att_customer_po');
+  const elC4c = document.getElementById('att_cloud4c');
+  const elPart = document.getElementById('att_partner');
+  if (elPo) elPo.checked = !!att.customer_po;
+  if (elC4c) elC4c.checked = !!att.cloud4c_quote;
+  if (elPart) elPart.checked = !!att.partner_proposal;
 
   const f = appData.funding || {};
   const setFund = (prefix, obj) => {
@@ -1118,29 +1122,41 @@ function populateFundingApprovals() {
 }
 
 function collectFundingApprovals() {
+  // Attachments — elements may be absent if that tab has been removed from the UI
+  const elPo   = document.getElementById('att_customer_po');
+  const elC4c  = document.getElementById('att_cloud4c');
+  const elPart = document.getElementById('att_partner');
   appData.attachments = {
-    customer_po: document.getElementById('att_customer_po').checked,
-    cloud4c_quote: document.getElementById('att_cloud4c').checked,
-    partner_proposal: document.getElementById('att_partner').checked
+    customer_po:       elPo   ? elPo.checked   : (appData.attachments?.customer_po   || false),
+    cloud4c_quote:     elC4c  ? elC4c.checked  : (appData.attachments?.cloud4c_quote || false),
+    partner_proposal:  elPart ? elPart.checked : (appData.attachments?.partner_proposal || false)
   };
 
-  const getFund = prefix => ({
-    method: getVal(`fund_${prefix}_method`),
-    reference: getVal(`fund_${prefix}_ref`),
-    currency: getVal(`fund_${prefix}_currency`) || 'USD',
-    value: parseFloat(getVal(`fund_${prefix}_value`)) || null
-  });
-  appData.funding = {
-    marketing: getFund('mkt'),
-    management: getFund('mgmt'),
-    discount: getFund('disc')
-  };
+  // Funding — only collect if elements exist; otherwise preserve current appData values
+  const hasFundEl = !!document.getElementById('fund_mkt_method');
+  if (hasFundEl) {
+    const getFund = prefix => ({
+      method:    getVal(`fund_${prefix}_method`),
+      reference: getVal(`fund_${prefix}_ref`),
+      currency:  getVal(`fund_${prefix}_currency`) || 'USD',
+      value:     parseFloat(getVal(`fund_${prefix}_value`)) || null
+    });
+    appData.funding = {
+      marketing:  getFund('mkt'),
+      management: getFund('mgmt'),
+      discount:   getFund('disc')
+    };
+  }
 
-  appData.approvals = {
-    prepared_by: getVal('appr_prepared_by'),
-    reviewed_by: getVal('appr_reviewed_by'),
-    approved_by: getVal('appr_approved_by')
-  };
+  // Approvals — only collect if elements exist
+  const hasApprEl = !!document.getElementById('appr_prepared_by');
+  if (hasApprEl) {
+    appData.approvals = {
+      prepared_by: getVal('appr_prepared_by'),
+      reviewed_by: getVal('appr_reviewed_by'),
+      approved_by: getVal('appr_approved_by')
+    };
+  }
 }
 
 // ============================================================
