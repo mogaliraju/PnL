@@ -102,7 +102,7 @@
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-resources"><i class="bi bi-people me-1"></i>Resources</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-releases"><i class="bi bi-calendar-event me-1"></i>Releases</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-person-badge me-1"></i>PnL Roles</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funding"><i class="bi bi-cash-stack me-1"></i>Funding & Approvals</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-export"><i class="bi bi-gear me-1"></i>Export Settings</a></li>
   </ul>
@@ -318,59 +318,26 @@
     <!-- ===== PNL ROLES ===== -->
     <div class="tab-pane fade" id="tab-pnl-roles">
       <div class="row g-3">
-        <!-- Left: active PnL roles -->
-        <div class="col-lg-8">
-          <div class="card h-100">
-            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
-              <span><i class="bi bi-person-badge me-1"></i>PnL Roles</span>
-              <button class="btn btn-primary btn-sm" onclick="addPnlRole()">
-                <i class="bi bi-plus-circle me-1"></i>Add Role
-              </button>
-            </div>
-            <div class="card-body p-2">
-              <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle mb-0">
-                  <thead class="table-dark">
-                    <tr>
-                      <th style="width:32px">#</th>
-                      <th>Role</th>
-                      <th style="width:160px">Partner</th>
-                      <th style="width:160px">Payment Terms</th>
-                      <th style="width:36px"></th>
-                    </tr>
-                  </thead>
-                  <tbody id="pnl-roles-tbody"></tbody>
-                </table>
-              </div>
-              <p class="text-muted small mb-0 mt-2 px-1">
-                <i class="bi bi-info-circle me-1"></i>First row carries Revenue &amp; Cost from Costing sheet.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: role catalog manager -->
-        <div class="col-lg-4">
-          <div class="card h-100">
+        <div class="col-lg-6">
+          <div class="card">
             <div class="card-header fw-bold"><i class="bi bi-journals me-1"></i>Role Catalog</div>
             <div class="card-body">
-              <!-- Add new role to catalog -->
+              <!-- Add new category -->
+              <div class="input-group input-group-sm mb-2">
+                <span class="input-group-text"><i class="bi bi-folder-plus"></i></span>
+                <input type="text" class="form-control" id="new_catalog_category" placeholder="New category name…"/>
+                <button class="btn btn-outline-primary" onclick="addCatalogCategory()">Add Category</button>
+              </div>
+              <hr class="my-2"/>
+              <!-- Add new role -->
               <div class="input-group input-group-sm mb-3">
                 <input type="text" class="form-control" id="new_catalog_role" placeholder="New role name…"/>
-                <select class="form-select" id="new_catalog_group" style="max-width:160px">
-                  <option value="Data Engineering">Data Engineering</option>
-                  <option value="Power BI & Analytics">Power BI &amp; Analytics</option>
-                  <option value="Architecture & Leadership">Architecture &amp; Leadership</option>
-                  <option value="Project & Product">Project &amp; Product</option>
-                  <option value="Support & Pre-Sales">Support &amp; Pre-Sales</option>
-                  <option value="Custom">Custom</option>
-                </select>
+                <select class="form-select" id="new_catalog_group" style="max-width:200px"></select>
                 <button class="btn btn-primary" onclick="addToCatalog()">
-                  <i class="bi bi-plus-lg"></i>
+                  <i class="bi bi-plus-lg"></i> Add Role
                 </button>
               </div>
-              <!-- Catalog grouped list -->
-              <div id="catalog-list" style="max-height:400px;overflow-y:auto;font-size:13px;"></div>
+              <div id="catalog-list" style="max-height:600px;overflow-y:auto;font-size:13px;"></div>
             </div>
           </div>
         </div>

@@ -702,14 +702,45 @@ function removeFromCatalog(groupName, roleName) {
   }
 }
 
+function refreshGroupDropdown() {
+  const sel = document.getElementById('new_catalog_group');
+  if (!sel) return;
+  const current = sel.value;
+  const groups = (appData.role_catalog || []).map(g => g.group);
+  sel.innerHTML = groups.map(g =>
+    `<option value="${esc(g)}" ${g === current ? 'selected' : ''}>${esc(g)}</option>`
+  ).join('');
+}
+
+function addCatalogCategory() {
+  const input = document.getElementById('new_catalog_category');
+  const name = input.value.trim();
+  if (!name) { showToast('Enter a category name', 'danger'); return; }
+  if (!appData.role_catalog) appData.role_catalog = [];
+  if (appData.role_catalog.find(g => g.group === name)) {
+    showToast('Category already exists', 'warning'); return;
+  }
+  appData.role_catalog.push({ group: name, roles: [] });
+  input.value = '';
+  refreshGroupDropdown();
+  renderCatalogList();
+  saveSettings();
+  showToast(`Category "${name}" added`, 'success');
+}
+
 function renderCatalogList() {
   const el = document.getElementById('catalog-list');
   if (!el) return;
+  refreshGroupDropdown();
   const catalog = appData.role_catalog || [];
   el.innerHTML = catalog.map(g => `
-    <div class="mb-2">
-      <div class="fw-semibold text-uppercase small mb-1" style="color:var(--ax-mid);letter-spacing:.5px">
-        ${esc(g.group)}
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="fw-semibold text-uppercase small" style="color:var(--ax-mid);letter-spacing:.5px">${esc(g.group)}</span>
+        <button class="btn btn-link btn-sm p-0 text-danger" style="font-size:11px"
+          onclick="removeCatalogCategory('${esc(g.group)}')" title="Delete category">
+          <i class="bi bi-trash3"></i>
+        </button>
       </div>
       ${g.roles.map(r => `
         <div class="d-flex justify-content-between align-items-center px-2 py-1 rounded mb-1"
@@ -721,6 +752,19 @@ function renderCatalogList() {
           </button>
         </div>`).join('')}
     </div>`).join('');
+}
+
+function removeCatalogCategory(groupName) {
+  const g = (appData.role_catalog || []).find(g => g.group === groupName);
+  if (g && g.roles.length > 0) {
+    if (!confirm(`Delete category "${groupName}" and its ${g.roles.length} role(s)?`)) return;
+  }
+  appData.role_catalog = (appData.role_catalog || []).filter(g => g.group !== groupName);
+  refreshGroupDropdown();
+  renderCatalogList();
+  renderResources();
+  saveSettings();
+  showToast(`Category "${groupName}" deleted`, 'success');
 }
 
 // ============================================================
