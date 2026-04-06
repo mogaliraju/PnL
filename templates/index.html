@@ -125,6 +125,7 @@
 
   <!-- Tabs -->
   <ul class="nav nav-tabs mb-3" id="mainTabs">
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project Info</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-resources"><i class="bi bi-people me-1"></i>Resources</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
@@ -135,6 +136,19 @@
   </ul>
 
   <div class="tab-content">
+
+    <!-- ===== ALL PROJECTS ===== -->
+    <div class="tab-pane fade" id="tab-all-projects">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">All Saved Projects</h6>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadAllProjects()">
+          <i class="bi bi-arrow-repeat me-1"></i>Refresh
+        </button>
+      </div>
+      <div id="all-projects-container">
+        <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+      </div>
+    </div>
 
     <!-- ===== PROJECT INFO ===== -->
     <div class="tab-pane fade show active" id="tab-project">

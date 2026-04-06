@@ -772,6 +772,91 @@ function removeCatalogCategory(groupName) {
 // ============================================================
 // PROJECTS — save / load / delete
 // ============================================================
+async function loadAllProjects() {
+  const container = document.getElementById('all-projects-container');
+  if (!container) return;
+  container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
+
+  const res = await fetch('/api/projects?summary=true');
+  const list = await res.json();
+
+  if (!list.length) {
+    container.innerHTML = `<div class="text-center text-muted py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-2"></i>No saved projects yet. Use <strong>Save → Save As…</strong> to create one.
+    </div>`;
+    return;
+  }
+
+  const fmt = v => '$' + (v||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const pct = v => ((v||0)*100).toFixed(1) + '%';
+
+  container.innerHTML = `
+    <div class="row g-3">
+      ${list.map(p => {
+        const c = p.costs || {};
+        const margin = (c.gross_margin||0)*100;
+        const marginColor = margin >= 35 ? 'text-success' : margin >= 20 ? 'text-warning' : 'text-danger';
+        return `
+        <div class="col-xl-4 col-lg-6">
+          <div class="card h-100 shadow-sm" style="border-left:4px solid var(--ax-mid)">
+            <div class="card-body pb-2">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="mb-0 fw-bold">${esc(p.name)}</h6>
+                  <small class="text-muted">${esc(p.customer || '—')}${p.location ? ' · ' + esc(p.location) : ''}</small>
+                </div>
+                <span class="badge bg-light text-dark border small">${p.duration ? p.duration + ' mo' : '—'}</span>
+              </div>
+              <div class="row g-2 text-center mb-2">
+                <div class="col-6">
+                  <div class="rounded p-2" style="background:#FEF3C7">
+                    <div class="small text-muted">Input Cost</div>
+                    <div class="fw-bold small">${fmt(c.input_cost)}</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="rounded p-2" style="background:#F0FDF4">
+                    <div class="small text-muted">Revenue</div>
+                    <div class="fw-bold small">${fmt(c.sell_cost)}</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="rounded p-2" style="background:#EDE9FE">
+                    <div class="small text-muted">Markup</div>
+                    <div class="fw-bold small">${fmt(c.markup)}</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="rounded p-2" style="background:#F0FDF4">
+                    <div class="small text-muted">Gross Margin</div>
+                    <div class="fw-bold small ${marginColor}">${pct(c.gross_margin)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center py-2">
+              <small class="text-muted"><i class="bi bi-clock me-1"></i>${(p.saved_at||'').replace('T',' ').slice(0,16)}${p.saved_by ? ' · ' + esc(p.saved_by) : ''}</small>
+              <button class="btn btn-primary btn-sm" onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')">
+                <i class="bi bi-folder2-open me-1"></i>Open
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function loadProjectAndSwitch(id, name) {
+  const res = await fetch(`/api/projects/${id}`);
+  if (!res.ok) { showToast('Could not load project', 'danger'); return; }
+  appData = await res.json();
+  populateAll();
+  updateProjectBadge(name);
+  // Switch to Project Info tab
+  document.querySelector('[href="#tab-project"]')?.click();
+  showToast(`Loaded: ${name}`, 'success');
+}
+
 async function loadProjectsList() {
   const res  = await fetch('/api/projects');
   const list = await res.json();

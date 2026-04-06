@@ -8,7 +8,7 @@ from pnl.config import PROJECTS_DIR, VERSIONS_DIR
 from pnl.utils.storage import load_data, save_data, load_settings, safe_filename, merge_settings
 from pnl.utils.auth import login_required
 from pnl.utils.validators import validate_payload, ValidationError
-from pnl.services.pnl_service import compare_versions
+from pnl.services.pnl_service import compare_versions, compute_costs
 from pnl.utils.logger import get_logger
 
 bp = Blueprint('projects', __name__)
@@ -18,20 +18,30 @@ log = get_logger(__name__)
 @bp.route('/api/projects', methods=['GET'])
 @login_required
 def list_projects():
+    summary = request.args.get('summary', 'false').lower() == 'true'
     projects = []
-    for fname in sorted(os.listdir(PROJECTS_DIR)):
+    for fname in sorted(os.listdir(PROJECTS_DIR), reverse=True):
         if fname.endswith('.json'):
             path = os.path.join(PROJECTS_DIR, fname)
             try:
                 with open(path) as f:
                     d = json.load(f)
                 meta = d.get('_meta', {})
-                projects.append({
+                proj = d.get('project', {})
+                entry = {
                     'id':       fname[:-5],
                     'name':     meta.get('name', fname[:-5]),
-                    'customer': d.get('project', {}).get('customer', ''),
+                    'customer': proj.get('customer', ''),
+                    'location': proj.get('location', ''),
+                    'duration': proj.get('duration_months', ''),
                     'saved_at': meta.get('saved_at', ''),
-                })
+                    'saved_by': meta.get('saved_by', ''),
+                }
+                if summary:
+                    rate_map = {r['level']: r['rate'] for r in d.get('rate_card', [])}
+                    costs = compute_costs(d.get('resources', []), rate_map)
+                    entry['costs'] = costs
+                projects.append(entry)
             except Exception:
                 pass
     return jsonify(projects)
