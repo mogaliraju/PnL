@@ -844,9 +844,10 @@ async function saveAsProject() {
     document.getElementById('save_project_name').value = '';
     updateProjectBadge(json.name);
     loadProjectsList();
+    bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
     showToast(`Saved as "${json.name}"`, 'success');
   } else {
-    showToast('Save failed', 'danger');
+    showToast('Save failed: ' + (json.error || ''), 'danger');
   }
 }
 
