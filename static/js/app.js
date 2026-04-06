@@ -169,6 +169,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!res.ok) { window.location.href = '/login'; return; }
   appData = await res.json();
   populateAll();
+  loadExchangeRate();
+
+  // Clear validation state when user types in customer field
+  document.getElementById('proj_customer')?.addEventListener('input', function() {
+    this.classList.remove('is-invalid');
+  });
 });
 
 function populateAll() {
@@ -424,19 +430,46 @@ function collectRateCard() {
   });
 }
 
+let _usdToInr = null;
+
+async function loadExchangeRate() {
+  try {
+    const res = await fetch('/api/exchange-rate');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const fx = await res.json();
+    _usdToInr = fx.usd_to_inr;
+    const updated = fx.updated ? fx.updated.replace(/ \+0000$/, ' UTC') : '';
+    document.getElementById('fx-rate-label').textContent =
+      `1 USD = ₹${_usdToInr.toFixed(2)}  ·  ${updated}`;
+    document.getElementById('fx-badge').classList.remove('d-none');
+    document.getElementById('inr-col-header').classList.remove('d-none');
+    renderRateCard();
+  } catch (e) {
+    document.getElementById('fx-rate-label').textContent = 'Rate unavailable';
+    document.getElementById('fx-badge').classList.remove('d-none');
+  }
+}
+
 function renderRateCard() {
+  sortRateCard();
   const rc = appData.rate_card || [];
   const tbody = document.getElementById('ratecard-tbody');
   tbody.innerHTML = '';
+  const showInr = _usdToInr !== null;
 
   rc.forEach((item, i) => {
+    const inrVal = showInr ? Math.round(item.rate * _usdToInr) : null;
+    const inrCell = showInr
+      ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>`
+      : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
           oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
       <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-          oninput="appData.rate_card[${i}].rate=parseFloat(this.value)||0; renderRateChart(); renderResources(); updateSummary(); saveSettings();"/></td>
+          onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
+      ${inrCell}
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
           <i class="bi bi-trash3"></i>
@@ -459,10 +492,15 @@ function saveSettings() {
   });
 }
 
+function sortRateCard() {
+  appData.rate_card.sort((a, b) => (a.rate || 0) - (b.rate || 0));
+}
+
 function addRateLevel() {
   if (!appData.rate_card) appData.rate_card = [];
   const nextNum = appData.rate_card.length + 1;
   appData.rate_card.push({ level: `L${nextNum}`, rate: 0 });
+  sortRateCard();
   renderRateCard();
   saveSettings();
 }
@@ -703,17 +741,26 @@ async function loadProjectsList() {
   el.innerHTML = `
     <table class="table table-bordered table-hover align-middle">
       <thead class="table-dark">
-        <tr><th>Project Name</th><th>Customer</th><th>Saved At</th><th style="width:130px"></th></tr>
+        <tr><th>Project Name</th><th>Customer</th><th>Saved At</th><th style="width:160px"></th></tr>
       </thead>
       <tbody>
         ${list.map(p => `
-          <tr>
-            <td class="fw-semibold">${esc(p.name)}</td>
+          <tr id="proj-row-${esc(p.id)}">
+            <td class="fw-semibold">
+              <span id="proj-name-${esc(p.id)}">${esc(p.name)}</span>
+              <input type="text" class="form-control form-control-sm d-none mt-1" id="proj-name-input-${esc(p.id)}" value="${esc(p.name)}"/>
+            </td>
             <td>${esc(p.customer)}</td>
             <td class="text-muted small">${p.saved_at ? p.saved_at.replace('T',' ') : ''}</td>
             <td class="text-center">
-              <button class="btn btn-primary btn-sm me-1" onclick="loadProject('${esc(p.id)}','${esc(p.name)}')">
-                <i class="bi bi-folder2-open"></i> Open
+              <button class="btn btn-primary btn-sm" onclick="loadProject('${esc(p.id)}','${esc(p.name)}')">
+                <i class="bi bi-folder2-open"></i>
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="startRename('${esc(p.id)}')" id="proj-rename-btn-${esc(p.id)}" title="Rename">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-success btn-sm d-none" onclick="confirmRename('${esc(p.id)}')" id="proj-save-btn-${esc(p.id)}" title="Save name">
+                <i class="bi bi-check-lg"></i>
               </button>
               <button class="btn btn-outline-danger btn-sm" onclick="deleteProject('${esc(p.id)}')">
                 <i class="bi bi-trash3"></i>
@@ -726,8 +773,17 @@ async function loadProjectsList() {
 
 async function saveAsProject() {
   collectAll();
+  const customer = appData.project?.customer?.trim();
+  if (!customer) {
+    const el = document.getElementById('proj_customer');
+    el?.classList.add('is-invalid');
+    el?.focus();
+    bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+    showToast('Customer Name is required before saving.', 'danger');
+    return;
+  }
   const nameInput = document.getElementById('save_project_name').value.trim();
-  const name = nameInput || appData.project?.customer || 'Untitled';
+  const name = nameInput || customer || 'Untitled';
   const payload = { ...appData, _meta: { name } };
   const res  = await fetch('/api/projects', {
     method: 'POST',
@@ -759,6 +815,36 @@ async function deleteProject(id) {
   if (!confirm('Delete this saved project?')) return;
   await fetch(`/api/projects/${id}`, { method: 'DELETE' });
   loadProjectsList();
+}
+
+function startRename(id) {
+  document.getElementById(`proj-name-${id}`)?.classList.add('d-none');
+  document.getElementById(`proj-name-input-${id}`)?.classList.remove('d-none');
+  document.getElementById(`proj-rename-btn-${id}`)?.classList.add('d-none');
+  document.getElementById(`proj-save-btn-${id}`)?.classList.remove('d-none');
+  document.getElementById(`proj-name-input-${id}`)?.focus();
+}
+
+async function confirmRename(id) {
+  const newName = document.getElementById(`proj-name-input-${id}`)?.value.trim();
+  if (!newName) { showToast('Name cannot be empty', 'danger'); return; }
+  // Load, update _meta.name, re-save to the same file via a PATCH-like POST
+  const res = await fetch(`/api/projects/${id}`);
+  if (!res.ok) { showToast('Could not load project', 'danger'); return; }
+  const data = await res.json();
+  data._meta = { ...(data._meta || {}), name: newName };
+  // Save with the existing id by posting to a rename endpoint
+  const r2 = await fetch(`/api/projects/${id}/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName })
+  });
+  if (r2.ok) {
+    showToast(`Renamed to "${newName}"`, 'success');
+    loadProjectsList();
+  } else {
+    showToast('Rename failed', 'danger');
+  }
 }
 
 function newProject() {
@@ -893,6 +979,16 @@ function collectAll() {
 
 async function saveAll() {
   collectAll();
+  const customer = appData.project?.customer?.trim();
+  if (!customer) {
+    const el = document.getElementById('proj_customer');
+    el?.classList.add('is-invalid');
+    el?.focus();
+    // Switch to Project Info tab
+    document.querySelector('[href="#tab-project"]')?.click();
+    showToast('Customer Name is required.', 'danger');
+    return;
+  }
   try {
     const res = await fetch('/api/data', {
       method: 'POST',
@@ -958,4 +1054,89 @@ function esc(str) {
 function fmtMoney(n) {
   if (isNaN(n)) return '$0.00';
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+
+// ============================================================
+// VERSION COMPARISON
+// ============================================================
+async function loadCompareProjects() {
+  const res = await fetch('/api/projects');
+  const projects = await res.json();
+  ['cmp_pid1','cmp_pid2'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">-- select project --</option>';
+    projects.forEach(p => {
+      sel.innerHTML += `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.saved_at?.slice(0,10) || '')})</option>`;
+    });
+  });
+  document.getElementById('compare_result').classList.add('d-none');
+}
+
+async function runCompare() {
+  const pid1 = document.getElementById('cmp_pid1').value;
+  const pid2 = document.getElementById('cmp_pid2').value;
+  if (!pid1 || !pid2) { alert('Please select both projects.'); return; }
+  if (pid1 === pid2) { alert('Please select two different projects.'); return; }
+
+  const res = await fetch('/api/compare', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ pid1, pid2 })
+  });
+  if (!res.ok) { const e = await res.json(); alert('Error: ' + (e.error||res.status)); return; }
+  const data = await res.json();
+
+  // Cost rows
+  const costRows = document.getElementById('cmp_cost_rows');
+  costRows.innerHTML = '';
+  const costKeys = [
+    ['input_cost',   'Input Cost',   true],
+    ['sell_cost',    'Sell Cost',    true],
+    ['markup',       'Markup',       true],
+    ['gross_margin', 'Gross Margin', false],
+  ];
+  costKeys.forEach(([k, label, isMoney]) => {
+    const c = data.costs[k];
+    if (!c) return;
+    const fmt = v => isMoney ? fmtMoney(v) : (v*1).toFixed(1) + '%';
+    // gross_margin comes back as %, not fraction
+    const fmtGm = v => (v*1).toFixed(1) + '%';
+    const fv1 = k === 'gross_margin' ? fmtGm(c.v1) : fmt(c.v1);
+    const fv2 = k === 'gross_margin' ? fmtGm(c.v2) : fmt(c.v2);
+    const fd  = k === 'gross_margin' ? fmtGm(c.delta) : fmt(c.delta);
+    const dClass = c.delta > 0 ? 'text-success' : c.delta < 0 ? 'text-danger' : '';
+    const pct = c.pct != null ? `${c.pct > 0 ? '+' : ''}${c.pct}%` : '—';
+    costRows.innerHTML += `<tr>
+      <td class="fw-bold">${esc(label)}</td>
+      <td>${fv1}</td><td>${fv2}</td>
+      <td class="${dClass}">${c.delta >= 0 ? '+' : ''}${fd}</td>
+      <td class="${dClass}">${pct}</td>
+    </tr>`;
+  });
+
+  // Resource rows
+  const resRows = document.getElementById('cmp_res_rows');
+  resRows.innerHTML = '';
+  const changes = data.resource_changes || [];
+  changes.forEach(r => {
+    const badge = r.status === 'added'   ? '<span class="badge bg-success">Added</span>'
+                : r.status === 'removed' ? '<span class="badge bg-danger">Removed</span>'
+                :                          '<span class="badge bg-warning text-dark">Changed</span>';
+    const dHours = (r.hours_delta ?? 0);
+    const dClass = dHours > 0 ? 'text-success' : dHours < 0 ? 'text-danger' : '';
+    resRows.innerHTML += `<tr>
+      <td>${esc(r.role)}</td>
+      <td>${badge}</td>
+      <td>${r.hours_v1 ?? '—'}</td>
+      <td>${r.hours_v2 ?? '—'}</td>
+      <td class="${dClass}">${dHours > 0 ? '+' : ''}${dHours !== undefined ? dHours : '—'}</td>
+      <td>${esc(r.level_v1 || '—')}</td>
+      <td>${esc(r.level_v2 || '—')}</td>
+    </tr>`;
+  });
+
+  const noChanges = document.getElementById('cmp_no_changes');
+  noChanges.classList.toggle('d-none', data.has_changes !== false);
+  document.getElementById('compare_result').classList.remove('d-none');
 }

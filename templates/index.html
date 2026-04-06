@@ -21,8 +21,14 @@
     </div>
     <div class="ms-auto d-flex gap-2 align-items-center">
       <span id="current_project_badge" class="badge text-bg-light text-dark d-none"></span>
+      <button class="btn btn-outline-light btn-sm" onclick="newProject()">
+        <i class="bi bi-file-earmark-plus me-1"></i>New
+      </button>
       <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#projectsModal">
         <i class="bi bi-folder2-open me-1"></i>Projects
+      </button>
+      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()">
+        <i class="bi bi-arrow-left-right me-1"></i>Compare
       </button>
       <button class="btn btn-outline-light btn-sm" onclick="saveAll()">
         <i class="bi bi-floppy me-1"></i>Save
@@ -74,9 +80,6 @@
               <button class="btn btn-primary" onclick="saveAsProject()">
                 <i class="bi bi-floppy me-1"></i>Save
               </button>
-              <button class="btn btn-outline-secondary" onclick="newProject()">
-                <i class="bi bi-plus-circle me-1"></i>New Project
-              </button>
             </div>
             <div class="form-text">Leave blank to use customer name + timestamp.</div>
           </div>
@@ -118,8 +121,9 @@
                 <input type="text" class="form-control" id="proj_company" placeholder="AutomatonsX"/>
               </div>
               <div class="mb-3">
-                <label class="form-label">Customer Name</label>
-                <input type="text" class="form-control" id="proj_customer" placeholder="Benline"/>
+                <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="proj_customer" placeholder="Benline" required/>
+                <div class="invalid-feedback">Customer Name is required.</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Location</label>
@@ -242,12 +246,21 @@
     <div class="tab-pane fade" id="tab-ratecard">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="mb-0 fw-bold">Rate Card</h6>
-        <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
-          <i class="bi bi-plus-circle me-1"></i>Add Level
-        </button>
+        <div class="d-flex align-items-center gap-3">
+          <span id="fx-badge" class="badge bg-light text-dark border small d-none">
+            <i class="bi bi-currency-exchange me-1"></i>
+            <span id="fx-rate-label">Loading…</span>
+          </span>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadExchangeRate()" title="Refresh exchange rate">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
+            <i class="bi bi-plus-circle me-1"></i>Add Level
+          </button>
+        </div>
       </div>
       <div class="row">
-        <div class="col-md-5">
+        <div class="col-md-6">
           <div class="table-responsive">
             <table class="table table-bordered table-hover align-middle">
               <thead class="table-dark">
@@ -255,6 +268,7 @@
                   <th>#</th>
                   <th>Level</th>
                   <th>Rate ($/hr)</th>
+                  <th id="inr-col-header" class="d-none">Rate (₹/hr)</th>
                   <th></th>
                 </tr>
               </thead>
@@ -262,7 +276,7 @@
             </table>
           </div>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-6">
           <div class="card">
             <div class="card-header fw-bold"><i class="bi bi-bar-chart me-1"></i>Rate Visualization</div>
             <div class="card-body" id="rate-chart-area"></div>
@@ -550,6 +564,54 @@
           <input type="password" class="form-control" id="confirm_password" placeholder="Confirm password"/>
         </div>
         <button class="btn btn-primary w-100" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COMPARE MODAL ===== -->
+<div class="modal fade" id="compareModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--ax-grad)">
+        <h5 class="modal-title text-white"><i class="bi bi-arrow-left-right me-2"></i>Compare Projects</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Project A</label>
+            <select id="cmp_pid1" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Project B</label>
+            <select id="cmp_pid2" class="form-select form-select-sm"></select>
+          </div>
+        </div>
+        <div class="text-center mb-3">
+          <button class="btn btn-primary btn-sm px-4" onclick="runCompare()">
+            <i class="bi bi-search me-1"></i>Compare
+          </button>
+        </div>
+        <div id="compare_result" class="d-none">
+          <!-- Cost summary -->
+          <h6 class="text-muted mb-2">Cost Summary</h6>
+          <table class="table table-bordered table-sm mb-4">
+            <thead class="table-light">
+              <tr><th>Metric</th><th>Project A</th><th>Project B</th><th>Delta</th><th>Change %</th></tr>
+            </thead>
+            <tbody id="cmp_cost_rows"></tbody>
+          </table>
+          <!-- Resource changes -->
+          <h6 class="text-muted mb-2">Resource Changes</h6>
+          <table class="table table-bordered table-sm">
+            <thead class="table-light">
+              <tr><th>Role</th><th>Status</th><th>Hours A</th><th>Hours B</th><th>Delta</th><th>Level A</th><th>Level B</th></tr>
+            </thead>
+            <tbody id="cmp_res_rows"></tbody>
+          </table>
+          <p id="cmp_no_changes" class="text-success text-center d-none fw-bold">No differences found between the two projects.</p>
+        </div>
       </div>
     </div>
   </div>
