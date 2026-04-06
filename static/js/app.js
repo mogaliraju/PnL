@@ -796,11 +796,11 @@ async function loadProjectsList() {
               <span id="proj-name-${esc(p.id)}">${esc(p.name)}</span>
               <input type="text" class="form-control form-control-sm d-none mt-1" id="proj-name-input-${esc(p.id)}" value="${esc(p.name)}"/>
             </td>
-            <td>${esc(p.customer)}</td>
+            <td>${esc(p.customer || '—')}</td>
             <td class="text-muted small">${p.saved_at ? p.saved_at.replace('T',' ') : ''}</td>
             <td class="text-center">
               <button class="btn btn-primary btn-sm" onclick="loadProject('${esc(p.id)}','${esc(p.name)}')">
-                <i class="bi bi-folder2-open"></i>
+                <i class="bi bi-folder2-open me-1"></i>Open
               </button>
               <button class="btn btn-outline-secondary btn-sm" onclick="startRename('${esc(p.id)}')" id="proj-rename-btn-${esc(p.id)}" title="Rename">
                 <i class="bi bi-pencil"></i>
