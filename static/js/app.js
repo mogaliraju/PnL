@@ -170,7 +170,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   appData = await res.json();
   populateAll();
   loadExchangeRate();
-  // Open All Projects tab on first load
+  // Open All Projects tab on first load — no active project yet
+  updateProjectBadge(null);
   document.querySelector('[href="#tab-all-projects"]')?.click();
   loadAllProjects();
 
@@ -988,16 +989,20 @@ function newProject() {
     export_filename: ''
   };
   populateAll();
-  updateProjectBadge('New Project');
+  updateProjectBadge(null);
   bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
   showToast('New project ready', 'primary');
 }
 
 function updateProjectBadge(name) {
-  const el = document.getElementById('current_project_badge');
-  if (!name) { el.classList.add('d-none'); return; }
-  el.textContent = name;
-  el.classList.remove('d-none');
+  const badge = document.getElementById('current_project_badge');
+  const pill  = document.getElementById('active_project_pill');
+  if (!name) {
+    pill?.classList.add('d-none');
+    return;
+  }
+  if (badge) badge.textContent = name;
+  pill?.classList.remove('d-none');
 }
 
 // Load projects list when Open modal opens
@@ -1012,6 +1017,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const nameEl = document.getElementById('save_project_name');
       if (nameEl) nameEl.value = customer ? `${customer} PnL` : '';
     });
+
+  // Hide project badge when on All Projects tab
+  document.querySelector('[href="#tab-all-projects"]')
+    ?.addEventListener('click', () => updateProjectBadge(null));
 });
 
 // ============================================================

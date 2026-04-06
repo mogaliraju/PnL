@@ -19,41 +19,45 @@
       <span class="navbar-brand fw-bold fs-6 mb-0 p-0">PnL Application</span>
       <span class="text-muted-nav">AutomatonsX</span>
     </div>
-    <div class="ms-auto d-flex gap-2 align-items-center">
-      <span id="current_project_badge" class="badge text-bg-light text-dark d-none"></span>
+    <div class="ms-auto d-flex align-items-center gap-2">
 
-      <!-- New -->
-      <button class="btn btn-outline-light btn-sm" onclick="newProject()" title="Start a blank project">
-        <i class="bi bi-file-earmark-plus me-1"></i>New
+      <!-- Active project indicator -->
+      <div id="active_project_pill" class="d-none px-3 py-1 rounded-pill small fw-semibold"
+           style="background:rgba(255,255,255,0.15);color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <i class="bi bi-pencil-square me-1"></i><span id="current_project_badge"></span>
+      </div>
+
+      <div class="vr opacity-25 mx-1" style="height:24px"></div>
+
+      <!-- New Project -->
+      <button class="btn btn-outline-light btn-sm" onclick="newProject()" title="New blank project">
+        <i class="bi bi-plus-lg me-1"></i>New
       </button>
 
-      <!-- Open Projects -->
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#projectsModal" title="Open a saved project">
-        <i class="bi bi-folder2-open me-1"></i>Open
-      </button>
-
-      <!-- Save dropdown -->
-      <div class="dropdown">
-        <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" title="Save options">
+      <!-- Save dropdown — only meaningful when editing -->
+      <div class="dropdown" id="save_dropdown">
+        <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
           <i class="bi bi-floppy me-1"></i>Save
         </button>
-        <ul class="dropdown-menu dropdown-menu-end">
+        <ul class="dropdown-menu dropdown-menu-end shadow">
+          <li><h6 class="dropdown-header">Current Project</h6></li>
           <li><a class="dropdown-item" href="#" onclick="saveAll(); return false;">
-            <i class="bi bi-floppy me-2"></i>Quick Save
-            <div class="text-muted small">Save current working state</div>
+            <i class="bi bi-floppy me-2 text-primary"></i><strong>Quick Save</strong>
+            <div class="text-muted small">Save to working state</div>
+          </a></li>
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#saveAsModal">
+            <i class="bi bi-floppy2 me-2 text-success"></i><strong>Save As…</strong>
+            <div class="text-muted small">Save as a named project</div>
           </a></li>
           <li><hr class="dropdown-divider"/></li>
-          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#saveAsModal">
-            <i class="bi bi-floppy2 me-2"></i>Save As…
-            <div class="text-muted small">Save as a named project</div>
+          <li><h6 class="dropdown-header">Tools</h6></li>
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()">
+            <i class="bi bi-arrow-left-right me-2 text-secondary"></i>Compare Projects
           </a></li>
         </ul>
       </div>
 
-      <!-- Compare -->
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()" title="Compare two projects">
-        <i class="bi bi-arrow-left-right me-1"></i>Compare
-      </button>
+      <div class="vr opacity-25 mx-1" style="height:24px"></div>
 
       <!-- Export -->
       <button class="btn btn-success btn-sm" onclick="exportExcel()">
