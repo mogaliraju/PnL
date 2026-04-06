@@ -170,6 +170,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   appData = await res.json();
   populateAll();
   loadExchangeRate();
+  // Open All Projects tab on first load
+  document.querySelector('[href="#tab-all-projects"]')?.click();
+  loadAllProjects();
 
   // Clear validation state when user types in customer field
   document.getElementById('proj_customer')?.addEventListener('input', function() {
