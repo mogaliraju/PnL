@@ -794,9 +794,12 @@ async function loadProjectsList() {
           <tr id="proj-row-${esc(p.id)}">
             <td class="fw-semibold">
               <span id="proj-name-${esc(p.id)}">${esc(p.name)}</span>
-              <input type="text" class="form-control form-control-sm d-none mt-1" id="proj-name-input-${esc(p.id)}" value="${esc(p.name)}"/>
+              <input type="text" class="form-control form-control-sm d-none mt-1" id="proj-name-input-${esc(p.id)}" value="${esc(p.name)}" placeholder="Project name"/>
             </td>
-            <td>${esc(p.customer || '—')}</td>
+            <td>
+              <span id="proj-cust-${esc(p.id)}">${esc(p.customer || '—')}</span>
+              <input type="text" class="form-control form-control-sm d-none mt-1" id="proj-cust-input-${esc(p.id)}" value="${esc(p.customer || '')}" placeholder="Customer name"/>
+            </td>
             <td class="text-muted small">${p.saved_at ? p.saved_at.replace('T',' ') : ''}</td>
             <td class="text-center">
               <button class="btn btn-primary btn-sm" onclick="loadProject('${esc(p.id)}','${esc(p.name)}')">
@@ -866,30 +869,28 @@ async function deleteProject(id) {
 function startRename(id) {
   document.getElementById(`proj-name-${id}`)?.classList.add('d-none');
   document.getElementById(`proj-name-input-${id}`)?.classList.remove('d-none');
+  document.getElementById(`proj-cust-${id}`)?.classList.add('d-none');
+  document.getElementById(`proj-cust-input-${id}`)?.classList.remove('d-none');
   document.getElementById(`proj-rename-btn-${id}`)?.classList.add('d-none');
   document.getElementById(`proj-save-btn-${id}`)?.classList.remove('d-none');
   document.getElementById(`proj-name-input-${id}`)?.focus();
 }
 
 async function confirmRename(id) {
-  const newName = document.getElementById(`proj-name-input-${id}`)?.value.trim();
-  if (!newName) { showToast('Name cannot be empty', 'danger'); return; }
-  // Load, update _meta.name, re-save to the same file via a PATCH-like POST
-  const res = await fetch(`/api/projects/${id}`);
-  if (!res.ok) { showToast('Could not load project', 'danger'); return; }
-  const data = await res.json();
-  data._meta = { ...(data._meta || {}), name: newName };
-  // Save with the existing id by posting to a rename endpoint
-  const r2 = await fetch(`/api/projects/${id}/rename`, {
+  const newName     = document.getElementById(`proj-name-input-${id}`)?.value.trim();
+  const newCustomer = document.getElementById(`proj-cust-input-${id}`)?.value.trim();
+  if (!newName) { showToast('Project name cannot be empty', 'danger'); return; }
+
+  const r1 = await fetch(`/api/projects/${id}/rename`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: newName })
+    body: JSON.stringify({ name: newName, customer: newCustomer })
   });
-  if (r2.ok) {
-    showToast(`Renamed to "${newName}"`, 'success');
+  if (r1.ok) {
+    showToast(`Saved`, 'success');
     loadProjectsList();
   } else {
-    showToast('Rename failed', 'danger');
+    showToast('Save failed', 'danger');
   }
 }
 

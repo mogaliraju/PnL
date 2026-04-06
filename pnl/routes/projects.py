@@ -98,12 +98,16 @@ def rename_project(pid):
     path = os.path.join(PROJECTS_DIR, pid + '.json')
     if not os.path.exists(path):
         return jsonify({'error': 'Not found'}), 404
-    new_name = (request.json or {}).get('name', '').strip()
+    body = request.json or {}
+    new_name = body.get('name', '').strip()
+    new_customer = body.get('customer', '').strip()
     if not new_name:
         return jsonify({'error': 'Name required'}), 400
     with open(path) as f:
         data = json.load(f)
     data.setdefault('_meta', {})['name'] = new_name
+    if new_customer:
+        data.setdefault('project', {})['customer'] = new_customer
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
     log.info(f"Project '{pid}' renamed to '{new_name}' by '{session.get('user')}'")
