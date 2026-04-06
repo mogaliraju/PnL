@@ -229,8 +229,34 @@
                 <div class="summary-value" id="sum_markup">—</div>
               </div>
               <div class="summary-box bg-primary-subtle">
-                <div class="summary-label">Gross Margin %</div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="summary-label">Gross Margin %</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit target margin"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
+                </div>
                 <div class="summary-value" id="sum_margin">—</div>
+                <div id="margin-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="target_margin_input" min="1" max="99" step="1" value="40" placeholder="40"/>
+                    <span class="input-group-text">%</span>
+                    <button class="btn btn-primary btn-sm" onclick="applyMargin()">Apply</button>
+                  </div>
+                  <div class="form-text">Target gross margin (default 40%)</div>
+                </div>
+              </div>
+              <div class="summary-box" style="background:#FFF3E0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="summary-label">USD → INR Rate</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleFxEdit()" title="Edit rate"><i class="bi bi-pencil" id="fx-edit-icon"></i></button>
+                </div>
+                <div class="summary-value" id="sum_inr_rate">—</div>
+                <div id="fx-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" class="form-control" id="fx_rate_input" min="1" step="0.01" placeholder="e.g. 93.13"/>
+                    <button class="btn btn-primary btn-sm" onclick="applyFxRate()">Apply</button>
+                  </div>
+                  <div class="form-text">Override live exchange rate</div>
+                </div>
               </div>
             </div>
           </div>

@@ -286,14 +286,61 @@ function updateSummary() {
   resources.forEach(r => {
     inputCost += (r.hours || 0) * (rateMap[r.level] || 0);
   });
-  const sellCost = inputCost > 0 ? inputCost / 0.6 : 0;
-  const markup = sellCost - inputCost;
-  const margin = sellCost > 0 ? markup / sellCost : 0;
+  const divisor  = 1 - _targetMargin;
+  const sellCost = inputCost > 0 ? inputCost / divisor : 0;
+  const markup   = sellCost - inputCost;
+  const margin   = sellCost > 0 ? markup / sellCost : _targetMargin;
 
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
-  document.getElementById('sum_sell_cost').textContent = fmtMoney(sellCost);
-  document.getElementById('sum_markup').textContent = fmtMoney(markup);
-  document.getElementById('sum_margin').textContent = (margin * 100).toFixed(1) + '%';
+  document.getElementById('sum_sell_cost').textContent  = fmtMoney(sellCost);
+  document.getElementById('sum_markup').textContent     = fmtMoney(markup);
+  document.getElementById('sum_margin').textContent     = (margin * 100).toFixed(1) + '%';
+
+  // INR display
+  const inrEl = document.getElementById('sum_inr_rate');
+  if (inrEl) inrEl.textContent = _usdToInr ? `₹${_usdToInr.toFixed(2)}` : '—';
+}
+
+function toggleMarginEdit() {
+  const row = document.getElementById('margin-edit-row');
+  const isHidden = row.classList.contains('d-none');
+  row.classList.toggle('d-none');
+  if (isHidden) {
+    const inp = document.getElementById('target_margin_input');
+    inp.value = (_targetMargin * 100).toFixed(0);
+    inp.focus();
+  }
+}
+
+function applyMargin() {
+  const val = parseFloat(document.getElementById('target_margin_input').value);
+  if (isNaN(val) || val <= 0 || val >= 100) { showToast('Enter a valid % between 1 and 99', 'danger'); return; }
+  _targetMargin = val / 100;
+  document.getElementById('margin-edit-row').classList.add('d-none');
+  updateSummary();
+  showToast(`Gross margin target set to ${val.toFixed(1)}%`, 'success');
+}
+
+function toggleFxEdit() {
+  const row = document.getElementById('fx-edit-row');
+  const isHidden = row.classList.contains('d-none');
+  row.classList.toggle('d-none');
+  if (isHidden) {
+    const inp = document.getElementById('fx_rate_input');
+    inp.value = _usdToInr ? _usdToInr.toFixed(2) : '';
+    inp.focus();
+  }
+}
+
+function applyFxRate() {
+  const val = parseFloat(document.getElementById('fx_rate_input').value);
+  if (isNaN(val) || val <= 0) { showToast('Enter a valid exchange rate', 'danger'); return; }
+  _usdToInr = val;
+  document.getElementById('fx-edit-row').classList.add('d-none');
+  document.getElementById('inr-col-header')?.classList.remove('d-none');
+  renderRateCard();
+  updateSummary();
+  showToast(`USD → INR set to ₹${val.toFixed(2)}`, 'success');
 }
 
 // ============================================================
@@ -449,6 +496,7 @@ function collectRateCard() {
 }
 
 let _usdToInr = null;
+let _targetMargin = 0.40; // default 40%
 
 async function loadExchangeRate() {
   try {
@@ -464,6 +512,7 @@ async function loadExchangeRate() {
     document.getElementById('fx-badge').classList.remove('d-none');
     document.getElementById('inr-col-header').classList.remove('d-none');
     renderRateCard();
+    updateSummary();
   } catch (e) {
     document.getElementById('fx-rate-label').textContent = 'Rate unavailable';
     document.getElementById('fx-badge').classList.remove('d-none');
