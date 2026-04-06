@@ -434,11 +434,13 @@ let _usdToInr = null;
 
 async function loadExchangeRate() {
   try {
-    const res = await fetch('/api/exchange-rate');
+    // Call directly from browser — avoids PythonAnywhere outbound restrictions
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const fx = await res.json();
-    _usdToInr = fx.usd_to_inr;
-    const updated = fx.updated ? fx.updated.replace(/ \+0000$/, ' UTC') : '';
+    _usdToInr = fx.rates.INR;
+    const updated = fx.time_last_update_utc
+      ? fx.time_last_update_utc.replace(/ \+0000$/, ' UTC') : '';
     document.getElementById('fx-rate-label').textContent =
       `1 USD = ₹${_usdToInr.toFixed(2)}  ·  ${updated}`;
     document.getElementById('fx-badge').classList.remove('d-none');
