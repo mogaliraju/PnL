@@ -21,18 +21,41 @@
     </div>
     <div class="ms-auto d-flex gap-2 align-items-center">
       <span id="current_project_badge" class="badge text-bg-light text-dark d-none"></span>
-      <button class="btn btn-outline-light btn-sm" onclick="newProject()">
+
+      <!-- New -->
+      <button class="btn btn-outline-light btn-sm" onclick="newProject()" title="Start a blank project">
         <i class="bi bi-file-earmark-plus me-1"></i>New
       </button>
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#projectsModal">
-        <i class="bi bi-folder2-open me-1"></i>Projects
+
+      <!-- Open Projects -->
+      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#projectsModal" title="Open a saved project">
+        <i class="bi bi-folder2-open me-1"></i>Open
       </button>
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()">
+
+      <!-- Save dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" title="Save options">
+          <i class="bi bi-floppy me-1"></i>Save
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" onclick="saveAll(); return false;">
+            <i class="bi bi-floppy me-2"></i>Quick Save
+            <div class="text-muted small">Save current working state</div>
+          </a></li>
+          <li><hr class="dropdown-divider"/></li>
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#saveAsModal">
+            <i class="bi bi-floppy2 me-2"></i>Save As…
+            <div class="text-muted small">Save as a named project</div>
+          </a></li>
+        </ul>
+      </div>
+
+      <!-- Compare -->
+      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()" title="Compare two projects">
         <i class="bi bi-arrow-left-right me-1"></i>Compare
       </button>
-      <button class="btn btn-outline-light btn-sm" onclick="saveAll()">
-        <i class="bi bi-floppy me-1"></i>Save
-      </button>
+
+      <!-- Export -->
       <button class="btn btn-success btn-sm" onclick="exportExcel()">
         <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
       </button>
@@ -61,34 +84,38 @@
   </div>
 </nav>
 
-<!-- ===== PROJECTS MODAL ===== -->
+<!-- ===== OPEN PROJECT MODAL ===== -->
 <div class="modal fade" id="projectsModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header" style="background:var(--ax-grad)">
-        <h5 class="modal-title text-white"><i class="bi bi-folder2-open me-2"></i>Saved Projects</h5>
+        <h5 class="modal-title text-white"><i class="bi bi-folder2-open me-2"></i>Open Project</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-
-        <!-- Save current as new project -->
-        <div class="card mb-3">
-          <div class="card-header fw-bold"><i class="bi bi-floppy me-1"></i>Save Current Project As</div>
-          <div class="card-body">
-            <div class="input-group">
-              <input type="text" class="form-control" id="save_project_name" placeholder="Project name…"/>
-              <button class="btn btn-primary" onclick="saveAsProject()">
-                <i class="bi bi-floppy me-1"></i>Save
-              </button>
-            </div>
-            <div class="form-text">Leave blank to use customer name + timestamp.</div>
-          </div>
-        </div>
-
-        <!-- Saved projects list -->
         <div id="projects-list">
           <div class="text-center text-muted py-4"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SAVE AS MODAL ===== -->
+<div class="modal fade" id="saveAsModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--ax-grad)">
+        <h5 class="modal-title text-white"><i class="bi bi-floppy2 me-2"></i>Save As New Project</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Project Name</label>
+        <input type="text" class="form-control mb-1" id="save_project_name" placeholder="e.g. Rainbow Hospitals PnL"/>
+        <div class="form-text mb-3">Leave blank to use customer name + timestamp.</div>
+        <button class="btn btn-primary w-100" onclick="saveAsProject()">
+          <i class="bi bi-floppy2 me-1"></i>Save Project
+        </button>
       </div>
     </div>
   </div>

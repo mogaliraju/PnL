@@ -824,7 +824,7 @@ async function saveAsProject() {
     const el = document.getElementById('proj_customer');
     el?.classList.add('is-invalid');
     el?.focus();
-    bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+    bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
     showToast('Customer Name is required before saving.', 'danger');
     return;
   }
@@ -853,7 +853,7 @@ async function loadProject(id, name) {
   appData = await res.json();
   populateAll();
   updateProjectBadge(name);
-  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
   showToast(`Loaded: ${name}`, 'success');
 }
 
@@ -911,7 +911,7 @@ function newProject() {
   };
   populateAll();
   updateProjectBadge('New Project');
-  bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
+  bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide(); bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
   showToast('New project ready', 'primary');
 }
 
@@ -922,14 +922,17 @@ function updateProjectBadge(name) {
   el.classList.remove('d-none');
 }
 
-// Load projects list when modal opens and pre-fill name
+// Load projects list when Open modal opens
+// Pre-fill name when Save As modal opens
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('projectsModal')
+    ?.addEventListener('show.bs.modal', () => loadProjectsList());
+
+  document.getElementById('saveAsModal')
     ?.addEventListener('show.bs.modal', () => {
-      loadProjectsList();
       const customer = appData.project?.customer || '';
       const nameEl = document.getElementById('save_project_name');
-      if (nameEl && !nameEl.value) nameEl.value = customer ? `${customer} PnL` : '';
+      if (nameEl) nameEl.value = customer ? `${customer} PnL` : '';
     });
 });
 
