@@ -921,54 +921,124 @@ function removeCatalogCategory(groupName) {
 // ============================================================
 // EXCEL IMPORT
 // ============================================================
-async function importExcel(input) {
+function _importProgressOverlay() {
+  const el = document.createElement('div');
+  el.id = 'import-overlay';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+  el.innerHTML = `
+    <div class="card shadow-lg" style="min-width:340px;max-width:420px;padding:28px 32px">
+      <div class="d-flex align-items-center mb-3 gap-2">
+        <i class="bi bi-file-earmark-excel fs-4 text-success"></i>
+        <h6 class="mb-0 fw-semibold">Importing Excel</h6>
+      </div>
+      <div class="progress mb-2" style="height:10px;border-radius:6px">
+        <div id="imp-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+             style="width:0%;transition:width .3s ease;background:var(--ax-deep)"></div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <small id="imp-status" class="text-muted">Preparing…</small>
+        <small id="imp-pct" class="fw-semibold text-muted">0%</small>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  return {
+    remove: () => el.remove(),
+    set: (pct, msg) => {
+      document.getElementById('imp-bar').style.width = pct + '%';
+      document.getElementById('imp-status').textContent = msg;
+      document.getElementById('imp-pct').textContent = pct + '%';
+    },
+    done: (msg) => {
+      const bar = document.getElementById('imp-bar');
+      bar.style.width = '100%';
+      bar.classList.remove('progress-bar-animated');
+      bar.style.background = '#198754';
+      document.getElementById('imp-status').textContent = msg;
+      document.getElementById('imp-pct').textContent = '100%';
+    }
+  };
+}
+
+function importExcel(input) {
   const file = input.files[0];
   if (!file) return;
+  input.value = '';
+
+  const ui = _importProgressOverlay();
   const fd = new FormData();
   fd.append('file', file);
-  input.value = '';  // reset so same file can be re-selected
-  showToast('Importing…', 'primary');
-  try {
-    const res  = await fetch('/api/import-excel', { method: 'POST', body: fd });
-    const json = await res.json();
-    if (!res.ok) { showToast('Import failed: ' + (json.error || ''), 'danger'); return; }
 
-    // Merge imported data into a new project (keep rate_card & role_catalog)
-    const catalog  = appData.role_catalog;
-    const rateCard = appData.rate_card;
-    _currentPid   = null;
-    _targetMargin = 0.40;
-    appData = {
-      project: {
-        company: 'AutomatonsX',
-        customer: json.project?.customer || '',
-        location: json.project?.location || '',
-        reference: json.project?.reference || '',
-        proposal_date: json.project?.proposal_date || '',
-        duration_months: json.project?.duration_months || null,
-        project_description: json.project?.description || '',
-        customer_first_touch_point: '',
-        partner: json.project?.partner || 'AutomatonsX',
-        payment_terms: json.project?.payment_terms || 'As per proposal',
-      },
-      resources: (json.resources || []).map(r => ({
-        role: r.role, level: r.level, hours: r.hours, group: ''
-      })),
-      pnl_roles: [], releases: [],
-      rate_card: rateCard, role_catalog: catalog,
-      attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
-      funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
-      approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
-      export_filename: '', target_margin: 0.40,
-    };
-    populateAll();
-    updateProjectBadge(null);
-    document.querySelector('[href="#tab-project"]')?.click();
-    const warn = json.warnings?.length ? ` (${json.warnings.join('; ')})` : '';
-    showToast(`Imported: ${json.resources?.length || 0} resources${warn}`, 'success');
-  } catch (e) {
-    showToast('Import error: ' + e.message, 'danger');
-  }
+  const xhr = new XMLHttpRequest();
+
+  // Upload phase → 0–75%
+  xhr.upload.onprogress = (e) => {
+    if (!e.lengthComputable) return;
+    const pct = Math.round((e.loaded / e.total) * 75);
+    ui.set(pct, `Uploading… (${(e.loaded/1024).toFixed(0)} KB / ${(e.total/1024).toFixed(0)} KB)`);
+  };
+
+  // Upload done, server now processing → 75–95% animated
+  xhr.upload.onload = () => ui.set(85, 'Analysing sheet data…');
+
+  xhr.onload = () => {
+    let json;
+    try { json = JSON.parse(xhr.responseText); } catch (e) {
+      ui.remove();
+      showToast('Import error: invalid server response', 'danger');
+      return;
+    }
+    if (xhr.status !== 200) {
+      ui.remove();
+      showToast('Import failed: ' + (json.error || xhr.statusText), 'danger');
+      return;
+    }
+
+    ui.done('Import complete!');
+
+    // Brief pause so user sees 100% before we switch views
+    setTimeout(() => {
+      ui.remove();
+
+      const catalog  = appData.role_catalog;
+      const rateCard = appData.rate_card;
+      _currentPid   = null;
+      _targetMargin = 0.40;
+      appData = {
+        project: {
+          company: 'AutomatonsX',
+          customer: json.project?.customer || '',
+          location: json.project?.location || '',
+          reference: json.project?.reference || '',
+          proposal_date: json.project?.proposal_date || '',
+          duration_months: json.project?.duration_months || null,
+          project_description: json.project?.description || '',
+          customer_first_touch_point: '',
+          partner: json.project?.partner || 'AutomatonsX',
+          payment_terms: json.project?.payment_terms || 'As per proposal',
+        },
+        resources: (json.resources || []).map(r => ({
+          role: r.role, level: r.level, hours: r.hours, group: ''
+        })),
+        pnl_roles: [], releases: [],
+        rate_card: rateCard, role_catalog: catalog,
+        attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
+        funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
+        approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
+        export_filename: '', target_margin: 0.40,
+      };
+      populateAll();
+      updateProjectBadge(null);
+      document.querySelector('[href="#tab-project"]')?.click();
+      const warn = json.warnings?.length ? ` (${json.warnings.join('; ')})` : '';
+      showToast(`Imported: ${json.resources?.length || 0} resources${warn}`, 'success');
+    }, 600);
+  };
+
+  xhr.onerror = () => { ui.remove(); showToast('Import error: network failure', 'danger'); };
+  xhr.ontimeout = () => { ui.remove(); showToast('Import error: request timed out', 'danger'); };
+
+  xhr.open('POST', '/api/import-excel');
+  xhr.send(fd);
 }
 
 // ============================================================
