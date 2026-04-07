@@ -14,10 +14,6 @@ def _get_rate(rc_item: dict, group: str) -> float:
     return float(rc_item.get('rate', 0) or 0)
 
 
-def _build_rate_lookup(rate_card: list, group: str) -> dict:
-    """Build level→rate dict for a specific group."""
-    return {rc['level']: _get_rate(rc, group) for rc in rate_card if rc.get('level')}
-
 
 def compute_costs(resources: list, rate_card: list, target_margin: float = 0.40) -> dict:
     input_cost = sum(

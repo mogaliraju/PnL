@@ -39,9 +39,16 @@ def validate_rate_card(rc: Any):
     for i, entry in enumerate(rc):
         if not entry.get('level', '').strip():
             raise ValidationError(f"Rate card row #{i+1}: level name is required")
-        rate = entry.get('rate', -1)
-        if not isinstance(rate, (int, float)) or rate < 0:
-            raise ValidationError(f"Rate card row #{i+1}: rate must be >= 0")
+        # Support both new {rates: {cat: val}} and old {rate: val} formats
+        rates = entry.get('rates')
+        if isinstance(rates, dict):
+            for cat, val in rates.items():
+                if not isinstance(val, (int, float)) or val < 0:
+                    raise ValidationError(f"Rate card row #{i+1} ({cat}): rate must be >= 0")
+        else:
+            rate = entry.get('rate', -1)
+            if not isinstance(rate, (int, float)) or rate < 0:
+                raise ValidationError(f"Rate card row #{i+1}: rate must be >= 0")
 
 
 def validate_payload(data: Any) -> None:
