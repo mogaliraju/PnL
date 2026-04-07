@@ -313,7 +313,11 @@
     <!-- ===== RATE CARD ===== -->
     <div class="tab-pane fade" id="tab-ratecard">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0 fw-bold">Rate Card</h6>
+        <div class="d-flex align-items-center gap-2">
+          <h6 class="mb-0 fw-bold">Rate Card</h6>
+          <select class="form-select form-select-sm" id="ratecard-category-filter" style="width:200px" onchange="renderRateCard()">
+          </select>
+        </div>
         <div class="d-flex align-items-center gap-2">
           <!-- INR rate — always visible, editable -->
           <div class="input-group input-group-sm" style="width:240px">
@@ -338,8 +342,8 @@
             <table class="table table-bordered table-hover align-middle">
               <thead class="table-dark">
                 <tr>
+                  <th>#</th>
                   <th>Level</th>
-                  <th>Category</th>
                   <th>Rate ($/hr)</th>
                   <th id="inr-col-header">Rate (₹/hr)</th>
                   <th></th>

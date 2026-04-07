@@ -539,56 +539,39 @@ function renderRateCard() {
   const rc      = appData.rate_card || [];
   const catalog = appData.role_catalog || [];
   const tbody   = document.getElementById('ratecard-tbody');
+  const filterEl = document.getElementById('ratecard-category-filter');
   tbody.innerHTML = '';
   const showInr = _usdToInr !== null;
 
-  // Build a row for each rate card level, grouped by role catalog categories
-  // Each catalog group gets a header row; levels are shown once (same rate across groups)
-  if (catalog.length > 0) {
-    catalog.forEach(group => {
-      // Group header
-      const headerTr = document.createElement('tr');
-      headerTr.style.background = 'var(--ax-tint)';
-      headerTr.innerHTML = `<td colspan="${showInr ? 5 : 4}" class="fw-bold small py-1 px-2" style="color:var(--ax-mid)">
-        <i class="bi bi-folder me-1"></i>${esc(group.group)}
-      </td>`;
-      tbody.appendChild(headerTr);
-
-      rc.forEach((item, i) => {
-        const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
-        const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="text-center text-muted small ps-3">${item.level}</td>
-          <td class="text-muted small">${esc(group.group)}</td>
-          <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-              onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
-          ${inrCell}
-          <td></td>`;
-        tbody.appendChild(tr);
-      });
-    });
-  } else {
-    // Fallback: no catalog, render flat list with edit controls
-    rc.forEach((item, i) => {
-      const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
-      const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="text-center text-muted small">${i + 1}</td>
-        <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
-            oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
-        <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-            onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
-        ${inrCell}
-        <td class="text-center">
-          <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
-            <i class="bi bi-trash3"></i>
-          </button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
+  // Sync category dropdown with current catalog
+  if (filterEl) {
+    const currentVal = filterEl.value;
+    filterEl.innerHTML = catalog.map(g =>
+      `<option value="${esc(g.group)}" ${g.group === currentVal ? 'selected' : ''}>${esc(g.group)}</option>`
+    ).join('');
+    // If nothing selected and catalog has items, default to first
+    if (!filterEl.value && catalog.length) filterEl.value = catalog[0].group;
   }
+
+  // Render flat rate card rows (same rates regardless of category)
+  rc.forEach((item, i) => {
+    const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
+    const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '<td></td>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="text-center text-muted small">${i + 1}</td>
+      <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
+          oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
+      <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
+          onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
+      ${inrCell}
+      <td class="text-center">
+        <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
 
   renderRateChart();
 }
@@ -845,6 +828,7 @@ function renderCatalogList() {
   const el = document.getElementById('catalog-list');
   if (!el) return;
   refreshGroupDropdown();
+  renderRateCard(); // keep category filter in sync
   const catalog = appData.role_catalog || [];
   el.innerHTML = catalog.map(g => `
     <div class="mb-3">
