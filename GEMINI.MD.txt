@@ -1,0 +1,31 @@
+# PnL Project Style Guide & Coding Rules
+
+This file serves as the context and rulebook for Gemini Code Assist when reviewing or rewriting code in the PnL repository.
+
+## 1. General Principles
+- **Financial Precision:** Never use `float` or `double` for currency. 
+    - In Python: Use `decimal.Decimal`.
+    - In Java: Use `java.math.BigDecimal`.
+- **Security:** Never hardcode credentials. Always use `os.getenv` or `.env` files.
+- **Documentation:** Every new function must include a docstring (Python) or Javadoc (Java) explaining the financial logic.
+
+## 2. Python (Flask) Standards
+- **Routing:** Use Flask Blueprints to separate Auth, Projects, and Export logic.
+- **Data Handling:** Prefer Pandas vectorized operations over `.iterrows()` for processing trade CSVs.
+- **File Security:** Always use `werkzeug.utils.secure_filename` when handling uploads.
+- **Memory Management:** Read uploads into memory using `io.BytesIO` instead of writing to the `uploads/` disk folder (optimized for PythonAnywhere).
+
+## 3. Java Standards
+- **Architecture:** Follow the Service-Repository pattern.
+- **Calculations:** Use `RoundingMode.HALF_UP` for all financial rounding to 2 decimal places.
+- **Testing:** Every calculation service must have a corresponding JUnit test case for "Partial Fills" and "Short Selling".
+
+## 4. Repository Structure
+- `app.py`: Keep as a thin entry point.
+- `pnl/services/`: All P&L mathematical logic belongs here.
+- `static/js/app.js`: Use modern ES6+ syntax for frontend logic.
+
+## 5. Deployment Context (PythonAnywhere)
+- Assume outbound HTTP requests are restricted on the free tier. 
+- Use client-side JS for live exchange rate fetching when possible.
+- Map static files in the Web Tab rather than serving through Flask.
