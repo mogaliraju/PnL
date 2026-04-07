@@ -946,8 +946,10 @@ async function importExcel(input) {
         reference: json.project?.reference || '',
         proposal_date: json.project?.proposal_date || '',
         duration_months: json.project?.duration_months || null,
-        project_description: '', customer_first_touch_point: '',
-        partner: 'AutomatonsX', payment_terms: 'As per proposal',
+        project_description: json.project?.description || '',
+        customer_first_touch_point: '',
+        partner: json.project?.partner || 'AutomatonsX',
+        payment_terms: json.project?.payment_terms || 'As per proposal',
       },
       resources: (json.resources || []).map(r => ({
         role: r.role, level: r.level, hours: r.hours, group: ''
@@ -977,8 +979,16 @@ async function loadAllProjects() {
   if (!container) return;
   container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
 
-  const res = await fetch('/api/projects?summary=true', { cache: 'no-store' });
-  const list = await res.json();
+  let list;
+  try {
+    const res = await fetch('/api/projects?summary=true', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    list = await res.json();
+    if (!Array.isArray(list)) throw new Error('Unexpected response');
+  } catch (e) {
+    container.innerHTML = `<div class="text-center text-danger py-5"><i class="bi bi-exclamation-triangle me-1"></i>Could not load projects: ${e.message}</div>`;
+    return;
+  }
 
   if (!list.length) {
     container.innerHTML = `<div class="text-center text-muted py-5">
@@ -1242,9 +1252,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nameEl) nameEl.value = customer ? `${customer} PnL` : '';
     });
 
-  // Hide project badge when on All Projects tab
+  // Refresh + hide project badge when switching to All Projects tab
   document.querySelector('[href="#tab-all-projects"]')
-    ?.addEventListener('click', () => updateProjectBadge(null));
+    ?.addEventListener('click', () => { updateProjectBadge(null); loadAllProjects(); });
 });
 
 // ============================================================

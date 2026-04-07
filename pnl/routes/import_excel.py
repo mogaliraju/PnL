@@ -42,7 +42,8 @@ def _parse_pnl_sheet(ws):
     Handles both native app export format and legacy company Excel format."""
     import datetime as _dt
     project = {'customer': '', 'location': '', 'duration_months': None,
-                'proposal_date': '', 'reference': ''}
+                'proposal_date': '', 'reference': '',
+                'description': '', 'partner': '', 'payment_terms': ''}
     try: project['customer'] = _s(_cv(ws, 3, 2))
     except Exception: pass
 
@@ -71,6 +72,20 @@ def _parse_pnl_sheet(ws):
             project['duration_months'] = _n(_cv(ws, 8, 6))
         else:
             project['duration_months'] = _n(v)
+    except Exception: pass
+
+    # Legacy format: scan rows 6-12 for a "Project Description" label row,
+    # then read the next row for description, partner, payment_terms.
+    try:
+        for hr in range(6, 13):
+            if _s(_cv(ws, hr, 1)).lower() == 'project description':
+                dr = hr + 1
+                project['description']    = _s(_cv(ws, dr, 1))
+                project['partner']        = _s(_cv(ws, dr, 4))
+                project['payment_terms']  = _s(_cv(ws, dr, 5))
+                if project['duration_months'] is None:
+                    project['duration_months'] = _n(_cv(ws, dr, 6))
+                break
     except Exception: pass
 
     return project
