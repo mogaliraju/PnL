@@ -5,7 +5,7 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, session
 from pnl.config import PROJECTS_DIR, VERSIONS_DIR
-from pnl.utils.storage import load_data, save_data, load_settings, safe_filename, merge_settings
+from pnl.utils.storage import save_working_data, safe_filename, merge_settings
 from pnl.utils.auth import login_required
 from pnl.utils.validators import validate_payload, ValidationError
 from pnl.services.pnl_service import compare_versions, compute_costs
@@ -74,7 +74,7 @@ def save_project():
     # Also snapshot as a version for comparison
     _snapshot_version(pid, data)
 
-    save_data(data)
+    save_working_data(data)
     log.info(f"Project '{name}' saved as '{pid}' by '{session.get('user')}'")
     return jsonify({'status': 'ok', 'id': pid, 'name': name})
 
@@ -88,7 +88,6 @@ def load_project(pid):
     with open(path) as f:
         data = json.load(f)
     data = merge_settings(data)
-    save_data(data)
     log.info(f"Project '{pid}' loaded by '{session.get('user')}'")
     return jsonify(data)
 
@@ -117,7 +116,7 @@ def update_project(pid):
         json.dump(data, f, indent=2)
 
     _snapshot_version(pid, data)
-    save_data(data)
+    save_working_data(data)
     log.info(f"Project '{pid}' updated by '{session.get('user')}'")
     return jsonify({'status': 'ok', 'id': pid, 'name': meta.get('name', pid)})
 

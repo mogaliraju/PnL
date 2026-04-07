@@ -9,7 +9,16 @@ VERSIONS_DIR  = os.path.join(DATA_DIR, 'versions')
 USERS_FILE    = os.path.join(DATA_DIR, 'users.json')
 LOG_FILE      = os.path.join(DATA_DIR, 'pnl.log')
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'ax-pnl-secret-2026-change-in-prod')
+APP_ENV = os.environ.get('PNL_ENV') or os.environ.get('FLASK_ENV') or 'development'
+IS_PRODUCTION = APP_ENV.lower() == 'production'
+
+_secret_key = os.environ.get('SECRET_KEY')
+if _secret_key:
+    SECRET_KEY = _secret_key
+elif IS_PRODUCTION:
+    raise RuntimeError('SECRET_KEY must be set when PNL_ENV=production')
+else:
+    SECRET_KEY = 'pnl-dev-insecure-secret'
 
 for d in [PROJECTS_DIR, VERSIONS_DIR]:
     os.makedirs(d, exist_ok=True)

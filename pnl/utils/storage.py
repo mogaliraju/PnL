@@ -13,72 +13,89 @@ def safe_filename(name: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_\-]', '_', name.strip())
 
 
-# ── Settings ──────────────────────────────────────────────────
-def load_settings() -> dict:
-    if not os.path.exists(SETTINGS_FILE):
-        return {}
-    with open(SETTINGS_FILE, 'r') as f:
+def _read_json_file(path: str, default):
+    if not os.path.exists(path):
+        return default
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def save_settings(s: dict):
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(s, f, indent=2)
+def _write_json_file(path: str, payload) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as target:
+        json.dump(payload, target, indent=2)
+        target.flush()
+        os.fsync(target.fileno())
+
+
+def _merge_global_settings(data: dict, settings: dict) -> dict:
+    merged = dict(data)
+    if settings.get('rate_card'):
+        merged['rate_card'] = settings['rate_card']
+    if settings.get('role_catalog'):
+        merged['role_catalog'] = settings['role_catalog']
+    return merged
+
+
+def load_global_settings() -> dict:
+    return _read_json_file(SETTINGS_FILE, {})
+
+
+def save_global_settings(settings: dict):
+    _write_json_file(SETTINGS_FILE, settings)
     log.info("Settings saved")
 
 
-# ── Project data ──────────────────────────────────────────────
-def load_data() -> dict:
-    with open(DATA_FILE, 'r') as f:
-        data = json.load(f)
-    s = load_settings()
-    if s.get('rate_card'):
-        data['rate_card'] = s['rate_card']
-    if s.get('role_catalog'):
-        data['role_catalog'] = s['role_catalog']
-    return data
+def load_working_data() -> dict:
+    data = _read_json_file(DATA_FILE, {})
+    return _merge_global_settings(data, load_global_settings())
 
 
-def save_data(data: dict):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
-    s = load_settings()
+def save_working_data(data: dict):
+    _write_json_file(DATA_FILE, data)
+    s = load_global_settings()
     if data.get('rate_card'):
         s['rate_card'] = data['rate_card']
     if data.get('role_catalog'):
         s['role_catalog'] = data['role_catalog']
-    save_settings(s)
+    save_global_settings(s)
 
 
 def merge_settings(data: dict) -> dict:
     """Inject current global rate card + catalog into a project dict."""
-    s = load_settings()
-    if s.get('rate_card'):
-        data['rate_card'] = s['rate_card']
-    if s.get('role_catalog'):
-        data['role_catalog'] = s['role_catalog']
-    return data
+    return _merge_global_settings(data, load_global_settings())
 
 
-# ── Users ─────────────────────────────────────────────────────
 def load_users() -> dict:
     if not os.path.exists(USERS_FILE):
-        admin = {
-            'admin': {
-                'password':   generate_password_hash('admin123'),
-                'role':       'admin',
-                'name':       'Administrator',
-                'created_at': datetime.now().isoformat(timespec='seconds')
+        bootstrap_password = os.environ.get('PNL_BOOTSTRAP_ADMIN_PASSWORD', '').strip()
+        bootstrap_username = os.environ.get('PNL_BOOTSTRAP_ADMIN_USERNAME', 'admin').strip() or 'admin'
+        bootstrap_name = os.environ.get('PNL_BOOTSTRAP_ADMIN_NAME', 'Administrator').strip() or 'Administrator'
+
+        if bootstrap_password:
+            admin = {
+                bootstrap_username.lower(): {
+                    'password': generate_password_hash(bootstrap_password),
+                    'role': 'admin',
+                    'name': bootstrap_name,
+                    'created_at': datetime.now().isoformat(timespec='seconds')
+                }
             }
-        }
-        with open(USERS_FILE, 'w') as f:
-            json.dump(admin, f, indent=2)
-        log.info("Created default admin user")
-        return admin
-    with open(USERS_FILE, 'r') as f:
-        return json.load(f)
+            _write_json_file(USERS_FILE, admin)
+            log.warning("Bootstrapped admin user from environment because users.json was missing")
+            return admin
+
+        log.warning("users.json is missing and no bootstrap admin password was provided")
+        return {}
+    return _read_json_file(USERS_FILE, {})
 
 
 def save_users(users: dict):
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f, indent=2)
+    _write_json_file(USERS_FILE, users)
+
+
+# Backwards-compatible names for existing imports while the codebase is refactored.
+load_settings = load_global_settings
+save_settings = save_global_settings
+load_data = load_working_data
+save_data = save_working_data

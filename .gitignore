@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .claude/
+.tmp-tests/
+test-runtime/
+tests/__pycache__/
 
 # Runtime data — never commit these
 data.json

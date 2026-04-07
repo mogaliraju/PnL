@@ -71,13 +71,27 @@ python app.py
 
 The app runs at `http://localhost:5000`.
 
-### Default Login
+### Local Login
 
-| Username | Password |
-|----------|----------|
-| admin    | admin123 |
+Local development uses the accounts already present in `users.json`.
 
-> Change this immediately in production by updating `data/users.json` via the Admin panel.
+If you need to bootstrap a fresh admin on an empty environment, start the app with:
+
+```bash
+set PNL_BOOTSTRAP_ADMIN_PASSWORD=change-me-first
+python app.py
+```
+
+Optional bootstrap overrides:
+
+- `PNL_BOOTSTRAP_ADMIN_USERNAME`
+- `PNL_BOOTSTRAP_ADMIN_NAME`
+
+### Production Security
+
+- Set `PNL_ENV=production`
+- Set a strong `SECRET_KEY`
+- Do not rely on automatic default credentials; they are no longer created
 
 ---
 
