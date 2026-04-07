@@ -977,7 +977,7 @@ async function loadAllProjects() {
   if (!container) return;
   container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
 
-  const res = await fetch('/api/projects?summary=true');
+  const res = await fetch('/api/projects?summary=true', { cache: 'no-store' });
   const list = await res.json();
 
   if (!list.length) {
@@ -1030,7 +1030,7 @@ async function loadAllProjects() {
               <td class="small text-muted">${esc(p.saved_by || '')}</td>
               <td class="text-center" onclick="event.stopPropagation()">
                 <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete project"
-                  onclick="deleteProject('${esc(p.id)}','${esc(p.name)}')">
+                  onclick="deleteProjectFromAllProjects('${esc(p.id)}','${esc(p.name)}',this)">
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
@@ -1041,10 +1041,16 @@ async function loadAllProjects() {
     </div>`;
 }
 
-async function deleteProject(id, name) {
+async function deleteProjectFromAllProjects(id, name, btn) {
   if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+  const row = btn.closest('tr');
+  if (row) { row.style.transition = 'opacity 0.25s'; row.style.opacity = '0.3'; row.style.pointerEvents = 'none'; }
   const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-  if (!res.ok) { showToast('Delete failed', 'danger'); return; }
+  if (!res.ok) {
+    if (row) { row.style.opacity = '1'; row.style.pointerEvents = ''; }
+    showToast('Delete failed', 'danger');
+    return;
+  }
   showToast(`"${name}" deleted`, 'success');
   loadAllProjects();
 }
@@ -1157,6 +1163,7 @@ async function deleteProject(id) {
   if (!confirm('Delete this saved project?')) return;
   await fetch(`/api/projects/${id}`, { method: 'DELETE' });
   loadProjectsList();
+  loadAllProjects();
 }
 
 function startRename(id) {
