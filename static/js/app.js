@@ -412,6 +412,7 @@ function renderResources() {
           oninput="updateResourceCost(${i}, this.value)"/></td>
       <td class="text-end fw-bold rate-cell" id="res_rate_${i}">$${rate.toFixed(2)}</td>
       <td class="text-end fw-semibold" id="res_cost_${i}">${fmtMoney(cost)}</td>
+      <td class="text-end text-muted small" id="res_cost_inr_${i}">${_usdToInr ? '₹' + Math.round(cost * _usdToInr).toLocaleString('en-IN') : ''}</td>
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeResource(${i})" title="Remove">
           <i class="bi bi-trash3"></i>
@@ -422,6 +423,8 @@ function renderResources() {
 
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
+  const totInrEl = document.getElementById('tot_cost_inr');
+  if (totInrEl) totInrEl.textContent = _usdToInr ? '₹' + Math.round(totalCost * _usdToInr).toLocaleString('en-IN') : '';
 }
 
 function updateResourceCost(i, hoursVal) {
@@ -435,8 +438,9 @@ function updateResourceCost(i, hoursVal) {
 
   const costEl = document.getElementById(`res_cost_${i}`);
   if (costEl) costEl.textContent = fmtMoney(cost);
+  const inrEl = document.getElementById(`res_cost_inr_${i}`);
+  if (inrEl) inrEl.textContent = _usdToInr ? '₹' + Math.round(cost * _usdToInr).toLocaleString('en-IN') : '';
 
-  // Recalculate totals
   let totalHours = 0, totalCost = 0;
   (appData.resources || []).forEach(r => {
     totalHours += (r.hours || 0);
@@ -444,6 +448,8 @@ function updateResourceCost(i, hoursVal) {
   });
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
+  const totInrEl = document.getElementById('tot_cost_inr');
+  if (totInrEl) totInrEl.textContent = _usdToInr ? '₹' + Math.round(totalCost * _usdToInr).toLocaleString('en-IN') : '';
   updateSummary();
 }
 
@@ -530,31 +536,59 @@ function applyFxRateInline() {
 
 function renderRateCard() {
   sortRateCard();
-  const rc = appData.rate_card || [];
-  const tbody = document.getElementById('ratecard-tbody');
+  const rc      = appData.rate_card || [];
+  const catalog = appData.role_catalog || [];
+  const tbody   = document.getElementById('ratecard-tbody');
   tbody.innerHTML = '';
   const showInr = _usdToInr !== null;
 
-  rc.forEach((item, i) => {
-    const inrVal = showInr ? Math.round(item.rate * _usdToInr) : null;
-    const inrCell = showInr
-      ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>`
-      : '';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="text-center text-muted small">${i + 1}</td>
-      <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
-          oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
-      <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-          onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
-      ${inrCell}
-      <td class="text-center">
-        <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
-          <i class="bi bi-trash3"></i>
-        </button>
+  // Build a row for each rate card level, grouped by role catalog categories
+  // Each catalog group gets a header row; levels are shown once (same rate across groups)
+  if (catalog.length > 0) {
+    catalog.forEach(group => {
+      // Group header
+      const headerTr = document.createElement('tr');
+      headerTr.style.background = 'var(--ax-tint)';
+      headerTr.innerHTML = `<td colspan="${showInr ? 5 : 4}" class="fw-bold small py-1 px-2" style="color:var(--ax-mid)">
+        <i class="bi bi-folder me-1"></i>${esc(group.group)}
       </td>`;
-    tbody.appendChild(tr);
-  });
+      tbody.appendChild(headerTr);
+
+      rc.forEach((item, i) => {
+        const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
+        const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-center text-muted small ps-3">${item.level}</td>
+          <td class="text-muted small">${esc(group.group)}</td>
+          <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
+              onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
+          ${inrCell}
+          <td></td>`;
+        tbody.appendChild(tr);
+      });
+    });
+  } else {
+    // Fallback: no catalog, render flat list with edit controls
+    rc.forEach((item, i) => {
+      const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
+      const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-center text-muted small">${i + 1}</td>
+        <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
+            oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
+        <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
+            onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
+        ${inrCell}
+        <td class="text-center">
+          <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
   renderRateChart();
 }
@@ -847,6 +881,57 @@ function removeCatalogCategory(groupName) {
 }
 
 // ============================================================
+// EXCEL IMPORT
+// ============================================================
+async function importExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  input.value = '';  // reset so same file can be re-selected
+  showToast('Importing…', 'primary');
+  try {
+    const res  = await fetch('/api/import-excel', { method: 'POST', body: fd });
+    const json = await res.json();
+    if (!res.ok) { showToast('Import failed: ' + (json.error || ''), 'danger'); return; }
+
+    // Merge imported data into a new project (keep rate_card & role_catalog)
+    const catalog  = appData.role_catalog;
+    const rateCard = appData.rate_card;
+    _currentPid   = null;
+    _targetMargin = 0.40;
+    appData = {
+      project: {
+        company: 'AutomatonsX',
+        customer: json.project?.customer || '',
+        location: json.project?.location || '',
+        reference: json.project?.reference || '',
+        proposal_date: json.project?.proposal_date || '',
+        duration_months: json.project?.duration_months || null,
+        project_description: '', customer_first_touch_point: '',
+        partner: 'AutomatonsX', payment_terms: 'As per proposal',
+      },
+      resources: (json.resources || []).map(r => ({
+        role: r.role, level: r.level, hours: r.hours, group: ''
+      })),
+      pnl_roles: [], releases: [],
+      rate_card: rateCard, role_catalog: catalog,
+      attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
+      funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
+      approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
+      export_filename: '', target_margin: 0.40,
+    };
+    populateAll();
+    updateProjectBadge(null);
+    document.querySelector('[href="#tab-project"]')?.click();
+    const warn = json.warnings?.length ? ` (${json.warnings.join('; ')})` : '';
+    showToast(`Imported: ${json.resources?.length || 0} resources${warn}`, 'success');
+  } catch (e) {
+    showToast('Import error: ' + e.message, 'danger');
+  }
+}
+
+// ============================================================
 // PROJECTS — save / load / delete
 // ============================================================
 async function loadAllProjects() {
@@ -893,17 +978,17 @@ async function loadAllProjects() {
             const marginColor = margin >= 35 ? 'text-success fw-bold' : margin >= 20 ? 'text-warning fw-bold' : 'text-danger fw-bold';
             return `<tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
               <td class="text-center text-muted small">${i+1}</td>
-              <td class="fw-semibold">${esc(p.customer || '—')}</td>
+              <td class="fw-semibold">${esc(p.customer || '')}</td>
               <td>${esc(p.name)}</td>
-              <td class="text-muted small">${esc(p.location || '—')}</td>
-              <td class="text-center small">${p.duration ? p.duration + ' mo' : '—'}</td>
-              <td class="small text-muted">${esc(p.proposal_date || '—')}</td>
-              <td class="text-end small">${c.input_cost ? fmt(c.input_cost) : '—'}</td>
-              <td class="text-end small">${c.markup ? fmt(c.markup) : '—'}</td>
-              <td class="text-end small">${c.sell_cost ? fmt(c.sell_cost) : '—'}</td>
-              <td class="text-end small ${marginColor}">${c.gross_margin ? pct(c.gross_margin) : '—'}</td>
+              <td class="text-muted small">${esc(p.location || '')}</td>
+              <td class="text-center small">${p.duration ? p.duration + ' mo' : ''}</td>
+              <td class="small text-muted">${esc(p.proposal_date || '')}</td>
+              <td class="text-end small">${c.input_cost ? fmt(c.input_cost) : ''}</td>
+              <td class="text-end small">${c.markup ? fmt(c.markup) : ''}</td>
+              <td class="text-end small">${c.sell_cost ? fmt(c.sell_cost) : ''}</td>
+              <td class="text-end small ${c.gross_margin ? marginColor : ''}">${c.gross_margin ? pct(c.gross_margin) : ''}</td>
               <td class="small text-muted">${(p.saved_at||'').replace('T',' ').slice(0,16)}</td>
-              <td class="small text-muted">${esc(p.saved_by || '—')}</td>
+              <td class="small text-muted">${esc(p.saved_by || '')}</td>
             </tr>`;
           }).join('')}
         </tbody>
