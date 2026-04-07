@@ -40,28 +40,9 @@
         <input type="file" accept=".xlsx,.xlsm" style="display:none" onchange="importExcel(this)"/>
       </label>
 
-      <!-- Save dropdown — only meaningful when editing -->
-      <div class="dropdown" id="save_dropdown">
-        <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-          <i class="bi bi-floppy me-1"></i>Save
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
-          <li><h6 class="dropdown-header">Current Project</h6></li>
-          <li><a class="dropdown-item" href="#" onclick="saveAll(); return false;">
-            <i class="bi bi-floppy me-2 text-primary"></i><strong>Quick Save</strong>
-            <div class="text-muted small">Save to working state</div>
-          </a></li>
-          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#saveAsModal">
-            <i class="bi bi-floppy2 me-2 text-success"></i><strong>Save As…</strong>
-            <div class="text-muted small">Save as a named project</div>
-          </a></li>
-          <li><hr class="dropdown-divider"/></li>
-          <li><h6 class="dropdown-header">Tools</h6></li>
-          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()">
-            <i class="bi bi-arrow-left-right me-2 text-secondary"></i>Compare Projects
-          </a></li>
-        </ul>
-      </div>
+      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()" title="Compare two project versions">
+        <i class="bi bi-arrow-left-right me-1"></i>Compare
+      </button>
 
       <div class="vr opacity-25 mx-1" style="height:24px"></div>
 
@@ -269,6 +250,16 @@
         </div>
       </div>
 
+      <!-- Project save bar -->
+      <div class="d-flex justify-content-end gap-2 mb-3">
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saveAsModal">
+          <i class="bi bi-floppy2 me-1"></i>Save As New Project…
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="saveAll()">
+          <i class="bi bi-floppy me-1"></i>Save Project
+        </button>
+      </div>
+
       <!-- Resources -->
       <div class="card">
         <div class="card-header fw-bold d-flex justify-content-between align-items-center">
@@ -334,6 +325,9 @@
           <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
             <i class="bi bi-plus-circle me-1"></i>Add Level
           </button>
+          <button class="btn btn-success btn-sm" onclick="saveSettings(); showToast('Rate card saved!', 'success')">
+            <i class="bi bi-floppy me-1"></i>Save
+          </button>
         </div>
       </div>
       <div class="row">
@@ -368,7 +362,12 @@
       <div class="row g-3">
         <div class="col-lg-6">
           <div class="card">
-            <div class="card-header fw-bold"><i class="bi bi-journals me-1"></i>Role Catalog</div>
+            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-journals me-1"></i>Role Catalog</span>
+              <button class="btn btn-success btn-sm" onclick="saveSettings(); showToast('Role catalog saved!', 'success')">
+                <i class="bi bi-floppy me-1"></i>Save
+              </button>
+            </div>
             <div class="card-body">
               <!-- Add new category -->
               <div class="input-group input-group-sm mb-2">
@@ -410,6 +409,9 @@
               <i class="bi bi-file-earmark-excel me-1 text-success"></i>
               Final filename: <strong id="filename_preview">…</strong>
             </div>
+            <button class="btn btn-primary w-100 mb-2" onclick="saveExportSettings()">
+              <i class="bi bi-floppy me-1"></i>Save Settings
+            </button>
             <button class="btn btn-success w-100" onclick="exportExcel()">
               <i class="bi bi-file-earmark-excel me-1"></i>Download Excel
             </button>

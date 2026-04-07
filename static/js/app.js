@@ -1251,6 +1251,17 @@ function collectExportSettings() {
   appData.export_filename = getVal('export_filename');
 }
 
+async function saveExportSettings() {
+  collectExportSettings();
+  appData.target_margin = _targetMargin;
+  await fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(appData)
+  });
+  showToast('Export settings saved!', 'success');
+}
+
 function updateFilenamePreview() {
   const customer = (appData.project?.customer || 'PnL').trim().replace(/[^a-zA-Z0-9 _-]/g, '').replace(/ /g, '_');
   const base = getVal('export_filename').trim() || `${customer}_PnL`;
