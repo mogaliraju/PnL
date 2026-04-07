@@ -1,14 +1,22 @@
 """Project CRUD routes and version comparison."""
-import json
-import os
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify, session
-from pnl.config import PROJECTS_DIR, VERSIONS_DIR
-from pnl.utils.storage import save_working_data, safe_filename, merge_settings
+from pnl.utils.storage import (
+    delete_project_record,
+    list_project_versions,
+    load_project_record,
+    load_project_version,
+    rename_project_record,
+    save_project_record,
+    save_project_version,
+    save_working_data,
+    safe_filename,
+    merge_settings,
+)
 from pnl.utils.auth import login_required
 from pnl.utils.validators import validate_payload, ValidationError
-from pnl.services.pnl_service import compare_versions, compute_costs
+from pnl.services.pnl_service import compare_versions
 from pnl.utils.logger import get_logger
 
 bp = Blueprint('projects', __name__)
@@ -19,33 +27,9 @@ log = get_logger(__name__)
 @login_required
 def list_projects():
     summary = request.args.get('summary', 'false').lower() == 'true'
-    projects = []
-    for fname in sorted(os.listdir(PROJECTS_DIR), reverse=True):
-        if fname.endswith('.json'):
-            path = os.path.join(PROJECTS_DIR, fname)
-            try:
-                with open(path) as f:
-                    d = json.load(f)
-                meta = d.get('_meta', {})
-                proj = d.get('project', {})
-                entry = {
-                    'id':           fname[:-5],
-                    'name':         meta.get('name', fname[:-5]),
-                    'customer':     proj.get('customer', ''),
-                    'location':     proj.get('location', ''),
-                    'duration':     proj.get('duration_months', ''),
-                    'proposal_date':proj.get('proposal_date', ''),
-                    'saved_at':     meta.get('saved_at', ''),
-                    'saved_by':     meta.get('saved_by', ''),
-                }
-                if summary:
-                    target_margin = float(d.get('target_margin', 0.40))
-                    costs = compute_costs(d.get('resources', []), d.get('rate_card', []), target_margin)
-                    entry['costs'] = costs
-                projects.append(entry)
-            except Exception:
-                pass
-    return jsonify(projects)
+    from pnl.utils.storage import list_projects as list_project_rows
+
+    return jsonify(list_project_rows(summary=summary))
 
 
 @bp.route('/api/projects', methods=['POST'])
@@ -67,11 +51,7 @@ def save_project():
         'saved_by': session.get('user', ''),
     }
 
-    path = os.path.join(PROJECTS_DIR, pid + '.json')
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
-    # Also snapshot as a version for comparison
+    save_project_record(pid, data)
     _snapshot_version(pid, data)
 
     save_working_data(data)
@@ -82,11 +62,9 @@ def save_project():
 @bp.route('/api/projects/<pid>', methods=['GET'])
 @login_required
 def load_project(pid):
-    path = os.path.join(PROJECTS_DIR, pid + '.json')
-    if not os.path.exists(path):
+    data = load_project_record(pid)
+    if data is None:
         return jsonify({'error': 'Not found'}), 404
-    with open(path) as f:
-        data = json.load(f)
     data = merge_settings(data)
     log.info(f"Project '{pid}' loaded by '{session.get('user')}'")
     return jsonify(data)
@@ -95,8 +73,8 @@ def load_project(pid):
 @bp.route('/api/projects/<pid>', methods=['PUT'])
 @login_required
 def update_project(pid):
-    path = os.path.join(PROJECTS_DIR, pid + '.json')
-    if not os.path.exists(path):
+    existing = load_project_record(pid)
+    if existing is None:
         return jsonify({'error': 'Not found'}), 404
     data = request.json or {}
     try:
@@ -105,16 +83,12 @@ def update_project(pid):
         return jsonify({'error': str(e)}), 400
 
     # Preserve original _meta (id, name, created) but update saved_at/by
-    with open(path) as f:
-        existing = json.load(f)
     meta = existing.get('_meta', {})
     meta['saved_at'] = datetime.now().isoformat(timespec='seconds')
     meta['saved_by'] = session.get('user', '')
     data['_meta'] = meta
 
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
+    save_project_record(pid, data)
     _snapshot_version(pid, data)
     save_working_data(data)
     log.info(f"Project '{pid}' updated by '{session.get('user')}'")
@@ -124,9 +98,7 @@ def update_project(pid):
 @bp.route('/api/projects/<pid>', methods=['DELETE'])
 @login_required
 def delete_project(pid):
-    path = os.path.join(PROJECTS_DIR, pid + '.json')
-    if os.path.exists(path):
-        os.remove(path)
+    delete_project_record(pid)
     log.info(f"Project '{pid}' deleted by '{session.get('user')}'")
     return jsonify({'status': 'ok'})
 
@@ -134,21 +106,13 @@ def delete_project(pid):
 @bp.route('/api/projects/<pid>/rename', methods=['POST'])
 @login_required
 def rename_project(pid):
-    path = os.path.join(PROJECTS_DIR, pid + '.json')
-    if not os.path.exists(path):
-        return jsonify({'error': 'Not found'}), 404
     body = request.json or {}
     new_name = body.get('name', '').strip()
     new_customer = body.get('customer', '').strip()
     if not new_name:
         return jsonify({'error': 'Name required'}), 400
-    with open(path) as f:
-        data = json.load(f)
-    data.setdefault('_meta', {})['name'] = new_name
-    if new_customer:
-        data.setdefault('project', {})['customer'] = new_customer
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
+    if not rename_project_record(pid, new_name, new_customer):
+        return jsonify({'error': 'Not found'}), 404
     log.info(f"Project '{pid}' renamed to '{new_name}' by '{session.get('user')}'")
     return jsonify({'status': 'ok'})
 
@@ -157,25 +121,7 @@ def rename_project(pid):
 @bp.route('/api/projects/<pid>/versions', methods=['GET'])
 @login_required
 def list_versions(pid):
-    versions = []
-    vdir = os.path.join(VERSIONS_DIR, pid)
-    if not os.path.exists(vdir):
-        return jsonify([])
-    for fname in sorted(os.listdir(vdir)):
-        if fname.endswith('.json'):
-            path = os.path.join(vdir, fname)
-            try:
-                with open(path) as f:
-                    d = json.load(f)
-                meta = d.get('_meta', {})
-                versions.append({
-                    'vid':      fname[:-5],
-                    'saved_at': meta.get('saved_at', ''),
-                    'saved_by': meta.get('saved_by', ''),
-                })
-            except Exception:
-                pass
-    return jsonify(versions)
+    return jsonify(list_project_versions(pid))
 
 
 @bp.route('/api/compare', methods=['POST'])
@@ -200,20 +146,12 @@ def compare():
 # ── Helpers ───────────────────────────────────────────────────
 def _snapshot_version(pid: str, data: dict):
     """Save a timestamped snapshot under versions/<pid>/."""
-    vdir = os.path.join(VERSIONS_DIR, pid)
-    os.makedirs(vdir, exist_ok=True)
     vid = datetime.now().strftime('%Y%m%d_%H%M%S')
-    with open(os.path.join(vdir, vid + '.json'), 'w') as f:
-        json.dump(data, f, indent=2)
+    save_project_version(pid, vid, data)
 
 
 def _load_version_or_project(pid: str, vid: str | None) -> dict | None:
     """Load a specific version snapshot, or the main project file if vid is None."""
     if vid:
-        path = os.path.join(VERSIONS_DIR, pid, vid + '.json')
-    else:
-        path = os.path.join(PROJECTS_DIR, pid + '.json')
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        return json.load(f)
+        return load_project_version(pid, vid)
+    return load_project_record(pid)

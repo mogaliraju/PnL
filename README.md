@@ -13,7 +13,7 @@ A web-based Profit & Loss estimation tool for project proposals. Built with Flas
 - **Export Settings** — configure project-level export metadata (contract type, funding approvals, etc.) before generating the Excel workbook.
 - **Excel Export** — one-click export to a formatted `.xlsx` file matching the Benline PnL template.
 - **Version Snapshots** — every save creates a timestamped snapshot. Compare any two versions via the Compare modal.
-- **Session Auth** — username/password login backed by `users.json` with werkzeug-hashed passwords.
+- **Session Auth** — username/password login stored in SQLite with werkzeug-hashed passwords.
 
 ---
 
@@ -129,9 +129,15 @@ Gross Profit = Sell Cost - Input Cost
 
 The default gross margin is **40%**, editable per project via the pencil button in the Cost Summary panel.
 
+### Storage
+
+The application now uses a SQLite database at `pnl.sqlite3` inside the configured `DATA_DIR`.
+Legacy JSON files such as `data.json`, `settings.json`, `users.json`, `projects/*.json`, and
+`versions/*/*.json` are treated as migration inputs for first run on a fresh database.
+
 ### Global Settings
 
-`settings.json` holds the master **Rate Card** (level → USD rate) and **Role Catalog** (group → roles list). These are injected into every project on load via `merge_settings()`, so changes to the global catalog propagate to all future project opens.
+The SQLite-backed global settings store holds the master **Rate Card** (level → USD rate) and **Role Catalog** (group → roles list). These are injected into every project on load via `merge_settings()`, so changes to the global catalog propagate to all future project opens.
 
 ### Version Comparison
 

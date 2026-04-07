@@ -2,6 +2,7 @@ import importlib
 import json
 import os
 import shutil
+import sqlite3
 import sys
 import unittest
 import uuid
@@ -61,7 +62,7 @@ class StorageTests(unittest.TestCase):
         self.assertIn('root', users)
         self.assertEqual(users['root']['role'], 'admin')
         self.assertEqual(users['root']['name'], 'Root Admin')
-        self.assertTrue((self.data_dir / 'users.json').exists())
+        self.assertTrue((self.data_dir / 'pnl.sqlite3').exists())
 
     def test_save_working_data_keeps_global_settings_in_sync(self):
         payload = {
@@ -73,13 +74,59 @@ class StorageTests(unittest.TestCase):
 
         self.storage.save_working_data(payload)
 
-        saved_data = json.loads((self.data_dir / 'data.json').read_text(encoding='utf-8'))
-        saved_settings = json.loads((self.data_dir / 'settings.json').read_text(encoding='utf-8'))
         loaded = self.storage.load_working_data()
+        settings = self.storage.load_global_settings()
+        db_path = self.data_dir / 'pnl.sqlite3'
 
-        self.assertEqual(saved_data['project']['customer'], 'Sync Test')
-        self.assertEqual(saved_settings['rate_card'][0]['rate'], 42)
+        self.assertEqual(loaded['project']['customer'], 'Sync Test')
+        self.assertEqual(settings['rate_card'][0]['rate'], 42)
         self.assertEqual(loaded['role_catalog'][0]['group'], 'Delivery')
+        self.assertTrue(db_path.exists())
+
+    def test_json_seed_files_are_migrated_into_sqlite(self):
+        (self.data_dir / 'data.json').write_text(json.dumps({
+            'project': {'customer': 'Migrated Working Copy'},
+            'resources': [],
+        }, indent=2), encoding='utf-8')
+        (self.data_dir / 'settings.json').write_text(json.dumps({
+            'rate_card': [{'level': 'L1', 'rate': 99}],
+            'role_catalog': [{'group': 'Migrated', 'roles': ['Engineer']}],
+        }, indent=2), encoding='utf-8')
+        (self.data_dir / 'users.json').write_text(json.dumps({
+            'admin': {
+                'password': 'hash',
+                'role': 'admin',
+                'name': 'Administrator',
+                'created_at': '2026-01-01T00:00:00',
+            }
+        }, indent=2), encoding='utf-8')
+        (self.data_dir / 'projects' / 'sample.json').write_text(json.dumps({
+            '_meta': {'id': 'sample', 'name': 'Sample'},
+            'project': {'customer': 'Migrated Project'},
+            'resources': [],
+        }, indent=2), encoding='utf-8')
+        (self.data_dir / 'versions' / 'sample').mkdir()
+        (self.data_dir / 'versions' / 'sample' / 'v1.json').write_text(json.dumps({
+            '_meta': {'saved_at': '2026-01-01T00:00:00', 'saved_by': 'admin'},
+            'project': {'customer': 'Versioned'},
+            'resources': [],
+        }, indent=2), encoding='utf-8')
+
+        self.storage = reload_storage_module()
+
+        working = self.storage.load_working_data()
+        projects = self.storage.list_projects()
+        versions = self.storage.list_project_versions('sample')
+
+        self.assertEqual(working['project']['customer'], 'Migrated Working Copy')
+        self.assertEqual(working['rate_card'][0]['rate'], 99)
+        self.assertEqual(projects[0]['customer'], 'Migrated Project')
+        self.assertEqual(versions[0]['vid'], 'v1')
+
+        db_path = self.data_dir / 'pnl.sqlite3'
+        self.assertTrue(db_path.exists())
+        with sqlite3.connect(db_path) as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM projects').fetchone()[0], 1)
 
 
 if __name__ == '__main__':

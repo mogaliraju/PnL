@@ -9,6 +9,7 @@ tests/__pycache__/
 data.json
 settings.json
 users.json
+*.sqlite3
 *.log
 projects/
 data/versions/

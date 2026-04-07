@@ -7,6 +7,7 @@ SETTINGS_FILE = os.path.join(DATA_DIR, 'settings.json')
 PROJECTS_DIR  = os.path.join(DATA_DIR, 'projects')
 VERSIONS_DIR  = os.path.join(DATA_DIR, 'versions')
 USERS_FILE    = os.path.join(DATA_DIR, 'users.json')
+DB_FILE       = os.path.join(DATA_DIR, 'pnl.sqlite3')
 LOG_FILE      = os.path.join(DATA_DIR, 'pnl.log')
 
 APP_ENV = os.environ.get('PNL_ENV') or os.environ.get('FLASK_ENV') or 'development'
