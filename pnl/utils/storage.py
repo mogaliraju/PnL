@@ -469,6 +469,19 @@ def load_project_version(pid: str, vid: str) -> dict | None:
     return _json_loads(row['payload'], {})
 
 
+def load_all_project_records() -> list[dict]:
+    _ensure_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT payload
+            FROM projects
+            ORDER BY saved_at DESC, pid DESC
+            """
+        ).fetchall()
+    return [_json_loads(row['payload'], {}) for row in rows]
+
+
 # Backwards-compatible names for existing imports while the codebase is refactored.
 load_settings = load_global_settings
 save_settings = save_global_settings

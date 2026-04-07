@@ -116,6 +116,17 @@ class ReadOnlyFlowTests(unittest.TestCase):
             response.headers.get('Content-Type', ''),
         )
 
+    def test_dashboard_endpoint_returns_project_and_resource_analytics(self):
+        response = self.client.get('/api/dashboard')
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['kpis']['projects'], 1)
+        self.assertEqual(payload['kpis']['resources'], 1)
+        self.assertGreaterEqual(payload['kpis']['hours'], 8)
+        self.assertEqual(payload['top_customers'][0]['label'], 'Saved Project')
+        self.assertEqual(payload['top_roles_by_hours'][0]['label'], 'Architect')
+
 
 if __name__ == '__main__':
     unittest.main()

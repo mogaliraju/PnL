@@ -1044,6 +1044,91 @@ function importExcel(input) {
 // ============================================================
 // PROJECTS — save / load / delete
 // ============================================================
+async function loadDashboard() {
+  const container = document.getElementById('dashboard-container');
+  if (!container) return;
+  container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
+
+  let data;
+  try {
+    const res = await fetch('/api/dashboard', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    data = await res.json();
+  } catch (e) {
+    container.innerHTML = `<div class="text-center text-danger py-5"><i class="bi bi-exclamation-triangle me-1"></i>Could not load analytics: ${e.message}</div>`;
+    return;
+  }
+
+  const k = data.kpis || {};
+  const fmtMoneyShort = v => '$' + Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtNum = v => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const fmtPct = v => ((Number(v || 0)) * 100).toFixed(1) + '%';
+
+  container.innerHTML = `
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Saved Projects</div><div class="analytics-kpi-value">${fmtNum(k.projects)}</div></div></div>
+      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Total Resources</div><div class="analytics-kpi-value">${fmtNum(k.resources)}</div></div></div>
+      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Total Hours</div><div class="analytics-kpi-value">${fmtNum(k.hours)}</div></div></div>
+      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Avg Margin</div><div class="analytics-kpi-value">${fmtPct(k.avg_margin)}</div></div></div>
+      <div class="col-6 col-lg-4"><div class="analytics-kpi analytics-kpi-accent"><div class="analytics-kpi-label">Portfolio Input Cost</div><div class="analytics-kpi-value">${fmtMoneyShort(k.input_cost)}</div></div></div>
+      <div class="col-6 col-lg-4"><div class="analytics-kpi analytics-kpi-accent"><div class="analytics-kpi-label">Portfolio Revenue</div><div class="analytics-kpi-value">${fmtMoneyShort(k.revenue)}</div></div></div>
+      <div class="col-12 col-lg-4"><div class="analytics-kpi analytics-kpi-soft"><div class="analytics-kpi-label">Avg Resources / Project</div><div class="analytics-kpi-value">${fmtNum(k.avg_resources_per_project)}</div></div></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-geo-alt me-1"></i>Top Locations</div><div class="card-body">${renderAnalyticsBars(data.top_locations, 'projects')}</div></div></div>
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-person-workspace me-1"></i>Projects by Owner</div><div class="card-body">${renderAnalyticsBars(data.projects_by_owner, 'projects')}</div></div></div>
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-briefcase me-1"></i>Top Customers</div><div class="card-body">${renderAnalyticsBars(data.top_customers, 'projects')}</div></div></div>
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-diagram-3 me-1"></i>Resource Groups by Hours</div><div class="card-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div></div></div>
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-people me-1"></i>Top Roles by Hours</div><div class="card-body">${renderAnalyticsBars(data.top_roles_by_hours, 'hours')}</div></div></div>
+      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-speedometer2 me-1"></i>Margin Distribution</div><div class="card-body">${renderAnalyticsBars(data.margin_buckets, 'projects')}</div></div></div>
+      <div class="col-12"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-calendar3 me-1"></i>Projects Saved Over Time</div><div class="card-body">${renderAnalyticsTimeline(data.projects_by_month)}</div></div></div>
+    </div>`;
+}
+
+function renderAnalyticsBars(items, unit = 'count') {
+  if (!Array.isArray(items) || !items.length) {
+    return `<div class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i>No data yet</div>`;
+  }
+  const maxValue = Math.max(...items.map(item => Number(item.value || 0)), 1);
+  const fmt = value => {
+    const n = Number(value || 0);
+    if (unit === 'hours') return `${n.toLocaleString('en-US', { maximumFractionDigits: 1 })} hrs`;
+    return `${n.toLocaleString('en-US')} ${unit}`;
+  };
+  return items.map(item => {
+    const value = Number(item.value || 0);
+    const width = Math.max((value / maxValue) * 100, value > 0 ? 8 : 0);
+    return `
+      <div class="analytics-bar-row">
+        <div class="analytics-bar-head">
+          <span class="analytics-bar-label" title="${esc(item.label)}">${esc(item.label)}</span>
+          <span class="analytics-bar-value">${fmt(value)}</span>
+        </div>
+        <div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:${width}%"></div></div>
+      </div>`;
+  }).join('');
+}
+
+function renderAnalyticsTimeline(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return `<div class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i>No saved project history yet</div>`;
+  }
+  const maxValue = Math.max(...items.map(item => Number(item.value || 0)), 1);
+  return `
+    <div class="analytics-timeline">
+      ${items.map(item => {
+        const value = Number(item.value || 0);
+        const height = Math.max((value / maxValue) * 100, value > 0 ? 10 : 0);
+        return `
+          <div class="analytics-timeline-item">
+            <div class="analytics-timeline-count">${value}</div>
+            <div class="analytics-timeline-bar-wrap"><div class="analytics-timeline-bar" style="height:${height}%"></div></div>
+            <div class="analytics-timeline-label">${esc(item.label)}</div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
 async function loadAllProjects() {
   const container = document.getElementById('all-projects-container');
   if (!container) return;

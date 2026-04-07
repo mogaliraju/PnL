@@ -116,6 +116,7 @@
 
   <!-- Tabs -->
   <ul class="nav nav-tabs mb-3" id="mainTabs">
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-dashboard" onclick="loadDashboard()"><i class="bi bi-graph-up-arrow me-1"></i>Dashboard</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
@@ -124,6 +125,23 @@
   </ul>
 
   <div class="tab-content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="tab-pane fade" id="tab-dashboard">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 class="mb-1 fw-bold">Project Analytics Dashboard</h6>
+          <div class="text-muted small">Portfolio-level insight across saved projects, costs, margins, and resource mix.</div>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadDashboard()">
+          <i class="bi bi-arrow-repeat me-1"></i>Refresh
+        </button>
+      </div>
+
+      <div id="dashboard-container">
+        <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+      </div>
+    </div>
 
     <!-- ===== ALL PROJECTS ===== -->
     <div class="tab-pane fade" id="tab-all-projects">

@@ -1,7 +1,9 @@
 """Main routes: index page, current-project data, global settings."""
+from collections import Counter, defaultdict
 from datetime import date
 from flask import Blueprint, render_template, request, jsonify, session
 from pnl.utils.storage import (
+    load_all_project_records,
     load_working_data,
     save_working_data,
     load_global_settings,
@@ -9,6 +11,7 @@ from pnl.utils.storage import (
 )
 from pnl.utils.auth import login_required
 from pnl.utils.logger import get_logger
+from pnl.services.pnl_service import compute_costs
 
 bp = Blueprint('main', __name__)
 log = get_logger(__name__)
@@ -75,3 +78,97 @@ def update_settings():
     save_global_settings(existing)
     log.info(f"Settings updated by '{session.get('user')}'")
     return jsonify({'status': 'ok'})
+
+
+@bp.route('/api/dashboard')
+@login_required
+def dashboard_data():
+    projects = load_all_project_records()
+
+    total_projects = len(projects)
+    total_resources = 0
+    total_hours = 0.0
+    total_input_cost = 0.0
+    total_revenue = 0.0
+    margin_sum = 0.0
+
+    location_counter = Counter()
+    customer_counter = Counter()
+    role_counter = Counter()
+    group_counter = Counter()
+    saved_by_counter = Counter()
+    monthly_projects = defaultdict(int)
+    margin_buckets = {
+        'Below 20%': 0,
+        '20%-35%': 0,
+        '35%-50%': 0,
+        '50%+': 0,
+    }
+
+    for payload in projects:
+        meta = payload.get('_meta', {})
+        project = payload.get('project', {})
+        resources = payload.get('resources', [])
+        target_margin = float(payload.get('target_margin', 0.40))
+        costs = compute_costs(resources, payload.get('rate_card', []), target_margin)
+
+        total_resources += len(resources)
+        total_hours += sum(float(r.get('hours') or 0) for r in resources)
+        total_input_cost += costs['input_cost']
+        total_revenue += costs['sell_cost']
+        margin_sum += costs['gross_margin']
+
+        if project.get('location'):
+            location_counter[project['location']] += 1
+        if project.get('customer'):
+            customer_counter[project['customer']] += 1
+        if meta.get('saved_by'):
+            saved_by_counter[meta['saved_by']] += 1
+
+        saved_at = meta.get('saved_at', '')
+        if saved_at:
+            monthly_projects[saved_at[:7]] += 1
+
+        margin_pct = costs['gross_margin'] * 100
+        if margin_pct < 20:
+            margin_buckets['Below 20%'] += 1
+        elif margin_pct < 35:
+            margin_buckets['20%-35%'] += 1
+        elif margin_pct < 50:
+            margin_buckets['35%-50%'] += 1
+        else:
+            margin_buckets['50%+'] += 1
+
+        for resource in resources:
+            role = resource.get('role', '').strip()
+            group = resource.get('group', '').strip()
+            hours = float(resource.get('hours') or 0)
+            if role:
+                role_counter[role] += hours
+            if group:
+                group_counter[group] += hours
+
+    avg_margin = (margin_sum / total_projects) if total_projects else 0
+    avg_resources = (total_resources / total_projects) if total_projects else 0
+
+    return jsonify({
+        'kpis': {
+            'projects': total_projects,
+            'resources': total_resources,
+            'hours': round(total_hours, 1),
+            'input_cost': round(total_input_cost, 2),
+            'revenue': round(total_revenue, 2),
+            'avg_margin': round(avg_margin, 4),
+            'avg_resources_per_project': round(avg_resources, 1),
+        },
+        'top_locations': [{'label': k, 'value': v} for k, v in location_counter.most_common(6)],
+        'top_customers': [{'label': k, 'value': v} for k, v in customer_counter.most_common(6)],
+        'top_roles_by_hours': [{'label': k, 'value': round(v, 1)} for k, v in role_counter.most_common(8)],
+        'top_groups_by_hours': [{'label': k, 'value': round(v, 1)} for k, v in group_counter.most_common(8)],
+        'projects_by_owner': [{'label': k, 'value': v} for k, v in saved_by_counter.most_common(6)],
+        'projects_by_month': [
+            {'label': month, 'value': monthly_projects[month]}
+            for month in sorted(monthly_projects.keys())
+        ],
+        'margin_buckets': [{'label': k, 'value': v} for k, v in margin_buckets.items()],
+    })
