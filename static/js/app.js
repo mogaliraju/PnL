@@ -1007,6 +1007,7 @@ async function loadAllProjects() {
             <th class="text-end">Gross Margin</th>
             <th>Saved At</th>
             <th>Saved By</th>
+            <th class="text-center" style="width:56px"></th>
           </tr>
         </thead>
         <tbody>
@@ -1027,11 +1028,25 @@ async function loadAllProjects() {
               <td class="text-end small ${c.gross_margin ? marginColor : ''}">${c.gross_margin ? pct(c.gross_margin) : ''}</td>
               <td class="small text-muted">${(p.saved_at||'').replace('T',' ').slice(0,16)}</td>
               <td class="small text-muted">${esc(p.saved_by || '')}</td>
+              <td class="text-center" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete project"
+                  onclick="deleteProject('${esc(p.id)}','${esc(p.name)}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>`;
+}
+
+async function deleteProject(id, name) {
+  if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+  const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+  if (!res.ok) { showToast('Delete failed', 'danger'); return; }
+  showToast(`"${name}" deleted`, 'success');
+  loadAllProjects();
 }
 
 async function loadProjectAndSwitch(id, name) {
