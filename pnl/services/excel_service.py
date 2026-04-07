@@ -84,7 +84,11 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
     markup_pct   = costs['markup_pct']
     gross_margin = costs['gross_margin']
 
-    rate_map  = {r['level']: r['rate'] for r in data.get('rate_card', [])}
+    from pnl.services.pnl_service import _get_rate as _svc_get_rate
+    rate_card = data.get('rate_card', [])
+    def _rate_for(res):
+        item = next((rc for rc in rate_card if rc.get('level') == res.get('level')), {})
+        return _svc_get_rate(item, res.get('group', ''))
     resources = data.get('resources', [])
     proj      = data.get('project', {})
     appr      = data.get('approvals', {})
@@ -219,7 +223,7 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
     # ── Resource rows ──────────────────────────────────────────
     total_h = total_c = 0
     for ri, res in enumerate(resources):
-        rate = rate_map.get(res.get('level', ''), 0)
+        rate = _rate_for(res)
         hours = res.get('hours') or 0
         cost  = hours * rate
         total_h += hours

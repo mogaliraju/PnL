@@ -39,9 +39,8 @@ def list_projects():
                     'saved_by':     meta.get('saved_by', ''),
                 }
                 if summary:
-                    rate_map = {r['level']: r['rate'] for r in d.get('rate_card', [])}
                     target_margin = float(d.get('target_margin', 0.40))
-                    costs = compute_costs(d.get('resources', []), rate_map, target_margin)
+                    costs = compute_costs(d.get('resources', []), d.get('rate_card', []), target_margin)
                     entry['costs'] = costs
                 projects.append(entry)
             except Exception:

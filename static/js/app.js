@@ -281,13 +281,11 @@ function collectProject() {
 // SUMMARY CALCULATIONS
 // ============================================================
 function updateSummary() {
-  const rateMap = {};
-  (appData.rate_card || []).forEach(r => { rateMap[r.level] = r.rate; });
   const resources = appData.resources || [];
 
   let inputCost = 0;
   resources.forEach(r => {
-    inputCost += (r.hours || 0) * (rateMap[r.level] || 0);
+    inputCost += (r.hours || 0) * _getRateForResource(r);
   });
   const divisor  = 1 - _targetMargin;
   const sellCost = inputCost > 0 ? inputCost / divisor : 0;
@@ -351,8 +349,6 @@ function applyFxRate() {
 // RESOURCES
 // ============================================================
 function renderResources() {
-  const rateMap = {};
-  (appData.rate_card || []).forEach(r => { rateMap[r.level] = r.rate; });
   const resources = appData.resources || [];
   const levels    = (appData.rate_card || []).map(r => r.level);
   const catalog   = appData.role_catalog || [];
@@ -363,7 +359,7 @@ function renderResources() {
   let totalHours = 0, totalCost = 0;
 
   resources.forEach((res, i) => {
-    const rate = rateMap[res.level] || 0;
+    const rate = _getRateForResource(res);
     const cost = (res.hours || 0) * rate;
     totalHours += (res.hours || 0);
     totalCost  += cost;
@@ -431,9 +427,7 @@ function updateResourceCost(i, hoursVal) {
   const hours = parseFloat(hoursVal) || 0;
   appData.resources[i].hours = hours;
 
-  const rateMap = {};
-  (appData.rate_card || []).forEach(r => { rateMap[r.level] = r.rate; });
-  const rate = rateMap[appData.resources[i].level] || 0;
+  const rate = _getRateForResource(appData.resources[i]);
   const cost = hours * rate;
 
   const costEl = document.getElementById(`res_cost_${i}`);
@@ -444,7 +438,7 @@ function updateResourceCost(i, hoursVal) {
   let totalHours = 0, totalCost = 0;
   (appData.resources || []).forEach(r => {
     totalHours += (r.hours || 0);
-    totalCost  += (r.hours || 0) * (rateMap[r.level] || 0);
+    totalCost  += (r.hours || 0) * _getRateForResource(r);
   });
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
@@ -460,13 +454,22 @@ function onResGroupChange(i, groupName) {
   appData.resources[i].group = groupName;
   appData.resources[i].role  = roles[0] || '';
 
-  // Repopulate just the role select without full re-render
+  // Repopulate role select
   const roleEl = document.getElementById(`res_role_${i}`);
   if (roleEl) {
     roleEl.innerHTML = roles.map(r =>
       `<option value="${esc(r)}">${esc(r)}</option>`
     ).join('');
   }
+  // Re-compute rate & cost for this row (rate depends on group)
+  const rate    = _getRateForResource(appData.resources[i]);
+  const cost    = (appData.resources[i].hours || 0) * rate;
+  const rateEl  = document.getElementById(`res_rate_${i}`);
+  const costEl  = document.getElementById(`res_cost_${i}`);
+  const inrEl   = document.getElementById(`res_cost_inr_${i}`);
+  if (rateEl) rateEl.textContent = '$' + rate.toFixed(2);
+  if (costEl) costEl.textContent = fmtMoney(cost);
+  if (inrEl)  inrEl.textContent  = _usdToInr ? '₹' + Math.round(cost * _usdToInr).toLocaleString('en-IN') : '';
   updateSummary();
 }
 
@@ -495,14 +498,48 @@ function removeResource(i) {
 // RATE CARD
 // ============================================================
 function collectRateCard() {
-  const rows = document.querySelectorAll('#ratecard-tbody tr');
-  rows.forEach((row, i) => {
+  // Rates are updated in-place via setRate(); only need to sync level names
+  const rows = document.querySelectorAll('#ratecard-tbody tr[data-rc-idx]');
+  rows.forEach(row => {
+    const i = parseInt(row.dataset.rcIdx);
     if (!appData.rate_card[i]) return;
     const levelInput = row.querySelector('input[type="text"]');
-    const rateInput  = row.querySelector('input[type="number"]');
     if (levelInput) appData.rate_card[i].level = levelInput.value.trim();
-    if (rateInput)  appData.rate_card[i].rate  = parseFloat(rateInput.value) || 0;
   });
+}
+
+// ── Rate card helpers ─────────────────────────────────────────
+function _getRate(rcItem, category) {
+  /** Get rate from a rate_card item for a given category.
+   *  Supports new {rates:{cat:val}} and old {rate:val} formats. */
+  if (!rcItem) return 0;
+  const rates = rcItem.rates;
+  if (rates && typeof rates === 'object') {
+    if (category && category in rates) return rates[category] || 0;
+    const vals = Object.values(rates);
+    return vals.length ? (vals[0] || 0) : 0;
+  }
+  return rcItem.rate || 0;  // backward compat
+}
+
+function _getRateForResource(res) {
+  /** Look up the rate for a resource using its level + group. */
+  const item = (appData.rate_card || []).find(r => r.level === res.level);
+  return _getRate(item, res.group || '');
+}
+
+function setRate(levelIdx, value, category) {
+  /** Store a category-specific rate on the rate_card item. */
+  const item = appData.rate_card[levelIdx];
+  if (!item) return;
+  if (!item.rates || typeof item.rates !== 'object') {
+    // Migrate old flat rate → per-category object, copying old rate to all existing categories
+    item.rates = {};
+    const oldRate = item.rate || 0;
+    (appData.role_catalog || []).forEach(g => { item.rates[g.group] = oldRate; });
+    delete item.rate;
+  }
+  item.rates[category] = parseFloat(value) || 0;
 }
 
 let _usdToInr = null;
@@ -535,7 +572,6 @@ function applyFxRateInline() {
 }
 
 function renderRateCard() {
-  sortRateCard();
   const rc      = appData.rate_card || [];
   const catalog = appData.role_catalog || [];
   const tbody   = document.getElementById('ratecard-tbody');
@@ -549,21 +585,24 @@ function renderRateCard() {
     filterEl.innerHTML = catalog.map(g =>
       `<option value="${esc(g.group)}" ${g.group === currentVal ? 'selected' : ''}>${esc(g.group)}</option>`
     ).join('');
-    // If nothing selected and catalog has items, default to first
     if (!filterEl.value && catalog.length) filterEl.value = catalog[0].group;
   }
 
-  // Render flat rate card rows (same rates regardless of category)
+  const selectedCat = filterEl?.value || '';
+  sortRateCard(selectedCat);
+
   rc.forEach((item, i) => {
-    const inrVal  = showInr ? Math.round(item.rate * _usdToInr) : null;
+    const rate    = _getRate(item, selectedCat);
+    const inrVal  = showInr ? Math.round(rate * _usdToInr) : null;
     const inrCell = showInr ? `<td class="text-end text-muted small">₹${inrVal.toLocaleString('en-IN')}</td>` : '<td></td>';
     const tr = document.createElement('tr');
+    tr.dataset.rcIdx = i;
     tr.innerHTML = `
       <td class="text-center text-muted small">${i + 1}</td>
       <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
           oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
-      <td><input type="number" class="form-control form-control-sm text-end" value="${item.rate}" min="0" step="0.5"
-          onchange="appData.rate_card[${i}].rate=parseFloat(this.value)||0; sortRateCard(); renderRateCard(); renderResources(); updateSummary(); saveSettings();"/></td>
+      <td><input type="number" class="form-control form-control-sm text-end" value="${rate}" min="0" step="0.5"
+          onchange="setRate(${i},this.value,'${esc(selectedCat)}'); renderResources(); updateSummary(); renderRateChart(); saveSettings();"/></td>
       ${inrCell}
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
@@ -587,15 +626,18 @@ function saveSettings() {
   });
 }
 
-function sortRateCard() {
-  appData.rate_card.sort((a, b) => (a.rate || 0) - (b.rate || 0));
+function sortRateCard(category) {
+  const cat = category || document.getElementById('ratecard-category-filter')?.value || '';
+  appData.rate_card.sort((a, b) => _getRate(a, cat) - _getRate(b, cat));
 }
 
 function addRateLevel() {
   if (!appData.rate_card) appData.rate_card = [];
   const nextNum = appData.rate_card.length + 1;
-  appData.rate_card.push({ level: `L${nextNum}`, rate: 0 });
-  sortRateCard();
+  // Build rates object with 0 for every catalog category
+  const rates = {};
+  (appData.role_catalog || []).forEach(g => { rates[g.group] = 0; });
+  appData.rate_card.push({ level: `L${nextNum}`, rates });
   renderRateCard();
   saveSettings();
 }
@@ -609,16 +651,18 @@ function removeRateLevel(i) {
 }
 
 function renderRateChart() {
-  const rc = appData.rate_card || [];
-  const maxRate = Math.max(...rc.map(r => r.rate), 1);
+  const rc  = appData.rate_card || [];
+  const cat = document.getElementById('ratecard-category-filter')?.value || '';
+  const rates = rc.map(r => _getRate(r, cat));
+  const maxRate = Math.max(...rates, 1);
   const area = document.getElementById('rate-chart-area');
-  area.innerHTML = rc.map(item => `
+  area.innerHTML = rc.map((item, i) => `
     <div class="rate-bar-row">
       <div class="rate-bar-label">${esc(item.level)}</div>
       <div class="rate-bar-track">
-        <div class="rate-bar-fill" style="width:${(item.rate / maxRate * 100).toFixed(1)}%"></div>
+        <div class="rate-bar-fill" style="width:${(rates[i] / maxRate * 100).toFixed(1)}%"></div>
       </div>
-      <div class="rate-bar-val">$${item.rate}/hr</div>
+      <div class="rate-bar-val">$${rates[i]}/hr</div>
     </div>`).join('');
 }
 
@@ -817,6 +861,16 @@ function addCatalogCategory() {
     showToast('Category already exists', 'warning'); return;
   }
   appData.role_catalog.push({ group: name, roles: [] });
+  // Add 0-rate slot for new category in every existing rate card level
+  (appData.rate_card || []).forEach(item => {
+    if (!item.rates || typeof item.rates !== 'object') {
+      item.rates = {};
+      const oldRate = item.rate || 0;
+      (appData.role_catalog || []).forEach(g => { item.rates[g.group] = item.rates[g.group] ?? oldRate; });
+      delete item.rate;
+    }
+    if (!(name in item.rates)) item.rates[name] = 0;
+  });
   input.value = '';
   refreshGroupDropdown();
   renderCatalogList();
