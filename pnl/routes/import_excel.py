@@ -37,58 +37,72 @@ def _n(val):
         return None
 
 
-def _parse_pnl_sheet(ws):
-    """Read project metadata from Sheet 1 (PnL).
-    Handles both native app export format and legacy company Excel format."""
+# Labels that should never be mistaken for a field value.
+# Includes common column/row headers that appear adjacent to real label cells.
+_HEADER_LABELS = {
+    'project description', 'partner details', 'partner', 'payment terms',
+    'delivery method', 'customer name', 'customer', 'location', 'reference',
+    'reference no', 'reference no.', 'reference number', 'proposal date',
+    'date', 'duration (months)', 'duration', 'proposal value', 'revenue (usd)',
+    'cost (usd)', 'markup %', 'gross margin', 'markup value', 'revenue split',
+    'cost split (%)', 'customer first touch point', 'sales manager',
+    'presales architect', 'prepared by', 'reviewed by', 'approved by',
+    'currency', 'value', 'method of recovery', 'method', 'yes/no.',
+    'reason, if not attached', 'funding / rebates', 'funding/rebates',
+}
+
+
+def _norm(val):
+    """Normalise a cell value to a lowercase string for label matching —
+    collapses newlines and extra spaces."""
+    return ' '.join(_s(val).lower().split()).rstrip(':')
+
+
+def _find_label_value(ws, *label_variants, max_row=40, max_col=15):
+    """Scan the sheet for any cell matching one of label_variants (case-insensitive,
+    whitespace-normalised), then return the adjacent value from:
+      1. The cell to the RIGHT — unless it looks like another header label.
+      2. The cell BELOW — as fallback.
+    Works regardless of row/column position."""
+    targets = {_norm(lv) for lv in label_variants}
+    for r in range(1, max_row + 1):
+        for c in range(1, max_col + 1):
+            if _norm(_cv(ws, r, c)) not in targets:
+                continue
+            # Try right
+            rv = _cv(ws, r, c + 1)
+            if rv is not None and _s(rv) and _norm(rv) not in _HEADER_LABELS:
+                return rv
+            # Try below
+            bv = _cv(ws, r + 1, c)
+            if bv is not None and _s(bv) and _norm(bv) not in _HEADER_LABELS:
+                return bv
+    return None
+
+
+def _fmt(raw):
+    """Convert a raw cell value to a clean string, formatting datetimes as dates."""
     import datetime as _dt
-    project = {'customer': '', 'location': '', 'duration_months': None,
-                'proposal_date': '', 'reference': '',
-                'description': '', 'partner': '', 'payment_terms': ''}
-    try: project['customer'] = _s(_cv(ws, 3, 2))
-    except Exception: pass
+    if raw is None:
+        return ''
+    if isinstance(raw, _dt.datetime):
+        return raw.strftime('%Y-%m-%d')
+    return _s(raw)
 
-    # Proposal date: native format puts it at row 3 col 10;
-    # legacy format puts a datetime at row 5 col 2.
-    try:
-        v = _cv(ws, 3, 10)
-        if v:
-            project['proposal_date'] = _s(v)
-        else:
-            v2 = _cv(ws, 5, 2)
-            if isinstance(v2, _dt.datetime):
-                project['proposal_date'] = v2.strftime('%Y-%m-%d')
-    except Exception: pass
 
-    try: project['location'] = _s(_cv(ws, 4, 2))
-    except Exception: pass
-    try: project['reference'] = _s(_cv(ws, 4, 10))
-    except Exception: pass
-
-    # Duration: native format puts number at row 5 col 2;
-    # legacy format has a datetime there — skip it, try row 8 col 6.
-    try:
-        v = _cv(ws, 5, 2)
-        if isinstance(v, _dt.datetime):
-            project['duration_months'] = _n(_cv(ws, 8, 6))
-        else:
-            project['duration_months'] = _n(v)
-    except Exception: pass
-
-    # Legacy format: scan rows 6-12 for a "Project Description" label row,
-    # then read the next row for description, partner, payment_terms.
-    try:
-        for hr in range(6, 13):
-            if _s(_cv(ws, hr, 1)).lower() == 'project description':
-                dr = hr + 1
-                project['description']    = _s(_cv(ws, dr, 1))
-                project['partner']        = _s(_cv(ws, dr, 4))
-                project['payment_terms']  = _s(_cv(ws, dr, 5))
-                if project['duration_months'] is None:
-                    project['duration_months'] = _n(_cv(ws, dr, 6))
-                break
-    except Exception: pass
-
-    return project
+def _parse_pnl_sheet(ws):
+    """Read project metadata by scanning for labeled cells anywhere in the sheet.
+    Works for any Excel layout — fields are found by their label text, not position."""
+    return {
+        'customer':       _fmt(_find_label_value(ws, 'Customer Name', 'Customer')),
+        'location':       _fmt(_find_label_value(ws, 'Location')),
+        'reference':      _fmt(_find_label_value(ws, 'Reference No.', 'Reference No', 'Reference Number', 'Reference')),
+        'proposal_date':  _fmt(_find_label_value(ws, 'Proposal Date', 'Date')),
+        'duration_months':_n(_find_label_value(ws, 'Duration (Months)', 'Duration')),
+        'description':    _fmt(_find_label_value(ws, 'Project Description')),
+        'partner':        _fmt(_find_label_value(ws, 'Partner Details', 'Partner')),
+        'payment_terms':  _fmt(_find_label_value(ws, 'Payment Terms')),
+    }
 
 
 _LEVEL_RE = re.compile(r'^L\d+$', re.I)
