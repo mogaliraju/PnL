@@ -665,19 +665,51 @@ let _usdToInr = null;
 let _currentPid = null;   // PID of the project currently loaded in the editor
 let _targetMargin = 0.40; // default 40%
 
+async function fetchExchangeRate() {
+  const attempts = [
+    async () => {
+      const res = await fetch('/api/exchange-rate', { cache: 'no-store' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const fx = await res.json();
+      return Number(fx.usd_to_inr);
+    },
+    async () => {
+      const res = await fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const fx = await res.json();
+      return Number(fx.rates?.INR);
+    }
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      const rate = await attempt();
+      if (Number.isFinite(rate) && rate > 0) return rate;
+      throw new Error('Invalid exchange rate response');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Could not fetch exchange rate');
+}
+
 async function loadExchangeRate() {
   const inlineEl = document.getElementById('fx_rate_inline');
   if (inlineEl) inlineEl.placeholder = 'Fetching…';
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const fx = await res.json();
-    _usdToInr = fx.rates.INR;
+    _usdToInr = await fetchExchangeRate();
+    appData.fx_rate = _usdToInr;
     if (inlineEl) inlineEl.value = _usdToInr.toFixed(2);
     renderRateCard();
     updateSummary();
+    showToast(`Live USD → INR refreshed to ₹${_usdToInr.toFixed(2)}`, 'success');
   } catch (e) {
     if (inlineEl) inlineEl.placeholder = 'Unavailable — enter manually';
+    showToast('Could not refresh INR rate right now. You can still enter it manually.', 'danger');
   }
 }
 
@@ -1261,6 +1293,13 @@ const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'saved_at',
   'saved_by',
 ];
+const ALL_PROJECTS_COLUMN_GROUPS = [
+  { label: 'Basics', keys: ['customer', 'project', 'reference', 'location', 'duration', 'proposal_date'] },
+  { label: 'Pipeline', keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id'] },
+  { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency'] },
+  { label: 'Financial', keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
+  { label: 'Audit', keys: ['since_save', 'saved_at', 'saved_by'] },
+];
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1355,6 +1394,41 @@ function resetAllProjectsColumns() {
   loadAllProjects();
 }
 
+function renderAllProjectsActiveColumnChips(columnDefs, visibleKeys) {
+  const chips = columnDefs
+    .filter(def => visibleKeys.includes(def.key))
+    .map(def => `
+      <button class="all-projects-chip" type="button" title="Hide ${esc(def.label)}"
+        onclick="updateAllProjectsColumnSelection('${esc(def.key)}', false)">
+        ${esc(def.label)} <i class="bi bi-x-lg"></i>
+      </button>
+    `).join('');
+  return chips || `<span class="small text-muted">No columns selected</span>`;
+}
+
+function renderAllProjectsColumnPicker(columnDefs, visibleKeys) {
+  return ALL_PROJECTS_COLUMN_GROUPS.map(group => {
+    const defs = group.keys
+      .map(key => columnDefs.find(def => def.key === key))
+      .filter(Boolean);
+    if (!defs.length) return '';
+    return `
+      <div class="all-projects-picker-group">
+        <div class="all-projects-picker-title">${esc(group.label)}</div>
+        <div class="all-projects-picker-options">
+          ${defs.map(def => `
+            <label class="all-projects-option ${visibleKeys.includes(def.key) ? 'is-active' : ''}">
+              <input type="checkbox" ${visibleKeys.includes(def.key) ? 'checked' : ''}
+                onchange="updateAllProjectsColumnSelection('${esc(def.key)}', this.checked)">
+              <span>${esc(def.label)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadAllProjects() {
   const container = document.getElementById('all-projects-container');
   if (!container) return;
@@ -1396,34 +1470,31 @@ async function loadAllProjects() {
   const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
 
   container.innerHTML = `
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body py-2 px-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <div class="small text-muted">The original All Projects columns stay as the default. Add the new metadata columns only when you want them.</div>
-          <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllProjectsColumnPicker()">
-              <i class="bi bi-layout-three-columns me-1"></i>Choose Columns <i id="all-projects-column-toggle-icon" class="bi bi-chevron-down ms-1"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="resetAllProjectsColumns()">Reset Default</button>
-          </div>
+    <div class="all-projects-shell">
+      <div class="all-projects-toolbar mb-3">
+        <div class="all-projects-toolbar-copy">
+          <div class="all-projects-toolbar-title">Columns</div>
+          <div class="all-projects-toolbar-subtitle">${list.length} saved projects • ${visibleColumns.length} visible columns</div>
         </div>
-        <div id="all-projects-column-picker" class="d-none mt-3">
-          <div class="row g-2">
-            ${columnDefs.map(def => `
-              <div class="col-sm-6 col-lg-4 col-xl-3">
-                <label class="form-check small mb-0">
-                  <input class="form-check-input" type="checkbox" ${visibleKeys.includes(def.key) ? 'checked' : ''}
-                    onchange="updateAllProjectsColumnSelection('${esc(def.key)}', this.checked)">
-                  <span class="form-check-label">${esc(def.label)}</span>
-                </label>
-              </div>
-            `).join('')}
-          </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllProjectsColumnPicker()">
+              <i class="bi bi-sliders me-1"></i>Customize <i id="all-projects-column-toggle-icon" class="bi bi-chevron-down ms-1"></i>
+            </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="resetAllProjectsColumns()">Reset Default</button>
         </div>
       </div>
+      <div class="all-projects-active mb-3">
+        <div class="all-projects-active-label">Visible now</div>
+        <div class="all-projects-chip-row">
+          ${renderAllProjectsActiveColumnChips(columnDefs, visibleKeys)}
+        </div>
+      </div>
+      <div id="all-projects-column-picker" class="all-projects-picker d-none mb-3">
+        ${renderAllProjectsColumnPicker(columnDefs, visibleKeys)}
+      </div>
     </div>
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle" style="cursor:pointer">
+    <div class="table-responsive all-projects-table-wrap">
+      <table class="table table-bordered table-hover align-middle all-projects-table" style="cursor:pointer">
         <thead style="background:var(--ax-deep);color:#fff">
           <tr>
             <th class="text-center" style="width:48px">S.No</th>

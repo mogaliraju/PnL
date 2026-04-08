@@ -483,29 +483,29 @@
 
     <!-- ===== RATE CARD ===== -->
     <div class="tab-pane fade" id="tab-ratecard">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
           <h6 class="mb-0 fw-bold">Rate Card</h6>
           <select class="form-select form-select-sm" id="ratecard-category-filter" style="width:200px" onchange="renderRateCard()">
           </select>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="ratecard-toolbar d-flex align-items-center justify-content-end gap-2 flex-wrap">
           <!-- INR rate — always visible, editable -->
-          <div class="input-group input-group-sm" style="width:240px">
+          <div class="input-group input-group-sm ratecard-fx-group">
             <span class="input-group-text"><i class="bi bi-currency-exchange me-1"></i>1 USD =</span>
             <input type="number" class="form-control" id="fx_rate_inline" min="1" step="0.01" placeholder="Loading…" title="USD to INR rate"/>
             <span class="input-group-text">₹</span>
-            <button class="btn btn-outline-secondary" onclick="applyFxRateInline()" title="Apply">
+            <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="applyFxRateInline()" title="Apply">
               <i class="bi bi-check-lg"></i>
             </button>
-            <button class="btn btn-outline-secondary" onclick="loadExchangeRate()" title="Refresh live rate">
+            <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="loadExchangeRate()" title="Refresh live rate">
               <i class="bi bi-arrow-repeat"></i>
             </button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="addRateLevel()">
+          <button class="btn btn-primary btn-sm ratecard-action-btn" onclick="addRateLevel()">
             <i class="bi bi-plus-circle me-1"></i>Add Level
           </button>
-          <button class="btn btn-success btn-sm" onclick="saveSettings(); showToast('Rate card saved!', 'success')">
+          <button class="btn btn-success btn-sm ratecard-action-btn" onclick="saveSettings(); showToast('Rate card saved!', 'success')">
             <i class="bi bi-floppy me-1"></i>Save
           </button>
         </div>

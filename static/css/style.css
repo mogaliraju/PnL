@@ -254,3 +254,206 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   color: #6a5c8f;
   text-align: center;
 }
+
+.ratecard-toolbar {
+  min-width: 0;
+}
+
+.ratecard-fx-group {
+  width: 280px;
+  flex-wrap: nowrap;
+}
+
+.ratecard-fx-group .form-control,
+.ratecard-fx-group .input-group-text,
+.ratecard-fx-btn {
+  min-height: 38px;
+}
+
+.ratecard-fx-btn {
+  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ratecard-action-btn {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.all-projects-shell {
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%);
+  border: 1px solid rgba(109, 40, 217, 0.10);
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(30, 11, 75, 0.08);
+  padding: 18px 18px 12px;
+}
+
+.all-projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.all-projects-toolbar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ax-dark);
+}
+
+.all-projects-toolbar-subtitle {
+  font-size: 12px;
+  color: #7a6f98;
+}
+
+.all-projects-active {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.all-projects-active-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a6f98;
+  padding-top: 7px;
+}
+
+.all-projects-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.all-projects-chip {
+  border: 1px solid rgba(109, 40, 217, 0.16);
+  background: #f6f1ff;
+  color: var(--ax-dark);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.all-projects-chip i {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.all-projects-picker {
+  border-top: 1px solid rgba(109, 40, 217, 0.10);
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.all-projects-picker-group {
+  background: #fff;
+  border: 1px solid rgba(109, 40, 217, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.all-projects-picker-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7a6f98;
+  margin-bottom: 10px;
+}
+
+.all-projects-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.all-projects-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #f8f5ff;
+  border: 1px solid transparent;
+  font-size: 12px;
+  color: #4e4368;
+}
+
+.all-projects-option.is-active {
+  background: #efe6ff;
+  border-color: rgba(109, 40, 217, 0.20);
+  color: var(--ax-dark);
+  font-weight: 600;
+}
+
+.all-projects-option input {
+  margin: 0;
+}
+
+.all-projects-table-wrap {
+  background: #fff;
+  border: 1px solid rgba(109, 40, 217, 0.08);
+  border-radius: 18px;
+  overflow: auto;
+  box-shadow: 0 10px 24px rgba(30, 11, 75, 0.05);
+}
+
+.all-projects-table {
+  margin-bottom: 0;
+}
+
+.all-projects-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.all-projects-table tbody tr:hover {
+  background: #faf6ff;
+}
+
+@media (max-width: 991.98px) {
+  .ratecard-toolbar {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .all-projects-active {
+    flex-direction: column;
+  }
+
+  .all-projects-active-label {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .ratecard-fx-group {
+    width: 100%;
+  }
+
+  .ratecard-action-btn {
+    flex: 1 1 auto;
+  }
+
+  .all-projects-shell {
+    padding: 14px 14px 10px;
+  }
+
+  .all-projects-toolbar {
+    align-items: flex-start;
+  }
+}
