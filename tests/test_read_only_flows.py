@@ -54,6 +54,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
             'resources': [],
             'rate_card': [{'level': 'L1', 'rate': 10}],
             'role_catalog': [{'group': 'Default', 'roles': ['Engineer']}],
+            'business_units': ['EDM', 'AI'],
         }
         (self.data_dir / 'data.json').write_text(json.dumps(self.baseline_data, indent=2), encoding='utf-8')
         (self.data_dir / 'settings.json').write_text(json.dumps({
@@ -138,6 +139,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
         self.assertEqual(payload[0]['reference'], '')
         self.assertEqual(payload[0]['status'], '')
         self.assertEqual(payload[0]['currency'], 'USD')
+        self.assertEqual(payload[0]['business_unit'], '')
         self.assertIn('costs', payload[0])
 
     def test_project_metadata_round_trips_through_save_and_load(self):
@@ -156,6 +158,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
                 'stage': 'Proposal',
                 'priority': 'High',
                 'project_owner': 'Alice',
+                'business_unit': 'AI',
                 'account_manager': 'Bob',
                 'sales_spoc': 'Carol',
                 'delivery_manager': 'Dan',
@@ -181,6 +184,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
             'resources': [{'role': 'Architect', 'level': 'L1', 'hours': 16}],
             'rate_card': [{'level': 'L1', 'rate': 25}],
             'role_catalog': [{'group': 'Delivery', 'roles': ['Architect']}],
+            'business_units': ['EDM', 'AI', 'SAP'],
             'target_margin': 0.4,
             'fx_rate': 83.5,
         }
@@ -196,6 +200,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
         self.assertEqual(payload['project']['reference'], 'REF-500')
         self.assertEqual(payload['project']['status'], 'Submitted')
         self.assertEqual(payload['project']['project_owner'], 'Alice')
+        self.assertEqual(payload['project']['business_unit'], 'AI')
         self.assertEqual(payload['project']['currency'], 'USD')
         self.assertEqual(payload['project']['discount_pct'], 5)
         self.assertEqual(payload['project']['travel_cost'], 1000)
@@ -207,6 +212,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
         self.assertEqual(saved['reference'], 'REF-500')
         self.assertEqual(saved['status'], 'Submitted')
         self.assertEqual(saved['project_owner'], 'Alice')
+        self.assertEqual(saved['business_unit'], 'AI')
         self.assertEqual(saved['resource_count'], 1)
         self.assertEqual(saved['add_on_cost'], 1750.0)
         self.assertEqual(saved['fx_rate'], 83.5)
@@ -218,6 +224,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
         html = response.get_data(as_text=True)
         self.assertIn('id="proj_status"', html)
         self.assertIn('id="proj_owner"', html)
+        self.assertIn('id="proj_business_unit"', html)
         self.assertIn('id="proj_start_date"', html)
         self.assertIn('id="proj_discount_pct"', html)
         self.assertIn('id="proj_internal_notes"', html)

@@ -70,6 +70,7 @@ class StorageTests(unittest.TestCase):
             'resources': [],
             'rate_card': [{'level': 'L1', 'rate': 42}],
             'role_catalog': [{'group': 'Delivery', 'roles': ['Architect']}],
+            'business_units': ['EDM', 'AI'],
         }
 
         self.storage.save_working_data(payload)
@@ -81,6 +82,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(loaded['project']['customer'], 'Sync Test')
         self.assertEqual(settings['rate_card'][0]['rate'], 42)
         self.assertEqual(loaded['role_catalog'][0]['group'], 'Delivery')
+        self.assertEqual(settings['business_units'], ['EDM', 'AI'])
         self.assertTrue(db_path.exists())
 
     def test_json_seed_files_are_migrated_into_sqlite(self):
@@ -145,6 +147,7 @@ class StorageTests(unittest.TestCase):
                 'stage': 'Proposal',
                 'priority': 'High',
                 'project_owner': 'Owner One',
+                'business_unit': 'SAP',
                 'partner': 'AutomatonsX',
                 'expected_start_date': '2026-05-01',
                 'expected_end_date': '2026-08-31',
@@ -179,6 +182,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(summary), 1)
         self.assertEqual(summary[0]['reference'], 'REF-101')
         self.assertEqual(summary[0]['status'], 'Submitted')
+        self.assertEqual(summary[0]['business_unit'], 'SAP')
         self.assertEqual(summary[0]['resource_count'], 2)
         self.assertEqual(summary[0]['total_hours'], 40.0)
         self.assertEqual(summary[0]['avg_rate'], 62.5)

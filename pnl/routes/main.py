@@ -75,6 +75,8 @@ def update_settings():
         existing['rate_card'] = s['rate_card']
     if s.get('role_catalog'):
         existing['role_catalog'] = s['role_catalog']
+    if s.get('business_units'):
+        existing['business_units'] = s['business_units']
     save_global_settings(existing)
     log.info(f"Settings updated by '{session.get('user')}'")
     return jsonify({'status': 'ok'})

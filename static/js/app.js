@@ -4,6 +4,8 @@
 
 let appData = {};
 let currentUser = {};
+const DEFAULT_BUSINESS_UNITS = ['EDM', 'AI', 'SAP', 'RPA'];
+const ALL_PROJECTS_SORT_STORAGE_KEY = 'pnl.allProjects.sort';
 
 function buildDefaultProject(overrides = {}) {
   return {
@@ -21,6 +23,7 @@ function buildDefaultProject(overrides = {}) {
     stage: 'Qualification',
     priority: 'Medium',
     project_owner: '',
+    business_unit: '',
     account_manager: '',
     sales_spoc: '',
     delivery_manager: '',
@@ -51,6 +54,14 @@ function normalizeProject(project = {}) {
     ...project,
     project_description: project.project_description ?? project.description ?? '',
   });
+}
+
+function normalizeBusinessUnits(units = []) {
+  return [...new Set(
+    [...DEFAULT_BUSINESS_UNITS, ...(Array.isArray(units) ? units : [])]
+      .map(v => String(v || '').trim())
+      .filter(Boolean)
+  )];
 }
 
 // ── Auth / session ───────────────────────────────────────────
@@ -223,6 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     resources: [], pnl_roles: [], releases: [],
     rate_card:    serverData.rate_card    || [],
     role_catalog: serverData.role_catalog || [],
+    business_units: normalizeBusinessUnits(serverData.business_units || []),
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
@@ -244,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function populateAll() {
   appData.project = normalizeProject(appData.project || {});
+  appData.business_units = normalizeBusinessUnits(appData.business_units || []);
   if (typeof appData.target_margin === 'number') {
     _targetMargin = appData.target_margin;
   }
@@ -282,6 +295,7 @@ function populateProject() {
   setVal('proj_stage', p.stage);
   setVal('proj_priority', p.priority);
   setVal('proj_owner', p.project_owner);
+  renderBusinessUnitOptions(p.business_unit);
   setVal('proj_account_manager', p.account_manager);
   setVal('proj_sales_spoc', p.sales_spoc);
   setVal('proj_delivery_manager', p.delivery_manager);
@@ -307,13 +321,38 @@ function populateProject() {
   bindProjectFieldListeners([
     'proj_company','proj_customer','proj_location','proj_reference','proj_proposal_date',
     'proj_first_touch','proj_description','proj_partner','proj_payment_terms','proj_duration',
-    'proj_status','proj_stage','proj_priority','proj_owner','proj_account_manager',
+    'proj_status','proj_stage','proj_priority','proj_owner','proj_business_unit','proj_account_manager',
     'proj_sales_spoc','proj_delivery_manager','proj_technical_lead','proj_start_date',
     'proj_end_date','proj_opportunity_id','proj_type','proj_industry','proj_delivery_model',
     'proj_billing_type','proj_currency','proj_discount_pct','proj_travel_cost',
     'proj_infra_cost','proj_third_party_cost','proj_internal_notes','proj_risks',
     'proj_dependencies','proj_next_action','proj_follow_up_date'
   ]);
+}
+
+function renderBusinessUnitOptions(currentValue = '') {
+  const el = document.getElementById('proj_business_unit');
+  if (!el) return;
+  appData.business_units = normalizeBusinessUnits(appData.business_units || []);
+  const units = currentValue && !appData.business_units.includes(currentValue)
+    ? normalizeBusinessUnits([...appData.business_units, currentValue])
+    : appData.business_units;
+  el.innerHTML = '<option value="">Select business unit…</option>'
+    + units.map(unit =>
+      `<option value="${esc(unit)}" ${unit === currentValue ? 'selected' : ''}>${esc(unit)}</option>`
+    ).join('');
+}
+
+function addBusinessUnit() {
+  const name = prompt('Enter a new business unit name:');
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return;
+  const existing = normalizeBusinessUnits(appData.business_units || []);
+  const present = existing.find(unit => unit.toLowerCase() === trimmed.toLowerCase());
+  appData.business_units = normalizeBusinessUnits(present ? existing : [...existing, trimmed]);
+  renderBusinessUnitOptions(present || trimmed);
+  collectProject();
+  showToast(`Business unit "${present || trimmed}" ${present ? 'selected' : 'added'}`, 'success');
 }
 
 function bindProjectFieldListeners(ids) {
@@ -371,6 +410,7 @@ function collectProject() {
     stage: getVal('proj_stage'),
     priority: getVal('proj_priority'),
     project_owner: getVal('proj_owner'),
+    business_unit: getVal('proj_business_unit'),
     account_manager: getVal('proj_account_manager'),
     sales_spoc: getVal('proj_sales_spoc'),
     delivery_manager: getVal('proj_delivery_manager'),
@@ -1171,6 +1211,7 @@ function importExcel(input) {
         })),
         pnl_roles: [], releases: [],
         rate_card: rateCard, role_catalog: catalog,
+        business_units: normalizeBusinessUnits(appData.business_units || []),
         attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
         funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
         approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
@@ -1294,66 +1335,72 @@ const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'saved_by',
 ];
 const ALL_PROJECTS_COLUMN_GROUPS = [
-  { label: 'Basics', keys: ['customer', 'project', 'reference', 'location', 'duration', 'proposal_date'] },
+  { label: 'Basics', keys: ['customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date'] },
   { label: 'Pipeline', keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id'] },
   { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency'] },
   { label: 'Financial', keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
   { label: 'Audit', keys: ['since_save', 'saved_at', 'saved_by'] },
 ];
+let _allProjectsPickerOpen = false;
+let _allProjectsDraftColumns = null;
+let _allProjectsSort = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
   return [
-    { key: 'customer', label: 'Customer', headerClass: '', cell: p => `<td class="fw-semibold">${esc(p.customer || '')}</td>` },
-    { key: 'project', label: 'Project', headerClass: '', cell: p => `<td>${esc(p.name)}</td>` },
-    { key: 'reference', label: 'Reference', headerClass: '', cell: p => `<td class="small">${esc(p.reference || '')}</td>` },
+    { key: 'customer', label: 'Customer', headerClass: '', sortValue: p => p.customer || '', cell: p => `<td class="fw-semibold">${esc(p.customer || '')}</td>` },
+    { key: 'project', label: 'Project', headerClass: '', sortValue: p => p.name || '', cell: p => `<td>${esc(p.name)}</td>` },
+    { key: 'reference', label: 'Reference', headerClass: '', sortValue: p => p.reference || '', cell: p => `<td class="small">${esc(p.reference || '')}</td>` },
+    { key: 'business_unit', label: 'Business Unit', headerClass: '', sortValue: p => p.business_unit || '', cell: p => `<td class="small">${esc(p.business_unit || '')}</td>` },
     {
       key: 'status',
       label: 'Status',
       headerClass: '',
+      sortValue: p => p.status || '',
       cell: p => `<td><span class="badge text-bg-${p.status === 'Won' ? 'success' : p.status === 'Lost' ? 'danger' : p.status === 'On Hold' ? 'warning' : 'secondary'}">${esc(p.status || '')}</span></td>`
     },
-    { key: 'stage', label: 'Stage', headerClass: '', cell: p => `<td class="small">${esc(p.stage || '')}</td>` },
-    { key: 'priority', label: 'Priority', headerClass: '', cell: p => `<td class="small">${esc(p.priority || '')}</td>` },
-    { key: 'project_owner', label: 'Owner', headerClass: '', cell: p => `<td class="small">${esc(p.project_owner || '')}</td>` },
-    { key: 'account_manager', label: 'Account Manager', headerClass: '', cell: p => `<td class="small">${esc(p.account_manager || '')}</td>` },
-    { key: 'sales_spoc', label: 'Sales SPOC', headerClass: '', cell: p => `<td class="small">${esc(p.sales_spoc || '')}</td>` },
-    { key: 'delivery_manager', label: 'Delivery Manager', headerClass: '', cell: p => `<td class="small">${esc(p.delivery_manager || '')}</td>` },
-    { key: 'location', label: 'Location', headerClass: '', cell: p => `<td class="text-muted small">${esc(p.location || '')}</td>` },
-    { key: 'duration', label: 'Duration', headerClass: 'text-center', cell: p => `<td class="text-center small">${p.duration ? p.duration + ' mo' : ''}</td>` },
-    { key: 'proposal_date', label: 'Proposal Date', headerClass: '', cell: p => `<td class="small text-muted">${esc(p.proposal_date || '')}</td>` },
-    { key: 'expected_start_date', label: 'Start Date', headerClass: '', cell: p => `<td class="small text-muted">${esc(p.expected_start_date || '')}</td>` },
-    { key: 'expected_end_date', label: 'End Date', headerClass: '', cell: p => `<td class="small text-muted">${esc(p.expected_end_date || '')}</td>` },
-    { key: 'next_follow_up_date', label: 'Follow-Up', headerClass: '', cell: p => `<td class="small">${esc(p.next_follow_up_date || '')}</td>` },
-    { key: 'opportunity_id', label: 'Opportunity ID', headerClass: '', cell: p => `<td class="small">${esc(p.opportunity_id || '')}</td>` },
-    { key: 'partner', label: 'Partner', headerClass: '', cell: p => `<td class="small">${esc(p.partner || '')}</td>` },
-    { key: 'project_type', label: 'Type', headerClass: '', cell: p => `<td class="small">${esc(p.project_type || '')}</td>` },
-    { key: 'industry', label: 'Industry', headerClass: '', cell: p => `<td class="small">${esc(p.industry || '')}</td>` },
-    { key: 'delivery_model', label: 'Delivery', headerClass: '', cell: p => `<td class="small">${esc(p.delivery_model || '')}</td>` },
-    { key: 'billing_type', label: 'Billing', headerClass: '', cell: p => `<td class="small">${esc(p.billing_type || '')}</td>` },
-    { key: 'currency', label: 'Currency', headerClass: '', cell: p => `<td class="small">${esc(p.currency || 'USD')}</td>` },
-    { key: 'resource_count', label: 'Resources', headerClass: 'text-end', cell: p => `<td class="text-end small">${num(p.resource_count)}</td>` },
-    { key: 'total_hours', label: 'Hours', headerClass: 'text-end', cell: p => `<td class="text-end small">${num(p.total_hours)}</td>` },
-    { key: 'avg_rate', label: 'Avg Rate', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.avg_rate ? fmt(p.avg_rate) : ''}</td>` },
-    { key: 'input_cost', label: 'Input Cost', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.costs?.input_cost ? fmt(p.costs.input_cost) : ''}</td>` },
-    { key: 'add_on_cost', label: 'Add-On Cost', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.add_on_cost ? fmt(p.add_on_cost) : ''}</td>` },
-    { key: 'discount_pct', label: 'Discount %', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.discount_pct ? pctNumber(p.discount_pct) : ''}</td>` },
-    { key: 'markup', label: 'MarkUp', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.costs?.markup ? fmt(p.costs.markup) : ''}</td>` },
-    { key: 'revenue', label: 'Revenue', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.costs?.sell_cost ? fmt(p.costs.sell_cost) : ''}</td>` },
-    { key: 'profit_amount', label: 'Profit', headerClass: 'text-end', cell: p => `<td class="text-end small">${p.profit_amount ? fmt(p.profit_amount) : ''}</td>` },
+    { key: 'stage', label: 'Stage', headerClass: '', sortValue: p => p.stage || '', cell: p => `<td class="small">${esc(p.stage || '')}</td>` },
+    { key: 'priority', label: 'Priority', headerClass: '', sortValue: p => p.priority || '', cell: p => `<td class="small">${esc(p.priority || '')}</td>` },
+    { key: 'project_owner', label: 'Owner', headerClass: '', sortValue: p => p.project_owner || '', cell: p => `<td class="small">${esc(p.project_owner || '')}</td>` },
+    { key: 'account_manager', label: 'Account Manager', headerClass: '', sortValue: p => p.account_manager || '', cell: p => `<td class="small">${esc(p.account_manager || '')}</td>` },
+    { key: 'sales_spoc', label: 'Sales SPOC', headerClass: '', sortValue: p => p.sales_spoc || '', cell: p => `<td class="small">${esc(p.sales_spoc || '')}</td>` },
+    { key: 'delivery_manager', label: 'Delivery Manager', headerClass: '', sortValue: p => p.delivery_manager || '', cell: p => `<td class="small">${esc(p.delivery_manager || '')}</td>` },
+    { key: 'location', label: 'Location', headerClass: '', sortValue: p => p.location || '', cell: p => `<td class="text-muted small">${esc(p.location || '')}</td>` },
+    { key: 'duration', label: 'Duration', headerClass: 'text-center', sortValue: p => Number(p.duration || 0), cell: p => `<td class="text-center small">${p.duration ? p.duration + ' mo' : ''}</td>` },
+    { key: 'proposal_date', label: 'Proposal Date', headerClass: '', sortValue: p => p.proposal_date || '', cell: p => `<td class="small text-muted">${esc(p.proposal_date || '')}</td>` },
+    { key: 'expected_start_date', label: 'Start Date', headerClass: '', sortValue: p => p.expected_start_date || '', cell: p => `<td class="small text-muted">${esc(p.expected_start_date || '')}</td>` },
+    { key: 'expected_end_date', label: 'End Date', headerClass: '', sortValue: p => p.expected_end_date || '', cell: p => `<td class="small text-muted">${esc(p.expected_end_date || '')}</td>` },
+    { key: 'next_follow_up_date', label: 'Follow-Up', headerClass: '', sortValue: p => p.next_follow_up_date || '', cell: p => `<td class="small">${esc(p.next_follow_up_date || '')}</td>` },
+    { key: 'opportunity_id', label: 'Opportunity ID', headerClass: '', sortValue: p => p.opportunity_id || '', cell: p => `<td class="small">${esc(p.opportunity_id || '')}</td>` },
+    { key: 'partner', label: 'Partner', headerClass: '', sortValue: p => p.partner || '', cell: p => `<td class="small">${esc(p.partner || '')}</td>` },
+    { key: 'project_type', label: 'Type', headerClass: '', sortValue: p => p.project_type || '', cell: p => `<td class="small">${esc(p.project_type || '')}</td>` },
+    { key: 'industry', label: 'Industry', headerClass: '', sortValue: p => p.industry || '', cell: p => `<td class="small">${esc(p.industry || '')}</td>` },
+    { key: 'delivery_model', label: 'Delivery', headerClass: '', sortValue: p => p.delivery_model || '', cell: p => `<td class="small">${esc(p.delivery_model || '')}</td>` },
+    { key: 'billing_type', label: 'Billing', headerClass: '', sortValue: p => p.billing_type || '', cell: p => `<td class="small">${esc(p.billing_type || '')}</td>` },
+    { key: 'currency', label: 'Currency', headerClass: '', sortValue: p => p.currency || '', cell: p => `<td class="small">${esc(p.currency || 'USD')}</td>` },
+    { key: 'resource_count', label: 'Resources', headerClass: 'text-end', sortValue: p => Number(p.resource_count || 0), cell: p => `<td class="text-end small">${num(p.resource_count)}</td>` },
+    { key: 'total_hours', label: 'Hours', headerClass: 'text-end', sortValue: p => Number(p.total_hours || 0), cell: p => `<td class="text-end small">${num(p.total_hours)}</td>` },
+    { key: 'avg_rate', label: 'Avg Rate', headerClass: 'text-end', sortValue: p => Number(p.avg_rate || 0), cell: p => `<td class="text-end small">${p.avg_rate ? fmt(p.avg_rate) : ''}</td>` },
+    { key: 'input_cost', label: 'Input Cost', headerClass: 'text-end', sortValue: p => Number(p.costs?.input_cost || 0), cell: p => `<td class="text-end small">${p.costs?.input_cost ? fmt(p.costs.input_cost) : ''}</td>` },
+    { key: 'add_on_cost', label: 'Add-On Cost', headerClass: 'text-end', sortValue: p => Number(p.add_on_cost || 0), cell: p => `<td class="text-end small">${p.add_on_cost ? fmt(p.add_on_cost) : ''}</td>` },
+    { key: 'discount_pct', label: 'Discount %', headerClass: 'text-end', sortValue: p => Number(p.discount_pct || 0), cell: p => `<td class="text-end small">${p.discount_pct ? pctNumber(p.discount_pct) : ''}</td>` },
+    { key: 'markup', label: 'MarkUp', headerClass: 'text-end', sortValue: p => Number(p.costs?.markup || 0), cell: p => `<td class="text-end small">${p.costs?.markup ? fmt(p.costs.markup) : ''}</td>` },
+    { key: 'revenue', label: 'Revenue', headerClass: 'text-end', sortValue: p => Number(p.costs?.sell_cost || 0), cell: p => `<td class="text-end small">${p.costs?.sell_cost ? fmt(p.costs.sell_cost) : ''}</td>` },
+    { key: 'profit_amount', label: 'Profit', headerClass: 'text-end', sortValue: p => Number(p.profit_amount || 0), cell: p => `<td class="text-end small">${p.profit_amount ? fmt(p.profit_amount) : ''}</td>` },
     {
       key: 'gross_margin',
       label: 'Gross Margin',
       headerClass: 'text-end',
+      sortValue: p => Number(p.costs?.gross_margin || 0),
       cell: p => {
         const margin = (p.costs?.gross_margin || 0) * 100;
         const marginColor = margin >= 35 ? 'text-success fw-bold' : margin >= 20 ? 'text-warning fw-bold' : 'text-danger fw-bold';
         return `<td class="text-end small ${p.costs?.gross_margin ? marginColor : ''}">${p.costs?.gross_margin ? pct(p.costs.gross_margin) : ''}</td>`;
       }
     },
-    { key: 'since_save', label: 'Since Save', headerClass: 'text-center', cell: p => `<td class="text-center small text-muted">${daysAgo(p.saved_at)}</td>` },
-    { key: 'saved_at', label: 'Saved At', headerClass: '', cell: p => `<td class="small text-muted">${shortDateTime(p.saved_at)}</td>` },
-    { key: 'saved_by', label: 'Saved By', headerClass: '', cell: p => `<td class="small text-muted">${esc(p.saved_by || '')}</td>` },
+    { key: 'since_save', label: 'Since Save', headerClass: 'text-center', sortValue: p => p.saved_at || '', cell: p => `<td class="text-center small text-muted">${daysAgo(p.saved_at)}</td>` },
+    { key: 'saved_at', label: 'Saved At', headerClass: '', sortValue: p => p.saved_at || '', cell: p => `<td class="small text-muted">${shortDateTime(p.saved_at)}</td>` },
+    { key: 'saved_by', label: 'Saved By', headerClass: '', sortValue: p => p.saved_by || '', cell: p => `<td class="small text-muted">${esc(p.saved_by || '')}</td>` },
   ];
 }
 
@@ -1370,43 +1417,91 @@ function saveVisibleAllProjectsColumns(columns) {
   localStorage.setItem(ALL_PROJECTS_COLUMNS_STORAGE_KEY, JSON.stringify(columns));
 }
 
-function toggleAllProjectsColumnPicker() {
-  const panel = document.getElementById('all-projects-column-picker');
-  const icon = document.getElementById('all-projects-column-toggle-icon');
-  if (!panel) return;
-  panel.classList.toggle('d-none');
-  if (icon) icon.className = panel.classList.contains('d-none') ? 'bi bi-chevron-down ms-1' : 'bi bi-chevron-up ms-1';
+function loadAllProjectsSort() {
+  if (_allProjectsSort) return _allProjectsSort;
+  try {
+    const raw = localStorage.getItem(ALL_PROJECTS_SORT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed?.key && parsed?.direction) {
+      _allProjectsSort = parsed;
+      return parsed;
+    }
+  } catch {}
+  _allProjectsSort = { key: 'saved_at', direction: 'desc' };
+  return _allProjectsSort;
 }
 
-function updateAllProjectsColumnSelection(columnKey, checked) {
+function saveAllProjectsSort(sortState) {
+  _allProjectsSort = sortState;
+  localStorage.setItem(ALL_PROJECTS_SORT_STORAGE_KEY, JSON.stringify(sortState));
+}
+
+function toggleAllProjectsColumnPicker() {
+  _allProjectsPickerOpen = !_allProjectsPickerOpen;
+  if (_allProjectsPickerOpen) {
+    _allProjectsDraftColumns = [...loadVisibleAllProjectsColumns()];
+  } else {
+    _allProjectsDraftColumns = null;
+  }
+  loadAllProjects();
+}
+
+function closeAllProjectsColumnPicker() {
+  _allProjectsPickerOpen = false;
+  _allProjectsDraftColumns = null;
+  loadAllProjects();
+}
+
+function updateAllProjectsDraftColumnSelection(columnKey, checked) {
   const defs = getAllProjectsColumnDefs({ fmt: () => '', pct: () => '', pctNumber: () => '', num: () => '', shortDateTime: () => '', daysAgo: () => '' });
   const validKeys = new Set(defs.map(def => def.key));
-  const selected = loadVisibleAllProjectsColumns().filter(key => validKeys.has(key));
+  const selected = (_allProjectsDraftColumns || loadVisibleAllProjectsColumns()).filter(key => validKeys.has(key));
   let next = checked ? [...selected, columnKey] : selected.filter(key => key !== columnKey);
   if (!next.length) next = [...ALL_PROJECTS_DEFAULT_COLUMNS];
   next = defs.map(def => def.key).filter(key => next.includes(key));
-  saveVisibleAllProjectsColumns(next);
+  _allProjectsDraftColumns = next;
+  updateAllProjectsPickerState();
+}
+
+function applyAllProjectsColumnSelection() {
+  saveVisibleAllProjectsColumns(_allProjectsDraftColumns || [...ALL_PROJECTS_DEFAULT_COLUMNS]);
+  _allProjectsPickerOpen = false;
+  _allProjectsDraftColumns = null;
   loadAllProjects();
 }
 
 function resetAllProjectsColumns() {
   saveVisibleAllProjectsColumns([...ALL_PROJECTS_DEFAULT_COLUMNS]);
+  _allProjectsDraftColumns = _allProjectsPickerOpen ? [...ALL_PROJECTS_DEFAULT_COLUMNS] : null;
   loadAllProjects();
 }
 
 function renderAllProjectsActiveColumnChips(columnDefs, visibleKeys) {
   const chips = columnDefs
     .filter(def => visibleKeys.includes(def.key))
-    .map(def => `
-      <button class="all-projects-chip" type="button" title="Hide ${esc(def.label)}"
-        onclick="updateAllProjectsColumnSelection('${esc(def.key)}', false)">
-        ${esc(def.label)} <i class="bi bi-x-lg"></i>
-      </button>
+    .map((def, index) => `
+      <div class="all-projects-chip">
+        <span class="all-projects-chip-label">${esc(def.label)}</span>
+        <span class="all-projects-chip-actions">
+          <button type="button" class="all-projects-chip-btn" title="Move ${esc(def.label)} left" ${index === 0 ? 'disabled' : ''}
+            onclick="moveAllProjectsColumn('${esc(def.key)}', -1)">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+          <button type="button" class="all-projects-chip-btn" title="Move ${esc(def.label)} right" ${index === visibleKeys.length - 1 ? 'disabled' : ''}
+            onclick="moveAllProjectsColumn('${esc(def.key)}', 1)">
+            <i class="bi bi-arrow-right"></i>
+          </button>
+          <button type="button" class="all-projects-chip-btn" title="Hide ${esc(def.label)}"
+            onclick="removeAllProjectsColumn('${esc(def.key)}')">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </span>
+      </div>
     `).join('');
   return chips || `<span class="small text-muted">No columns selected</span>`;
 }
 
-function renderAllProjectsColumnPicker(columnDefs, visibleKeys) {
+function renderAllProjectsColumnPicker(columnDefs, draftKeys) {
   return ALL_PROJECTS_COLUMN_GROUPS.map(group => {
     const defs = group.keys
       .map(key => columnDefs.find(def => def.key === key))
@@ -1417,9 +1512,9 @@ function renderAllProjectsColumnPicker(columnDefs, visibleKeys) {
         <div class="all-projects-picker-title">${esc(group.label)}</div>
         <div class="all-projects-picker-options">
           ${defs.map(def => `
-            <label class="all-projects-option ${visibleKeys.includes(def.key) ? 'is-active' : ''}">
-              <input type="checkbox" ${visibleKeys.includes(def.key) ? 'checked' : ''}
-                onchange="updateAllProjectsColumnSelection('${esc(def.key)}', this.checked)">
+            <label class="all-projects-option ${draftKeys.includes(def.key) ? 'is-active' : ''}">
+              <input type="checkbox" ${draftKeys.includes(def.key) ? 'checked' : ''}
+                onchange="updateAllProjectsDraftColumnSelection('${esc(def.key)}', this.checked)">
               <span>${esc(def.label)}</span>
             </label>
           `).join('')}
@@ -1427,6 +1522,58 @@ function renderAllProjectsColumnPicker(columnDefs, visibleKeys) {
       </div>
     `;
   }).join('');
+}
+
+function updateAllProjectsPickerState() {
+  const panel = document.getElementById('all-projects-column-picker');
+  if (!panel || !_allProjectsPickerOpen) return;
+  const defs = getAllProjectsColumnDefs({ fmt: () => '', pct: () => '', pctNumber: () => '', num: () => '', shortDateTime: () => '', daysAgo: () => '' });
+  const draftKeys = _allProjectsDraftColumns || loadVisibleAllProjectsColumns();
+  const body = document.getElementById('all-projects-picker-body');
+  const count = document.getElementById('all-projects-picker-count');
+  if (body) body.innerHTML = renderAllProjectsColumnPicker(defs, draftKeys);
+  if (count) count.textContent = `${draftKeys.length} selected`;
+}
+
+function removeAllProjectsColumn(columnKey) {
+  const selected = loadVisibleAllProjectsColumns().filter(key => key !== columnKey);
+  saveVisibleAllProjectsColumns(selected.length ? selected : [...ALL_PROJECTS_DEFAULT_COLUMNS]);
+  loadAllProjects();
+}
+
+function moveAllProjectsColumn(columnKey, direction) {
+  const selected = [...loadVisibleAllProjectsColumns()];
+  const index = selected.indexOf(columnKey);
+  const nextIndex = index + direction;
+  if (index === -1 || nextIndex < 0 || nextIndex >= selected.length) return;
+  [selected[index], selected[nextIndex]] = [selected[nextIndex], selected[index]];
+  saveVisibleAllProjectsColumns(selected);
+  loadAllProjects();
+}
+
+function updateAllProjectsSort(columnKey) {
+  const current = loadAllProjectsSort();
+  const direction = current.key === columnKey && current.direction === 'asc' ? 'desc' : 'asc';
+  saveAllProjectsSort({ key: columnKey, direction });
+  loadAllProjects();
+}
+
+function compareAllProjectsValues(a, b) {
+  const aEmpty = a === null || a === undefined || a === '';
+  const bEmpty = b === null || b === undefined || b === '';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function sortAllProjectsList(list, columnDefs) {
+  const sortState = loadAllProjectsSort();
+  const def = columnDefs.find(item => item.key === sortState.key);
+  if (!def?.sortValue) return [...list];
+  const direction = sortState.direction === 'desc' ? -1 : 1;
+  return [...list].sort((left, right) => direction * compareAllProjectsValues(def.sortValue(left), def.sortValue(right)));
 }
 
 async function loadAllProjects() {
@@ -1468,6 +1615,9 @@ async function loadAllProjects() {
   const columnDefs = getAllProjectsColumnDefs({ fmt, pct, pctNumber, num, shortDateTime, daysAgo });
   const visibleKeys = loadVisibleAllProjectsColumns();
   const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
+  const draftKeys = _allProjectsDraftColumns || [...visibleKeys];
+  const sortState = loadAllProjectsSort();
+  const sortedList = sortAllProjectsList(list, columnDefs);
 
   container.innerHTML = `
     <div class="all-projects-shell">
@@ -1478,7 +1628,7 @@ async function loadAllProjects() {
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllProjectsColumnPicker()">
-              <i class="bi bi-sliders me-1"></i>Customize <i id="all-projects-column-toggle-icon" class="bi bi-chevron-down ms-1"></i>
+              <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide' : 'Customize'} <i id="all-projects-column-toggle-icon" class="bi ${_allProjectsPickerOpen ? 'bi-chevron-up' : 'bi-chevron-down'} ms-1"></i>
             </button>
           <button class="btn btn-outline-secondary btn-sm" onclick="resetAllProjectsColumns()">Reset Default</button>
         </div>
@@ -1489,8 +1639,24 @@ async function loadAllProjects() {
           ${renderAllProjectsActiveColumnChips(columnDefs, visibleKeys)}
         </div>
       </div>
-      <div id="all-projects-column-picker" class="all-projects-picker d-none mb-3">
-        ${renderAllProjectsColumnPicker(columnDefs, visibleKeys)}
+      <div id="all-projects-column-picker" class="all-projects-picker ${_allProjectsPickerOpen ? '' : 'd-none'} mb-3">
+        <div class="all-projects-picker-header">
+          <div>
+            <div class="all-projects-picker-headline">Choose Columns</div>
+            <div id="all-projects-picker-count" class="all-projects-picker-count">${draftKeys.length} selected</div>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary btn-sm" onclick="closeAllProjectsColumnPicker()">
+              <i class="bi bi-x-lg me-1"></i>Close
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="applyAllProjectsColumnSelection()">
+              <i class="bi bi-check2 me-1"></i>Apply
+            </button>
+          </div>
+        </div>
+        <div id="all-projects-picker-body" class="all-projects-picker-grid">
+          ${renderAllProjectsColumnPicker(columnDefs, draftKeys)}
+        </div>
       </div>
     </div>
     <div class="table-responsive all-projects-table-wrap">
@@ -1498,12 +1664,19 @@ async function loadAllProjects() {
         <thead style="background:var(--ax-deep);color:#fff">
           <tr>
             <th class="text-center" style="width:48px">S.No</th>
-            ${visibleColumns.map(def => `<th class="${def.headerClass || ''}">${esc(def.label)}</th>`).join('')}
+            ${visibleColumns.map(def => `
+              <th class="${def.headerClass || ''}">
+                <button type="button" class="all-projects-sort-btn ${sortState.key === def.key ? 'is-active' : ''}" onclick="updateAllProjectsSort('${esc(def.key)}')">
+                  <span>${esc(def.label)}</span>
+                  <i class="bi ${sortState.key === def.key ? (sortState.direction === 'asc' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'}"></i>
+                </button>
+              </th>
+            `).join('')}
             <th class="text-center" style="width:56px"></th>
           </tr>
         </thead>
         <tbody>
-          ${list.map((p, i) => {
+          ${sortedList.map((p, i) => {
             return `<tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
               <td class="text-center text-muted small">${i+1}</td>
               ${visibleColumns.map(def => def.cell(p)).join('')}
@@ -1684,6 +1857,7 @@ function newProject() {
     project: buildDefaultProject(),
     resources: [], pnl_roles: [], releases: [],
     rate_card: rateCard, role_catalog: catalog,
+    business_units: normalizeBusinessUnits(appData.business_units || []),
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },

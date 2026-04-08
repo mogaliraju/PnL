@@ -73,6 +73,8 @@ def _merge_global_settings(data: dict, settings: dict) -> dict:
         merged['rate_card'] = settings['rate_card']
     if settings.get('role_catalog'):
         merged['role_catalog'] = settings['role_catalog']
+    if settings.get('business_units'):
+        merged['business_units'] = settings['business_units']
     return merged
 
 
@@ -250,6 +252,8 @@ def save_working_data(data: dict):
             settings['rate_card'] = data['rate_card']
         if data.get('role_catalog'):
             settings['role_catalog'] = data['role_catalog']
+        if data.get('business_units'):
+            settings['business_units'] = data['business_units']
         _set_state(conn, 'global_settings', settings)
         conn.commit()
     log.info("Working data saved")
@@ -386,6 +390,7 @@ def list_projects(summary: bool = False) -> list[dict]:
                 'delivery_model': project.get('delivery_model', ''),
                 'billing_type': project.get('billing_type', ''),
                 'currency': project.get('currency', 'USD') or 'USD',
+                'business_unit': project.get('business_unit', ''),
                 'next_action': project.get('next_action', ''),
                 'next_follow_up_date': project.get('next_follow_up_date', ''),
                 'discount_pct': discount_pct,
