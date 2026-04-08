@@ -128,6 +128,65 @@ class StorageTests(unittest.TestCase):
         with sqlite3.connect(db_path) as conn:
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM projects').fetchone()[0], 1)
 
+    def test_list_projects_summary_includes_metadata_and_resource_rollups(self):
+        payload = {
+            '_meta': {
+                'id': 'portfolio_project',
+                'name': 'Portfolio Project',
+                'saved_at': '2026-04-08T10:00:00',
+                'saved_by': 'tester',
+            },
+            'project': {
+                'customer': 'ACME',
+                'location': 'India',
+                'proposal_date': '2026-04-10',
+                'reference': 'REF-101',
+                'status': 'Submitted',
+                'stage': 'Proposal',
+                'priority': 'High',
+                'project_owner': 'Owner One',
+                'partner': 'AutomatonsX',
+                'expected_start_date': '2026-05-01',
+                'expected_end_date': '2026-08-31',
+                'opportunity_id': 'OPP-9',
+                'project_type': 'Implementation',
+                'industry': 'Retail',
+                'delivery_model': 'Hybrid',
+                'billing_type': 'Fixed Bid',
+                'currency': 'USD',
+                'discount_pct': 7.5,
+                'travel_cost': 1500,
+                'infra_cost': 800,
+                'third_party_cost': 200,
+                'next_follow_up_date': '2026-04-15',
+            },
+            'resources': [
+                {'role': 'Architect', 'level': 'L1', 'hours': 10},
+                {'role': 'Engineer', 'level': 'L2', 'hours': 30},
+            ],
+            'rate_card': [
+                {'level': 'L1', 'rate': 100},
+                {'level': 'L2', 'rate': 50},
+            ],
+            'fx_rate': 83.25,
+            'target_margin': 0.4,
+        }
+
+        self.storage.save_project_record('portfolio_project', payload)
+
+        summary = self.storage.list_projects(summary=True)
+
+        self.assertEqual(len(summary), 1)
+        self.assertEqual(summary[0]['reference'], 'REF-101')
+        self.assertEqual(summary[0]['status'], 'Submitted')
+        self.assertEqual(summary[0]['resource_count'], 2)
+        self.assertEqual(summary[0]['total_hours'], 40.0)
+        self.assertEqual(summary[0]['avg_rate'], 62.5)
+        self.assertEqual(summary[0]['add_on_cost'], 2500.0)
+        self.assertEqual(summary[0]['discount_pct'], 7.5)
+        self.assertEqual(summary[0]['fx_rate'], 83.25)
+        self.assertEqual(summary[0]['costs']['input_cost'], 2500.0)
+
 
 if __name__ == '__main__':
     unittest.main()

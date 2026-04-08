@@ -5,6 +5,54 @@
 let appData = {};
 let currentUser = {};
 
+function buildDefaultProject(overrides = {}) {
+  return {
+    company: 'AutomatonsX',
+    customer: '',
+    location: '',
+    reference: '',
+    proposal_date: '',
+    customer_first_touch_point: '',
+    project_description: '',
+    partner: 'AutomatonsX',
+    payment_terms: 'As per proposal',
+    duration_months: null,
+    status: 'Draft',
+    stage: 'Qualification',
+    priority: 'Medium',
+    project_owner: '',
+    account_manager: '',
+    sales_spoc: '',
+    delivery_manager: '',
+    technical_lead: '',
+    expected_start_date: '',
+    expected_end_date: '',
+    opportunity_id: '',
+    project_type: '',
+    industry: '',
+    delivery_model: 'Offshore',
+    billing_type: 'Time & Material',
+    currency: 'USD',
+    discount_pct: null,
+    travel_cost: null,
+    infra_cost: null,
+    third_party_cost: null,
+    internal_notes: '',
+    risks: '',
+    dependencies: '',
+    next_action: '',
+    next_follow_up_date: '',
+    ...overrides,
+  };
+}
+
+function normalizeProject(project = {}) {
+  return buildDefaultProject({
+    ...project,
+    project_description: project.project_description ?? project.description ?? '',
+  });
+}
+
 // ── Auth / session ───────────────────────────────────────────
 async function loadSession() {
   const res = await fetch('/api/me');
@@ -171,16 +219,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load global settings (rate card + catalog) but start with a blank project
   const serverData = await res.json();
   appData = {
-    project: { company: 'AutomatonsX', customer: '', location: '', reference: '',
-                proposal_date: '', customer_first_touch_point: '', project_description: '',
-                partner: 'AutomatonsX', payment_terms: 'As per proposal', duration_months: null },
+    project: buildDefaultProject(),
     resources: [], pnl_roles: [], releases: [],
     rate_card:    serverData.rate_card    || [],
     role_catalog: serverData.role_catalog || [],
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
-    export_filename: ''
+    export_filename: '',
+    fx_rate: null,
   };
   populateAll();
   loadExchangeRate();
@@ -196,8 +243,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function populateAll() {
+  appData.project = normalizeProject(appData.project || {});
   if (typeof appData.target_margin === 'number') {
     _targetMargin = appData.target_margin;
+  }
+  if (typeof appData.fx_rate === 'number' && appData.fx_rate > 0) {
+    _usdToInr = appData.fx_rate;
+    const inlineEl = document.getElementById('fx_rate_inline');
+    if (inlineEl) inlineEl.value = _usdToInr.toFixed(2);
   }
   populateProject();
   renderResources();
@@ -225,17 +278,57 @@ function populateProject() {
   setVal('proj_partner', p.partner);
   setVal('proj_payment_terms', p.payment_terms);
   setVal('proj_duration', p.duration_months ?? '');
+  setVal('proj_status', p.status);
+  setVal('proj_stage', p.stage);
+  setVal('proj_priority', p.priority);
+  setVal('proj_owner', p.project_owner);
+  setVal('proj_account_manager', p.account_manager);
+  setVal('proj_sales_spoc', p.sales_spoc);
+  setVal('proj_delivery_manager', p.delivery_manager);
+  setVal('proj_technical_lead', p.technical_lead);
+  setVal('proj_start_date', p.expected_start_date);
+  setVal('proj_end_date', p.expected_end_date);
+  setVal('proj_opportunity_id', p.opportunity_id);
+  setVal('proj_type', p.project_type);
+  setVal('proj_industry', p.industry);
+  setVal('proj_delivery_model', p.delivery_model);
+  setVal('proj_billing_type', p.billing_type);
+  setVal('proj_currency', p.currency);
+  setVal('proj_discount_pct', p.discount_pct ?? '');
+  setVal('proj_travel_cost', p.travel_cost ?? '');
+  setVal('proj_infra_cost', p.infra_cost ?? '');
+  setVal('proj_third_party_cost', p.third_party_cost ?? '');
+  setVal('proj_internal_notes', p.internal_notes);
+  setVal('proj_risks', p.risks);
+  setVal('proj_dependencies', p.dependencies);
+  setVal('proj_next_action', p.next_action);
+  setVal('proj_follow_up_date', p.next_follow_up_date);
 
-  // Live listeners
-  ['proj_company','proj_customer','proj_location','proj_reference','proj_proposal_date',
-   'proj_first_touch','proj_description','proj_partner','proj_payment_terms','proj_duration']
-    .forEach(id => {
-      document.getElementById(id)?.addEventListener('input', () => {
-        collectProject();
-        updateSummary();
-        updateFilenamePreview();
-      });
-    });
+  bindProjectFieldListeners([
+    'proj_company','proj_customer','proj_location','proj_reference','proj_proposal_date',
+    'proj_first_touch','proj_description','proj_partner','proj_payment_terms','proj_duration',
+    'proj_status','proj_stage','proj_priority','proj_owner','proj_account_manager',
+    'proj_sales_spoc','proj_delivery_manager','proj_technical_lead','proj_start_date',
+    'proj_end_date','proj_opportunity_id','proj_type','proj_industry','proj_delivery_model',
+    'proj_billing_type','proj_currency','proj_discount_pct','proj_travel_cost',
+    'proj_infra_cost','proj_third_party_cost','proj_internal_notes','proj_risks',
+    'proj_dependencies','proj_next_action','proj_follow_up_date'
+  ]);
+}
+
+function bindProjectFieldListeners(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.boundProjectField === '1') return;
+    const handler = () => {
+      collectProject();
+      updateSummary();
+      updateFilenamePreview();
+    };
+    el.addEventListener('input', handler);
+    el.addEventListener('change', handler);
+    el.dataset.boundProjectField = '1';
+  });
 }
 
 function initLocationDropdown(currentValue) {
@@ -263,7 +356,7 @@ function initLocationDropdown(currentValue) {
 }
 
 function collectProject() {
-  appData.project = {
+  appData.project = normalizeProject({
     company: getVal('proj_company'),
     customer: getVal('proj_customer'),
     location: locationSelect ? (locationSelect.getValue() || '') : getVal('proj_location'),
@@ -273,8 +366,33 @@ function collectProject() {
     project_description: getVal('proj_description'),
     partner: getVal('proj_partner'),
     payment_terms: getVal('proj_payment_terms'),
-    duration_months: parseFloat(getVal('proj_duration')) || null
-  };
+    duration_months: parseFloat(getVal('proj_duration')) || null,
+    status: getVal('proj_status'),
+    stage: getVal('proj_stage'),
+    priority: getVal('proj_priority'),
+    project_owner: getVal('proj_owner'),
+    account_manager: getVal('proj_account_manager'),
+    sales_spoc: getVal('proj_sales_spoc'),
+    delivery_manager: getVal('proj_delivery_manager'),
+    technical_lead: getVal('proj_technical_lead'),
+    expected_start_date: getVal('proj_start_date'),
+    expected_end_date: getVal('proj_end_date'),
+    opportunity_id: getVal('proj_opportunity_id'),
+    project_type: getVal('proj_type'),
+    industry: getVal('proj_industry'),
+    delivery_model: getVal('proj_delivery_model'),
+    billing_type: getVal('proj_billing_type'),
+    currency: getVal('proj_currency'),
+    discount_pct: parseFloat(getVal('proj_discount_pct')) || null,
+    travel_cost: parseFloat(getVal('proj_travel_cost')) || null,
+    infra_cost: parseFloat(getVal('proj_infra_cost')) || null,
+    third_party_cost: parseFloat(getVal('proj_third_party_cost')) || null,
+    internal_notes: getVal('proj_internal_notes'),
+    risks: getVal('proj_risks'),
+    dependencies: getVal('proj_dependencies'),
+    next_action: getVal('proj_next_action'),
+    next_follow_up_date: getVal('proj_follow_up_date'),
+  });
 }
 
 // ============================================================
@@ -337,6 +455,7 @@ function applyFxRate() {
   const val = parseFloat(document.getElementById('fx_rate_input').value);
   if (isNaN(val) || val <= 0) { showToast('Enter a valid exchange rate', 'danger'); return; }
   _usdToInr = val;
+  appData.fx_rate = val;
   document.getElementById('fx-edit-row').classList.add('d-none');
   const inlineEl = document.getElementById('fx_rate_inline');
   if (inlineEl) inlineEl.value = val.toFixed(2);
@@ -566,6 +685,7 @@ function applyFxRateInline() {
   const val = parseFloat(document.getElementById('fx_rate_inline')?.value);
   if (isNaN(val) || val <= 0) { showToast('Enter a valid exchange rate', 'danger'); return; }
   _usdToInr = val;
+  appData.fx_rate = val;
   renderRateCard();
   updateSummary();
   showToast(`USD → INR set to ₹${val.toFixed(2)}`, 'success');
@@ -1004,18 +1124,16 @@ function importExcel(input) {
       _currentPid   = null;
       _targetMargin = 0.40;
       appData = {
-        project: {
-          company: 'AutomatonsX',
+        project: buildDefaultProject({
           customer: json.project?.customer || '',
           location: json.project?.location || '',
           reference: json.project?.reference || '',
           proposal_date: json.project?.proposal_date || '',
           duration_months: json.project?.duration_months || null,
           project_description: json.project?.description || '',
-          customer_first_touch_point: '',
           partner: json.project?.partner || 'AutomatonsX',
           payment_terms: json.project?.payment_terms || 'As per proposal',
-        },
+        }),
         resources: (json.resources || []).map(r => ({
           role: r.role, level: r.level, hours: r.hours, group: ''
         })),
@@ -1024,7 +1142,7 @@ function importExcel(input) {
         attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
         funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
         approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
-        export_filename: '', target_margin: 0.40,
+        export_filename: '', target_margin: 0.40, fx_rate: _usdToInr,
       };
       populateAll();
       updateProjectBadge(null);
@@ -1154,6 +1272,16 @@ async function loadAllProjects() {
 
   const fmt  = v => '$' + (v||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const pct  = v => ((v||0)*100).toFixed(1) + '%';
+  const pctNumber = v => `${Number(v || 0).toFixed(1)}%`;
+  const num = v => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const shortDateTime = v => (v || '').replace('T',' ').slice(0,16);
+  const daysAgo = value => {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    const diff = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 86400000));
+    return `${diff}d`;
+  };
 
   container.innerHTML = `
     <div class="table-responsive">
@@ -1163,13 +1291,35 @@ async function loadAllProjects() {
             <th class="text-center" style="width:48px">S.No</th>
             <th>Customer</th>
             <th>Project</th>
+            <th>Reference</th>
+            <th>Status</th>
+            <th>Stage</th>
+            <th>Priority</th>
+            <th>Owner</th>
             <th>Location</th>
             <th class="text-center">Duration</th>
             <th>Proposal Date</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Follow-Up</th>
+            <th>Opportunity ID</th>
+            <th>Partner</th>
+            <th>Type</th>
+            <th>Industry</th>
+            <th>Delivery</th>
+            <th>Billing</th>
+            <th>Currency</th>
+            <th class="text-end">Resources</th>
+            <th class="text-end">Hours</th>
+            <th class="text-end">Avg Rate</th>
             <th class="text-end">Input Cost</th>
+            <th class="text-end">Add-On Cost</th>
+            <th class="text-end">Discount %</th>
             <th class="text-end">MarkUp</th>
             <th class="text-end">Revenue</th>
+            <th class="text-end">Profit</th>
             <th class="text-end">Gross Margin</th>
+            <th class="text-center">Since Save</th>
             <th>Saved At</th>
             <th>Saved By</th>
             <th class="text-center" style="width:56px"></th>
@@ -1184,14 +1334,36 @@ async function loadAllProjects() {
               <td class="text-center text-muted small">${i+1}</td>
               <td class="fw-semibold">${esc(p.customer || '')}</td>
               <td>${esc(p.name)}</td>
+              <td class="small">${esc(p.reference || '')}</td>
+              <td><span class="badge text-bg-${p.status === 'Won' ? 'success' : p.status === 'Lost' ? 'danger' : p.status === 'On Hold' ? 'warning' : 'secondary'}">${esc(p.status || '')}</span></td>
+              <td class="small">${esc(p.stage || '')}</td>
+              <td class="small">${esc(p.priority || '')}</td>
+              <td class="small">${esc(p.project_owner || '')}</td>
               <td class="text-muted small">${esc(p.location || '')}</td>
               <td class="text-center small">${p.duration ? p.duration + ' mo' : ''}</td>
               <td class="small text-muted">${esc(p.proposal_date || '')}</td>
+              <td class="small text-muted">${esc(p.expected_start_date || '')}</td>
+              <td class="small text-muted">${esc(p.expected_end_date || '')}</td>
+              <td class="small">${esc(p.next_follow_up_date || '')}</td>
+              <td class="small">${esc(p.opportunity_id || '')}</td>
+              <td class="small">${esc(p.partner || '')}</td>
+              <td class="small">${esc(p.project_type || '')}</td>
+              <td class="small">${esc(p.industry || '')}</td>
+              <td class="small">${esc(p.delivery_model || '')}</td>
+              <td class="small">${esc(p.billing_type || '')}</td>
+              <td class="small">${esc(p.currency || 'USD')}</td>
+              <td class="text-end small">${num(p.resource_count)}</td>
+              <td class="text-end small">${num(p.total_hours)}</td>
+              <td class="text-end small">${p.avg_rate ? fmt(p.avg_rate) : ''}</td>
               <td class="text-end small">${c.input_cost ? fmt(c.input_cost) : ''}</td>
+              <td class="text-end small">${p.add_on_cost ? fmt(p.add_on_cost) : ''}</td>
+              <td class="text-end small">${p.discount_pct ? pctNumber(p.discount_pct) : ''}</td>
               <td class="text-end small">${c.markup ? fmt(c.markup) : ''}</td>
               <td class="text-end small">${c.sell_cost ? fmt(c.sell_cost) : ''}</td>
+              <td class="text-end small">${p.profit_amount ? fmt(p.profit_amount) : ''}</td>
               <td class="text-end small ${c.gross_margin ? marginColor : ''}">${c.gross_margin ? pct(c.gross_margin) : ''}</td>
-              <td class="small text-muted">${(p.saved_at||'').replace('T',' ').slice(0,16)}</td>
+              <td class="text-center small text-muted">${daysAgo(p.saved_at)}</td>
+              <td class="small text-muted">${shortDateTime(p.saved_at)}</td>
               <td class="small text-muted">${esc(p.saved_by || '')}</td>
               <td class="text-center" onclick="event.stopPropagation()">
                 <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete project"
@@ -1224,6 +1396,7 @@ async function loadProjectAndSwitch(id, name) {
   const res = await fetch(`/api/projects/${id}`);
   if (!res.ok) { showToast('Could not load project', 'danger'); return; }
   appData = await res.json();
+  appData.project = normalizeProject(appData.project || {});
   _currentPid = id;
   populateAll();
   updateProjectBadge(name);
@@ -1366,15 +1539,13 @@ function newProject() {
   _currentPid    = null;
   _targetMargin  = 0.40;
   appData = {
-    project: { company: 'AutomatonsX', customer: '', location: '', reference: '',
-                proposal_date: '', customer_first_touch_point: '', project_description: '',
-                partner: 'AutomatonsX', payment_terms: 'As per proposal', duration_months: null },
+    project: buildDefaultProject(),
     resources: [], pnl_roles: [], releases: [],
     rate_card: rateCard, role_catalog: catalog,
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
-    export_filename: '', target_margin: 0.40
+    export_filename: '', target_margin: 0.40, fx_rate: _usdToInr
   };
   populateAll();
   updateProjectBadge(null);
@@ -1527,6 +1698,7 @@ function collectAll() {
   collectFundingApprovals();
   collectExportSettings();
   appData.target_margin = _targetMargin;
+  appData.fx_rate = _usdToInr;
 }
 
 async function saveAll() {

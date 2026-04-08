@@ -35,6 +35,13 @@ def _json_loads(value: str | None, default):
     return json.loads(value)
 
 
+def _to_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _connect() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
@@ -337,14 +344,62 @@ def list_projects(summary: bool = False) -> list[dict]:
         }
         if summary:
             payload = _json_loads(row['payload'], {})
+            project = payload.get('project', {})
+            resources = payload.get('resources', [])
             target_margin = float(payload.get('target_margin', 0.40))
             from pnl.services.pnl_service import compute_costs
 
-            entry['costs'] = compute_costs(
-                payload.get('resources', []),
+            costs = compute_costs(
+                resources,
                 payload.get('rate_card', []),
                 target_margin,
             )
+            total_hours = sum(_to_float(r.get('hours')) for r in resources)
+            input_cost = _to_float(costs.get('input_cost'))
+            discount_pct = _to_float(project.get('discount_pct'))
+            add_on_cost = (
+                _to_float(project.get('travel_cost'))
+                + _to_float(project.get('infra_cost'))
+                + _to_float(project.get('third_party_cost'))
+            )
+
+            entry.update({
+                'company': project.get('company', ''),
+                'reference': project.get('reference', ''),
+                'customer_first_touch_point': project.get('customer_first_touch_point', ''),
+                'project_description': project.get('project_description', ''),
+                'partner': project.get('partner', ''),
+                'payment_terms': project.get('payment_terms', ''),
+                'status': project.get('status', ''),
+                'stage': project.get('stage', ''),
+                'priority': project.get('priority', ''),
+                'project_owner': project.get('project_owner', ''),
+                'account_manager': project.get('account_manager', ''),
+                'sales_spoc': project.get('sales_spoc', ''),
+                'delivery_manager': project.get('delivery_manager', ''),
+                'technical_lead': project.get('technical_lead', ''),
+                'expected_start_date': project.get('expected_start_date', ''),
+                'expected_end_date': project.get('expected_end_date', ''),
+                'opportunity_id': project.get('opportunity_id', ''),
+                'project_type': project.get('project_type', ''),
+                'industry': project.get('industry', ''),
+                'delivery_model': project.get('delivery_model', ''),
+                'billing_type': project.get('billing_type', ''),
+                'currency': project.get('currency', 'USD') or 'USD',
+                'next_action': project.get('next_action', ''),
+                'next_follow_up_date': project.get('next_follow_up_date', ''),
+                'discount_pct': discount_pct,
+                'travel_cost': _to_float(project.get('travel_cost')),
+                'infra_cost': _to_float(project.get('infra_cost')),
+                'third_party_cost': _to_float(project.get('third_party_cost')),
+                'add_on_cost': add_on_cost,
+                'resource_count': len(resources),
+                'total_hours': total_hours,
+                'avg_rate': (input_cost / total_hours) if total_hours else 0.0,
+                'fx_rate': _to_float(payload.get('fx_rate')),
+                'costs': costs,
+                'profit_amount': _to_float(costs.get('markup')),
+            })
         projects.append(entry)
     return projects
 

@@ -216,8 +216,68 @@
             </div>
           </div>
         </div>
-        <!-- Cost Summary -->
         <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-kanban me-1"></i>Pipeline & Ownership</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Status</label>
+                  <select class="form-select" id="proj_status">
+                    <option>Draft</option>
+                    <option>Submitted</option>
+                    <option>Won</option>
+                    <option>Lost</option>
+                    <option>On Hold</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Stage</label>
+                  <select class="form-select" id="proj_stage">
+                    <option>Qualification</option>
+                    <option>Discovery</option>
+                    <option>Solutioning</option>
+                    <option>Proposal</option>
+                    <option>Commercial Review</option>
+                    <option>Negotiation</option>
+                    <option>Closed</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Priority</label>
+                  <select class="form-select" id="proj_priority">
+                    <option>Low</option>
+                    <option selected>Medium</option>
+                    <option>High</option>
+                    <option>Critical</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Project Owner</label>
+                  <input type="text" class="form-control" id="proj_owner"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Account Manager</label>
+                  <input type="text" class="form-control" id="proj_account_manager"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Sales SPOC</label>
+                  <input type="text" class="form-control" id="proj_sales_spoc"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Delivery Manager</label>
+                  <input type="text" class="form-control" id="proj_delivery_manager"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Technical Lead</label>
+                  <input type="text" class="form-control" id="proj_technical_lead"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Cost Summary -->
+        <div class="col-md-12">
           <div class="card h-100">
             <div class="card-header fw-bold"><i class="bi bi-calculator me-1"></i>Cost Summary (live)</div>
             <div class="card-body d-flex flex-column gap-3 justify-content-center">
@@ -261,6 +321,108 @@
                     <button class="btn btn-primary btn-sm" onclick="applyFxRate()">Apply</button>
                   </div>
                   <div class="form-text">Override live exchange rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-calendar-range me-1"></i>Planning & Commercial</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Expected Start Date</label>
+                  <input type="date" class="form-control" id="proj_start_date"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Expected End Date</label>
+                  <input type="date" class="form-control" id="proj_end_date"/>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Opportunity ID</label>
+                  <input type="text" class="form-control" id="proj_opportunity_id"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Project Type</label>
+                  <input type="text" class="form-control" id="proj_type"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Industry</label>
+                  <input type="text" class="form-control" id="proj_industry"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Delivery Model</label>
+                  <select class="form-select" id="proj_delivery_model">
+                    <option>Offshore</option>
+                    <option>Onsite</option>
+                    <option>Hybrid</option>
+                    <option>Managed Service</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Billing Type</label>
+                  <select class="form-select" id="proj_billing_type">
+                    <option>Time & Material</option>
+                    <option>Fixed Bid</option>
+                    <option>Milestone Based</option>
+                    <option>Retainer</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Currency</label>
+                  <select class="form-select" id="proj_currency">
+                    <option>USD</option>
+                    <option>INR</option>
+                    <option>EUR</option>
+                    <option>GBP</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Discount %</label>
+                  <input type="number" class="form-control" id="proj_discount_pct" min="0" max="100" step="0.1"/>
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Travel Cost</label>
+                  <input type="number" class="form-control" id="proj_travel_cost" min="0" step="0.01"/>
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Infra Cost</label>
+                  <input type="number" class="form-control" id="proj_infra_cost" min="0" step="0.01"/>
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Third-Party Cost</label>
+                  <input type="number" class="form-control" id="proj_third_party_cost" min="0" step="0.01"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-journal-text me-1"></i>Execution Notes</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Internal Notes</label>
+                  <textarea class="form-control" id="proj_internal_notes" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Risks</label>
+                  <textarea class="form-control" id="proj_risks" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Dependencies</label>
+                  <textarea class="form-control" id="proj_dependencies" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Next Action</label>
+                  <input type="text" class="form-control mb-3" id="proj_next_action"/>
+                  <label class="form-label">Next Follow-Up Date</label>
+                  <input type="date" class="form-control" id="proj_follow_up_date"/>
                 </div>
               </div>
             </div>
