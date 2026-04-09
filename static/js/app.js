@@ -1347,7 +1347,6 @@ let _allProjectsDraftColumns = null;
 let _allProjectsSort = null;
 let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
-let _allProjectsDraggedColumn = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1495,34 +1494,72 @@ function resetAllProjectsColumns() {
   loadAllProjects();
 }
 
-function renderAllProjectsActiveColumnChips(columnDefs, visibleKeys) {
-  const chips = columnDefs
-    .filter(def => visibleKeys.includes(def.key))
-    .map((def, index) => `
-      <div class="all-projects-chip">
-        <span class="all-projects-chip-index">${String(index + 1).padStart(2, '0')}</span>
-        <span class="all-projects-chip-label">${esc(def.label)}</span>
-        <span class="all-projects-chip-actions">
-          <button type="button" class="all-projects-chip-btn" title="Move ${esc(def.label)} left" ${index === 0 ? 'disabled' : ''}
-            onclick="moveAllProjectsColumn('${esc(def.key)}', -1)">
-            <i class="bi bi-arrow-left"></i>
-          </button>
-          <button type="button" class="all-projects-chip-btn" title="Move ${esc(def.label)} right" ${index === visibleKeys.length - 1 ? 'disabled' : ''}
-            onclick="moveAllProjectsColumn('${esc(def.key)}', 1)">
-            <i class="bi bi-arrow-right"></i>
-          </button>
-          <button type="button" class="all-projects-chip-btn" title="Hide ${esc(def.label)}"
-            onclick="removeAllProjectsColumn('${esc(def.key)}')">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </span>
-      </div>
-    `).join('');
-  return chips || `<span class="small text-muted">No columns selected</span>`;
+function moveAllProjectsDraftColumn(columnKey, direction) {
+  const selected = [...(_allProjectsDraftColumns || loadVisibleAllProjectsColumns())];
+  const index = selected.indexOf(columnKey);
+  const nextIndex = index + direction;
+  if (index === -1 || nextIndex < 0 || nextIndex >= selected.length) return;
+  [selected[index], selected[nextIndex]] = [selected[nextIndex], selected[index]];
+  _allProjectsDraftColumns = selected;
+  updateAllProjectsPickerState();
+}
+
+function removeAllProjectsDraftColumn(columnKey) {
+  const selected = (_allProjectsDraftColumns || loadVisibleAllProjectsColumns()).filter(key => key !== columnKey);
+  _allProjectsDraftColumns = selected.length ? selected : [...ALL_PROJECTS_DEFAULT_COLUMNS];
+  updateAllProjectsPickerState();
+}
+
+function addAllProjectsDraftColumn(columnKey) {
+  const selected = [...(_allProjectsDraftColumns || loadVisibleAllProjectsColumns())];
+  if (!selected.includes(columnKey)) selected.push(columnKey);
+  _allProjectsDraftColumns = selected;
+  updateAllProjectsPickerState();
+}
+
+function renderAllProjectsSelectedColumns(columnDefs, draftKeys) {
+  const rows = draftKeys
+    .map((key, index) => {
+      const def = columnDefs.find(item => item.key === key);
+      if (!def) return '';
+      return `
+        <div class="all-projects-selected-row">
+          <div class="all-projects-selected-main">
+            <span class="all-projects-selected-index">${String(index + 1).padStart(2, '0')}</span>
+            <span class="all-projects-selected-label">${esc(def.label)}</span>
+          </div>
+          <div class="all-projects-selected-actions">
+            <button type="button" class="all-projects-selected-btn" title="Move ${esc(def.label)} up" ${index === 0 ? 'disabled' : ''}
+              onclick="moveAllProjectsDraftColumn('${esc(def.key)}', -1)">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button type="button" class="all-projects-selected-btn" title="Move ${esc(def.label)} down" ${index === draftKeys.length - 1 ? 'disabled' : ''}
+              onclick="moveAllProjectsDraftColumn('${esc(def.key)}', 1)">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+            <button type="button" class="all-projects-selected-btn is-danger" title="Remove ${esc(def.label)}"
+              onclick="removeAllProjectsDraftColumn('${esc(def.key)}')">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+  return rows || `<div class="all-projects-picker-empty">No visible columns selected.</div>`;
 }
 
 function renderAllProjectsColumnPicker(columnDefs, draftKeys) {
-  return ALL_PROJECTS_COLUMN_GROUPS.map(group => {
+  const selectedPanel = `
+    <div class="all-projects-picker-panel">
+      <div class="all-projects-picker-panel-title">Visible Columns</div>
+      <div class="all-projects-picker-panel-subtitle">Use the arrows to set the column order that the table should use.</div>
+      <div class="all-projects-selected-list">
+        ${renderAllProjectsSelectedColumns(columnDefs, draftKeys)}
+      </div>
+    </div>
+  `;
+  const availablePanels = ALL_PROJECTS_COLUMN_GROUPS.map(group => {
     const defs = group.keys
       .map(key => columnDefs.find(def => def.key === key))
       .filter(Boolean);
@@ -1532,16 +1569,25 @@ function renderAllProjectsColumnPicker(columnDefs, draftKeys) {
         <div class="all-projects-picker-title">${esc(group.label)}</div>
         <div class="all-projects-picker-options">
           ${defs.map(def => `
-            <label class="all-projects-option ${draftKeys.includes(def.key) ? 'is-active' : ''}">
-              <input type="checkbox" ${draftKeys.includes(def.key) ? 'checked' : ''}
-                onchange="updateAllProjectsDraftColumnSelection('${esc(def.key)}', this.checked)">
+            <button type="button" class="all-projects-option ${draftKeys.includes(def.key) ? 'is-active' : ''}"
+              ${draftKeys.includes(def.key) ? 'disabled' : ''}
+              onclick="addAllProjectsDraftColumn('${esc(def.key)}')">
               <span>${esc(def.label)}</span>
-            </label>
+              <i class="bi ${draftKeys.includes(def.key) ? 'bi-check2' : 'bi-plus-lg'}"></i>
+            </button>
           `).join('')}
         </div>
       </div>
     `;
   }).join('');
+  return `
+    <div class="all-projects-picker-panel all-projects-picker-panel-primary">
+      ${selectedPanel}
+    </div>
+    <div class="all-projects-picker-panel-stack">
+      ${availablePanels}
+    </div>
+  `;
 }
 
 function updateAllProjectsPickerState() {
@@ -1553,22 +1599,6 @@ function updateAllProjectsPickerState() {
   const count = document.getElementById('all-projects-picker-count');
   if (body) body.innerHTML = renderAllProjectsColumnPicker(defs, draftKeys);
   if (count) count.textContent = `${draftKeys.length} selected • choose multiple columns, then apply once`;
-}
-
-function removeAllProjectsColumn(columnKey) {
-  const selected = loadVisibleAllProjectsColumns().filter(key => key !== columnKey);
-  saveVisibleAllProjectsColumns(selected.length ? selected : [...ALL_PROJECTS_DEFAULT_COLUMNS]);
-  loadAllProjects();
-}
-
-function moveAllProjectsColumn(columnKey, direction) {
-  const selected = [...loadVisibleAllProjectsColumns()];
-  const index = selected.indexOf(columnKey);
-  const nextIndex = index + direction;
-  if (index === -1 || nextIndex < 0 || nextIndex >= selected.length) return;
-  [selected[index], selected[nextIndex]] = [selected[nextIndex], selected[index]];
-  saveVisibleAllProjectsColumns(selected);
-  loadAllProjects();
 }
 
 function updateAllProjectsSort(columnKey) {
@@ -1634,67 +1664,6 @@ function filterAllProjectsList(list, query) {
     ].join(' ').toLowerCase();
     return haystack.includes(term);
   });
-}
-
-function beginAllProjectsColumnDrag(event, columnKey) {
-  _allProjectsDraggedColumn = columnKey;
-  try {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', columnKey);
-  } catch {}
-  document.body.classList.add('all-projects-dragging');
-}
-
-function clearAllProjectsColumnDropTargets() {
-  document.querySelectorAll('.all-projects-column-header.is-drop-target').forEach(el => {
-    el.classList.remove('is-drop-target', 'drop-before', 'drop-after');
-  });
-}
-
-function endAllProjectsColumnDrag() {
-  _allProjectsDraggedColumn = null;
-  clearAllProjectsColumnDropTargets();
-  document.body.classList.remove('all-projects-dragging');
-}
-
-function allowAllProjectsColumnDrop(event, columnKey) {
-  if (!_allProjectsDraggedColumn || _allProjectsDraggedColumn === columnKey) return;
-  event.preventDefault();
-  const header = event.currentTarget;
-  if (!header) return;
-  clearAllProjectsColumnDropTargets();
-  const rect = header.getBoundingClientRect();
-  const placeAfter = event.clientX > rect.left + (rect.width / 2);
-  header.classList.add('is-drop-target', placeAfter ? 'drop-after' : 'drop-before');
-}
-
-function leaveAllProjectsColumnDrop(event) {
-  const header = event.currentTarget;
-  if (!header) return;
-  header.classList.remove('is-drop-target', 'drop-before', 'drop-after');
-}
-
-function dropAllProjectsColumn(event, targetKey) {
-  event.preventDefault();
-  if (!_allProjectsDraggedColumn || _allProjectsDraggedColumn === targetKey) {
-    endAllProjectsColumnDrag();
-    return;
-  }
-  const selected = [...loadVisibleAllProjectsColumns()];
-  const draggedKey = _allProjectsDraggedColumn;
-  const filtered = selected.filter(key => key !== draggedKey);
-  let insertAt = filtered.indexOf(targetKey);
-  const header = event.currentTarget;
-  if (header) {
-    const rect = header.getBoundingClientRect();
-    const placeAfter = event.clientX > rect.left + (rect.width / 2);
-    if (placeAfter) insertAt += 1;
-  }
-  if (insertAt < 0) insertAt = filtered.length;
-  filtered.splice(insertAt, 0, draggedKey);
-  saveVisibleAllProjectsColumns(filtered);
-  endAllProjectsColumnDrag();
-  loadAllProjects();
 }
 
 async function loadAllProjects() {
@@ -1788,7 +1757,7 @@ async function loadAllProjects() {
         <div class="all-projects-commandbar-meta">
           <span class="all-projects-meta-pill"><i class="bi bi-funnel me-1"></i>${searchQuery ? `Filtered results: ${sortedList.length}` : 'No filter applied'}</span>
           <span class="all-projects-meta-pill"><i class="bi bi-arrow-down-up me-1"></i>${esc(activeSortLabel)}</span>
-          <span class="all-projects-meta-pill"><i class="bi bi-grip-vertical me-1"></i>Drag the dots in the table header to move columns</span>
+          <span class="all-projects-meta-pill"><i class="bi bi-layout-sidebar-inset me-1"></i>Use Customize Layout to add, remove, or reorder columns</span>
         </div>
       </div>
       <div id="all-projects-column-picker" class="all-projects-picker ${_allProjectsPickerOpen ? '' : 'd-none'} mb-3">
@@ -1817,25 +1786,11 @@ async function loadAllProjects() {
           <tr>
             <th class="text-center" style="width:48px">S.No</th>
             ${visibleColumns.map(def => `
-              <th
-                class="${def.headerClass || ''} all-projects-column-header"
-                ondragover="allowAllProjectsColumnDrop(event, '${esc(def.key)}')"
-                ondragleave="leaveAllProjectsColumnDrop(event)"
-                ondrop="dropAllProjectsColumn(event, '${esc(def.key)}')">
-                <div class="all-projects-header-tools">
-                  <span
-                    class="all-projects-drag-handle"
-                    title="Drag ${esc(def.label)} to reorder"
-                    draggable="true"
-                    ondragstart="beginAllProjectsColumnDrag(event, '${esc(def.key)}')"
-                    ondragend="endAllProjectsColumnDrag()">
-                    <i class="bi bi-grip-vertical"></i>
-                  </span>
-                  <button type="button" class="all-projects-sort-btn ${sortState.key === def.key ? 'is-active' : ''}" onclick="updateAllProjectsSort('${esc(def.key)}')">
-                    <span>${esc(def.label)}</span>
-                    <i class="bi ${sortState.key === def.key ? (sortState.direction === 'asc' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'}"></i>
-                  </button>
-                </div>
+              <th class="${def.headerClass || ''}">
+                <button type="button" class="all-projects-sort-btn ${sortState.key === def.key ? 'is-active' : ''}" onclick="updateAllProjectsSort('${esc(def.key)}')">
+                  <span>${esc(def.label)}</span>
+                  <i class="bi ${sortState.key === def.key ? (sortState.direction === 'asc' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-arrow-down-up'}"></i>
+                </button>
               </th>
             `).join('')}
             <th class="text-center" style="width:56px"></th>
