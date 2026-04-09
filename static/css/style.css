@@ -459,6 +459,62 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   font-weight: 700;
 }
 
+.all-projects-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.all-projects-drag-handle {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: grab;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.all-projects-drag-handle:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+}
+
+.all-projects-drag-handle:active {
+  cursor: grabbing;
+}
+
+.all-projects-drag-handle i {
+  font-size: 14px;
+}
+
+.all-projects-column-header {
+  position: relative;
+}
+
+.all-projects-column-header.is-drop-target::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background: #f8c8ff;
+  box-shadow: 0 0 0 2px rgba(248, 200, 255, 0.18);
+}
+
+.all-projects-column-header.is-drop-target.drop-before::before {
+  left: -2px;
+}
+
+.all-projects-column-header.is-drop-target.drop-after::before {
+  right: -2px;
+}
+
 .all-projects-layoutbar {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
@@ -680,6 +736,9 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 
 .all-projects-sort-btn span {
   text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .all-projects-sort-btn i {
@@ -690,6 +749,10 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 .all-projects-sort-btn.is-active i {
   opacity: 1;
   color: #d7c3ff;
+}
+
+body.all-projects-dragging .all-projects-drag-handle {
+  cursor: grabbing;
 }
 
 .all-projects-table tbody tr {
