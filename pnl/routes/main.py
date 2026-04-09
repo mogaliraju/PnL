@@ -1,6 +1,6 @@
 """Main routes: index page, current-project data, global settings."""
 from collections import Counter, defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from flask import Blueprint, render_template, request, jsonify, session
 from pnl.utils.storage import (
     load_all_project_records,
@@ -16,6 +16,7 @@ from pnl.services.pnl_service import compute_costs
 bp = Blueprint('main', __name__)
 log = get_logger(__name__)
 APP_REFRESHED_AT = datetime.now(timezone.utc)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # Simple in-process daily cache — resets on server restart, refreshes each new day
 _fx_cache = {'date': None, 'rate': None, 'updated': None}
@@ -49,10 +50,11 @@ def exchange_rate():
 @bp.route('/')
 @login_required
 def index():
+    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
     return render_template(
         'index.html',
-        app_refreshed_at_iso=APP_REFRESHED_AT.isoformat(),
-        app_refreshed_at_display=APP_REFRESHED_AT.strftime('%d %b %Y %H:%M UTC'),
+        app_refreshed_at_iso=refreshed_at_ist.isoformat(),
+        app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
     )
 
 
