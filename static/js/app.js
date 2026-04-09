@@ -1347,6 +1347,7 @@ let _allProjectsDraftColumns = null;
 let _allProjectsSort = null;
 let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
+let _allProjectsDraftDraggedColumn = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1517,15 +1518,84 @@ function addAllProjectsDraftColumn(columnKey) {
   updateAllProjectsPickerState();
 }
 
+function beginAllProjectsDraftDrag(event, columnKey) {
+  _allProjectsDraftDraggedColumn = columnKey;
+  try {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', columnKey);
+  } catch {}
+}
+
+function clearAllProjectsDraftDropTargets() {
+  document.querySelectorAll('.all-projects-selected-row.is-drop-target').forEach(el => {
+    el.classList.remove('is-drop-target', 'drop-before', 'drop-after');
+  });
+}
+
+function endAllProjectsDraftDrag() {
+  _allProjectsDraftDraggedColumn = null;
+  clearAllProjectsDraftDropTargets();
+}
+
+function allowAllProjectsDraftDrop(event, columnKey) {
+  if (!_allProjectsDraftDraggedColumn || _allProjectsDraftDraggedColumn === columnKey) return;
+  event.preventDefault();
+  const row = event.currentTarget;
+  if (!row) return;
+  clearAllProjectsDraftDropTargets();
+  const rect = row.getBoundingClientRect();
+  const placeAfter = event.clientY > rect.top + (rect.height / 2);
+  row.classList.add('is-drop-target', placeAfter ? 'drop-after' : 'drop-before');
+}
+
+function leaveAllProjectsDraftDrop(event) {
+  const row = event.currentTarget;
+  if (!row) return;
+  row.classList.remove('is-drop-target', 'drop-before', 'drop-after');
+}
+
+function dropAllProjectsDraftColumn(event, targetKey) {
+  event.preventDefault();
+  const draggedKey = _allProjectsDraftDraggedColumn;
+  if (!draggedKey || draggedKey === targetKey) {
+    endAllProjectsDraftDrag();
+    return;
+  }
+  const selected = [...(_allProjectsDraftColumns || loadVisibleAllProjectsColumns())];
+  const filtered = selected.filter(key => key !== draggedKey);
+  let insertAt = filtered.indexOf(targetKey);
+  const row = event.currentTarget;
+  if (row) {
+    const rect = row.getBoundingClientRect();
+    const placeAfter = event.clientY > rect.top + (rect.height / 2);
+    if (placeAfter) insertAt += 1;
+  }
+  if (insertAt < 0) insertAt = filtered.length;
+  filtered.splice(insertAt, 0, draggedKey);
+  _allProjectsDraftColumns = filtered;
+  endAllProjectsDraftDrag();
+  updateAllProjectsPickerState();
+}
+
 function renderAllProjectsSelectedColumns(columnDefs, draftKeys) {
   const rows = draftKeys
     .map((key, index) => {
       const def = columnDefs.find(item => item.key === key);
       if (!def) return '';
       return `
-        <div class="all-projects-selected-row">
+        <div
+          class="all-projects-selected-row"
+          draggable="true"
+          ondragstart="beginAllProjectsDraftDrag(event, '${esc(def.key)}')"
+          ondragend="endAllProjectsDraftDrag()"
+          ondragover="allowAllProjectsDraftDrop(event, '${esc(def.key)}')"
+          ondragleave="leaveAllProjectsDraftDrop(event)"
+          ondrop="dropAllProjectsDraftColumn(event, '${esc(def.key)}')">
           <div class="all-projects-selected-main">
             <span class="all-projects-selected-index">${String(index + 1).padStart(2, '0')}</span>
+            <span class="all-projects-selected-handle" title="Drag to reorder">
+              <i class="bi bi-grip-vertical"></i>
+            </span>
             <span class="all-projects-selected-label">${esc(def.label)}</span>
           </div>
           <div class="all-projects-selected-actions">
@@ -1553,7 +1623,7 @@ function renderAllProjectsColumnPicker(columnDefs, draftKeys) {
   const selectedPanel = `
     <div class="all-projects-picker-panel">
       <div class="all-projects-picker-panel-title">Visible Columns</div>
-      <div class="all-projects-picker-panel-subtitle">Use the arrows to set the column order that the table should use.</div>
+      <div class="all-projects-picker-panel-subtitle">Drag rows to reorder quickly, or use the arrows for small adjustments.</div>
       <div class="all-projects-selected-list">
         ${renderAllProjectsSelectedColumns(columnDefs, draftKeys)}
       </div>
