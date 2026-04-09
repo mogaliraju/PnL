@@ -6,6 +6,7 @@ let appData = {};
 let currentUser = {};
 const DEFAULT_BUSINESS_UNITS = ['EDM', 'AI', 'SAP', 'RPA'];
 const ALL_PROJECTS_SORT_STORAGE_KEY = 'pnl.allProjects.sort';
+const ALL_PROJECTS_SEARCH_STORAGE_KEY = 'pnl.allProjects.search';
 
 function buildDefaultProject(overrides = {}) {
   return {
@@ -1344,6 +1345,8 @@ const ALL_PROJECTS_COLUMN_GROUPS = [
 let _allProjectsPickerOpen = false;
 let _allProjectsDraftColumns = null;
 let _allProjectsSort = null;
+let _allProjectsSearch = null;
+let _allProjectsSearchTimer = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1436,6 +1439,21 @@ function saveAllProjectsSort(sortState) {
   localStorage.setItem(ALL_PROJECTS_SORT_STORAGE_KEY, JSON.stringify(sortState));
 }
 
+function loadAllProjectsSearch() {
+  if (_allProjectsSearch !== null) return _allProjectsSearch;
+  try {
+    _allProjectsSearch = localStorage.getItem(ALL_PROJECTS_SEARCH_STORAGE_KEY) || '';
+  } catch {
+    _allProjectsSearch = '';
+  }
+  return _allProjectsSearch;
+}
+
+function saveAllProjectsSearch(value) {
+  _allProjectsSearch = String(value || '');
+  localStorage.setItem(ALL_PROJECTS_SEARCH_STORAGE_KEY, _allProjectsSearch);
+}
+
 function toggleAllProjectsColumnPicker() {
   _allProjectsPickerOpen = !_allProjectsPickerOpen;
   if (_allProjectsPickerOpen) {
@@ -1481,6 +1499,7 @@ function renderAllProjectsActiveColumnChips(columnDefs, visibleKeys) {
     .filter(def => visibleKeys.includes(def.key))
     .map((def, index) => `
       <div class="all-projects-chip">
+        <span class="all-projects-chip-index">${String(index + 1).padStart(2, '0')}</span>
         <span class="all-projects-chip-label">${esc(def.label)}</span>
         <span class="all-projects-chip-actions">
           <button type="button" class="all-projects-chip-btn" title="Move ${esc(def.label)} left" ${index === 0 ? 'disabled' : ''}
@@ -1532,7 +1551,7 @@ function updateAllProjectsPickerState() {
   const body = document.getElementById('all-projects-picker-body');
   const count = document.getElementById('all-projects-picker-count');
   if (body) body.innerHTML = renderAllProjectsColumnPicker(defs, draftKeys);
-  if (count) count.textContent = `${draftKeys.length} selected`;
+  if (count) count.textContent = `${draftKeys.length} selected • choose multiple columns, then apply once`;
 }
 
 function removeAllProjectsColumn(columnKey) {
@@ -1558,6 +1577,20 @@ function updateAllProjectsSort(columnKey) {
   loadAllProjects();
 }
 
+function updateAllProjectsSearch(value) {
+  saveAllProjectsSearch(value);
+  loadAllProjects();
+}
+
+function queueAllProjectsSearch(value) {
+  saveAllProjectsSearch(value);
+  if (_allProjectsSearchTimer) clearTimeout(_allProjectsSearchTimer);
+  _allProjectsSearchTimer = setTimeout(() => {
+    _allProjectsSearchTimer = null;
+    loadAllProjects();
+  }, 180);
+}
+
 function compareAllProjectsValues(a, b) {
   const aEmpty = a === null || a === undefined || a === '';
   const bEmpty = b === null || b === undefined || b === '';
@@ -1574,6 +1607,32 @@ function sortAllProjectsList(list, columnDefs) {
   if (!def?.sortValue) return [...list];
   const direction = sortState.direction === 'desc' ? -1 : 1;
   return [...list].sort((left, right) => direction * compareAllProjectsValues(def.sortValue(left), def.sortValue(right)));
+}
+
+function filterAllProjectsList(list, query) {
+  const term = String(query || '').trim().toLowerCase();
+  if (!term) return [...list];
+  return list.filter(project => {
+    const haystack = [
+      project.customer,
+      project.name,
+      project.reference,
+      project.business_unit,
+      project.status,
+      project.stage,
+      project.project_owner,
+      project.account_manager,
+      project.sales_spoc,
+      project.delivery_manager,
+      project.location,
+      project.partner,
+      project.project_type,
+      project.industry,
+      project.saved_by,
+      project.opportunity_id,
+    ].join(' ').toLowerCase();
+    return haystack.includes(term);
+  });
 }
 
 async function loadAllProjects() {
@@ -1617,24 +1676,63 @@ async function loadAllProjects() {
   const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
   const draftKeys = _allProjectsDraftColumns || [...visibleKeys];
   const sortState = loadAllProjectsSort();
-  const sortedList = sortAllProjectsList(list, columnDefs);
+  const searchQuery = loadAllProjectsSearch();
+  const filteredList = filterAllProjectsList(list, searchQuery);
+  const sortedList = sortAllProjectsList(filteredList, columnDefs);
+  const activeSortDef = columnDefs.find(def => def.key === sortState.key);
+  const activeSortLabel = activeSortDef ? `${activeSortDef.label} (${sortState.direction === 'asc' ? 'Ascending' : 'Descending'})` : 'Custom';
 
   container.innerHTML = `
     <div class="all-projects-shell">
-      <div class="all-projects-toolbar mb-3">
-        <div class="all-projects-toolbar-copy">
-          <div class="all-projects-toolbar-title">Columns</div>
-          <div class="all-projects-toolbar-subtitle">${list.length} saved projects • ${visibleColumns.length} visible columns</div>
+      <div class="all-projects-hero mb-3">
+        <div class="all-projects-hero-copy">
+          <div class="all-projects-eyebrow">Portfolio View</div>
+          <div class="all-projects-hero-title">All Saved Projects</div>
+          <div class="all-projects-hero-subtitle">Open any row to jump into the project. Tune the table layout only when you need extra context.</div>
         </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="all-projects-actions">
+          <div class="all-projects-stat">
+            <span class="all-projects-stat-label">Projects</span>
+            <span class="all-projects-stat-value">${sortedList.length}<small>/ ${list.length}</small></span>
+          </div>
+          <div class="all-projects-stat">
+            <span class="all-projects-stat-label">Visible</span>
+            <span class="all-projects-stat-value">${visibleColumns.length} columns</span>
+          </div>
+          <div class="all-projects-stat">
+            <span class="all-projects-stat-label">Sorted By</span>
+            <span class="all-projects-stat-value">${esc(activeSortLabel)}</span>
+          </div>
           <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllProjectsColumnPicker()">
-              <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide' : 'Customize'} <i id="all-projects-column-toggle-icon" class="bi ${_allProjectsPickerOpen ? 'bi-chevron-up' : 'bi-chevron-down'} ms-1"></i>
-            </button>
+            <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide Layout' : 'Customize Layout'} <i id="all-projects-column-toggle-icon" class="bi ${_allProjectsPickerOpen ? 'bi-chevron-up' : 'bi-chevron-down'} ms-1"></i>
+          </button>
           <button class="btn btn-outline-secondary btn-sm" onclick="resetAllProjectsColumns()">Reset Default</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadAllProjects()">
+            <i class="bi bi-arrow-repeat me-1"></i>Refresh
+          </button>
         </div>
       </div>
-      <div class="all-projects-active mb-3">
-        <div class="all-projects-active-label">Visible now</div>
+      <div class="all-projects-commandbar mb-3">
+        <div class="all-projects-search">
+          <i class="bi bi-search"></i>
+          <input
+            type="search"
+            class="form-control"
+            placeholder="Search customer, project, owner, business unit, location..."
+            value="${esc(searchQuery)}"
+            oninput="queueAllProjectsSearch(this.value)"
+          />
+        </div>
+        <div class="all-projects-commandbar-meta">
+          <span class="all-projects-meta-pill"><i class="bi bi-funnel me-1"></i>${searchQuery ? `Filtered results: ${sortedList.length}` : 'No filter applied'}</span>
+          <span class="all-projects-meta-pill"><i class="bi bi-arrow-down-up me-1"></i>${esc(activeSortLabel)}</span>
+        </div>
+      </div>
+      <div class="all-projects-layoutbar mb-3">
+        <div class="all-projects-layoutbar-copy">
+          <div class="all-projects-layoutbar-title">Visible Columns</div>
+          <div class="all-projects-layoutbar-subtitle">Reorder or remove columns here. Use the layout manager to add more.</div>
+        </div>
         <div class="all-projects-chip-row">
           ${renderAllProjectsActiveColumnChips(columnDefs, visibleKeys)}
         </div>
@@ -1642,8 +1740,8 @@ async function loadAllProjects() {
       <div id="all-projects-column-picker" class="all-projects-picker ${_allProjectsPickerOpen ? '' : 'd-none'} mb-3">
         <div class="all-projects-picker-header">
           <div>
-            <div class="all-projects-picker-headline">Choose Columns</div>
-            <div id="all-projects-picker-count" class="all-projects-picker-count">${draftKeys.length} selected</div>
+            <div class="all-projects-picker-headline">Table Layout Manager</div>
+            <div id="all-projects-picker-count" class="all-projects-picker-count">${draftKeys.length} selected • choose multiple columns, then apply once</div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <button class="btn btn-outline-secondary btn-sm" onclick="closeAllProjectsColumnPicker()">
@@ -1676,7 +1774,7 @@ async function loadAllProjects() {
           </tr>
         </thead>
         <tbody>
-          ${sortedList.map((p, i) => {
+          ${sortedList.length ? sortedList.map((p, i) => {
             return `<tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
               <td class="text-center text-muted small">${i+1}</td>
               ${visibleColumns.map(def => def.cell(p)).join('')}
@@ -1687,7 +1785,20 @@ async function loadAllProjects() {
                 </button>
               </td>
             </tr>`;
-          }).join('')}
+          }).join('') : `
+            <tr>
+              <td colspan="${visibleColumns.length + 2}" class="text-center py-5">
+                <div class="all-projects-empty-state">
+                  <div class="all-projects-empty-icon"><i class="bi bi-search"></i></div>
+                  <div class="all-projects-empty-title">No projects match this search</div>
+                  <div class="all-projects-empty-copy">Try a different customer, project, owner, location, or business unit keyword.</div>
+                  <button class="btn btn-outline-secondary btn-sm mt-3" onclick="updateAllProjectsSearch('')">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Clear Search
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `}
         </tbody>
       </table>
     </div>`;
