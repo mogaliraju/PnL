@@ -228,6 +228,7 @@ class ReadOnlyFlowTests(unittest.TestCase):
         self.assertIn('id="proj_start_date"', html)
         self.assertIn('id="proj_discount_pct"', html)
         self.assertIn('id="proj_internal_notes"', html)
+        self.assertIn('Application deployment refresh', html)
 
 
 if __name__ == '__main__':

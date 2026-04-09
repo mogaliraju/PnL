@@ -15,6 +15,31 @@ body {
   font-size: 14px;
 }
 
+.app-footer {
+  margin-top: 24px;
+  padding: 0 0 18px;
+}
+
+.app-footer-inner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid rgba(109, 40, 217, 0.10);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6a5c8f;
+  font-size: 12px;
+}
+
+.app-footer-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #7a6f98;
+}
+
 /* ── Navbar ── */
 .ax-navbar {
   background: var(--ax-grad);
@@ -516,6 +541,11 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 @media (max-width: 575.98px) {
+  .app-footer-inner {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .ratecard-fx-group {
     width: 100%;
   }
