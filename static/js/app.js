@@ -1320,6 +1320,7 @@ let _allProjectsSort = null;
 let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
 let _allProjectsDraftDraggedColumn = null;
+let _allProjectsListCache = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1652,11 +1653,83 @@ function updateAllProjectsSort(columnKey) {
 
 function updateAllProjectsSearch(value) {
   saveAllProjectsSearch(value);
-  loadAllProjects();
+  const input = document.querySelector('.all-projects-search input');
+  if (input && input.value !== value) input.value = value;
+  if (_allProjectsListCache) {
+    refilterAllProjects();
+  } else {
+    loadAllProjects();
+  }
+}
+
+function refilterAllProjects() {
+  if (!_allProjectsListCache) return;
+  const list = _allProjectsListCache;
+  const fmt  = v => '$' + (v||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const pct  = v => ((v||0)*100).toFixed(1) + '%';
+  const pctNumber = v => `${Number(v || 0).toFixed(1)}%`;
+  const num = v => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const shortDateTime = v => (v || '').replace('T',' ').slice(0,16);
+  const daysAgo = value => {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '';
+    const diff = Math.max(0, Math.floor((Date.now() - dt.getTime()) / 86400000));
+    return `${diff}d`;
+  };
+
+  const columnDefs = getAllProjectsColumnDefs({ fmt, pct, pctNumber, num, shortDateTime, daysAgo });
+  const visibleKeys = loadVisibleAllProjectsColumns();
+  const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
+  const searchQuery = loadAllProjectsSearch();
+  const filteredList = filterAllProjectsList(list, searchQuery);
+  const sortedList = sortAllProjectsList(filteredList, columnDefs);
+
+  // Update only the table body — no re-render of search input or header
+  const tbody = document.querySelector('.all-projects-table tbody');
+  if (tbody) {
+    tbody.innerHTML = sortedList.length ? sortedList.map((p, i) => `
+      <tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
+        <td class="text-center text-muted small">${i+1}</td>
+        ${visibleColumns.map(def => def.cell(p)).join('')}
+        <td class="text-center" onclick="event.stopPropagation()">
+          <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete project"
+            onclick="deleteProjectFromAllProjects('${esc(p.id)}','${esc(p.name)}',this)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`).join('') : `
+      <tr>
+        <td colspan="${visibleColumns.length + 2}" class="text-center py-5">
+          <div class="all-projects-empty-state">
+            <div class="all-projects-empty-icon"><i class="bi bi-search"></i></div>
+            <div class="all-projects-empty-title">No projects match this search</div>
+            <div class="all-projects-empty-copy">Try a different customer, project, owner, location, or business unit keyword.</div>
+            <button class="btn btn-outline-secondary btn-sm mt-3" onclick="updateAllProjectsSearch('')">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Clear Search
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  // Update filter pill and project count stat
+  const pill = document.querySelector('.all-projects-meta-pill');
+  if (pill) {
+    pill.innerHTML = `<i class="bi bi-funnel me-1"></i>${searchQuery ? `Filtered results: ${sortedList.length}` : 'No filter applied'}`;
+  }
+  const statValue = document.querySelector('.all-projects-stat-value');
+  if (statValue) {
+    statValue.innerHTML = `${sortedList.length}<small>/ ${list.length}</small>`;
+  }
 }
 
 function queueAllProjectsSearch(value) {
   saveAllProjectsSearch(value);
+  if (_allProjectsListCache) {
+    refilterAllProjects();
+    return;
+  }
   if (_allProjectsSearchTimer) clearTimeout(_allProjectsSearchTimer);
   _allProjectsSearchTimer = setTimeout(() => {
     _allProjectsSearchTimer = null;
@@ -1709,6 +1782,7 @@ function filterAllProjectsList(list, query) {
 }
 
 async function loadAllProjects() {
+  _allProjectsListCache = null;
   const container = document.getElementById('all-projects-container');
   if (!container) return;
   container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
@@ -1723,6 +1797,7 @@ async function loadAllProjects() {
     container.innerHTML = `<div class="text-center text-danger py-5"><i class="bi bi-exclamation-triangle me-1"></i>Could not load projects: ${e.message}</div>`;
     return;
   }
+  _allProjectsListCache = list;
 
   if (!list.length) {
     container.innerHTML = `<div class="text-center text-muted py-5">
