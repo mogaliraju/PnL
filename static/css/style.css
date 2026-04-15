@@ -498,6 +498,15 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   flex-shrink: 0;
 }
 
+.ap-search-hl {
+  background: #ffe066;
+  color: #2a1a5e;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+  font-style: normal;
+}
+
 .ap-filter-empty {
   padding: 10px 14px;
   font-size: 13px;

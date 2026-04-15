@@ -1664,6 +1664,35 @@ function updateAllProjectsSearch(value) {
   }
 }
 
+function _highlightSearchTerm(container, term) {
+  const trimmed = term.trim();
+  if (!trimmed) return;
+  const re = new RegExp(trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let node;
+  while ((node = walker.nextNode())) textNodes.push(node);
+  for (const textNode of textNodes) {
+    const text = textNode.textContent;
+    re.lastIndex = 0;
+    if (!re.test(text)) continue;
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let lastIdx = 0;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      if (match.index > lastIdx) frag.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'ap-search-hl';
+      mark.textContent = match[0];
+      frag.appendChild(mark);
+      lastIdx = match.index + match[0].length;
+    }
+    if (lastIdx < text.length) frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+    textNode.parentNode.replaceChild(frag, textNode);
+  }
+}
+
 function refilterAllProjects() {
   if (!_allProjectsListCache) return;
   const list = _allProjectsListCache;
@@ -1712,6 +1741,7 @@ function refilterAllProjects() {
           </div>
         </td>
       </tr>`;
+    if (searchQuery) _highlightSearchTerm(tbody, searchQuery);
   }
 
   // Update count badge
