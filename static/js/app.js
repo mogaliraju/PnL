@@ -1989,6 +1989,29 @@ function refilterAllProjects() {
     const hasFilter = searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0);
     clearBtn.classList.toggle('d-none', !hasFilter);
   }
+
+  // Refresh cascading dropdown options
+  const filterDefs = [
+    { field: 'business_unit' },
+    { field: 'location' },
+    { field: 'partner' },
+    { field: 'sales_spoc' },
+  ];
+  filterDefs.forEach(({ field }) => {
+    const dropdown = document.getElementById(`ap-filter-dropdown-${field}`);
+    if (!dropdown) return;
+    const optionsList = _filterExcluding(list, searchQuery, field);
+    const vals = _uniqueVals(optionsList, field);
+    const selected = _allProjectsFilters[field];
+    dropdown.innerHTML = vals.length
+      ? vals.map(v => `
+          <label class="ap-filter-option">
+            <input type="checkbox" ${selected.includes(v) ? 'checked' : ''}
+              onchange="toggleAllProjectsFilterValue('${field}', '${esc(v)}', this.checked)">
+            <span>${v === '' ? '<em class="text-muted">(Blank)</em>' : esc(v)}</span>
+          </label>`).join('')
+      : '<div class="ap-filter-empty">No values</div>';
+  });
 }
 
 function queueAllProjectsSearch(value) {
@@ -2022,25 +2045,44 @@ function sortAllProjectsList(list, columnDefs) {
   return [...list].sort((left, right) => direction * compareAllProjectsValues(def.sortValue(left), def.sortValue(right)));
 }
 
+function _matchesSearch(project, term) {
+  if (!term) return true;
+  const haystack = [
+    project.customer, project.name, project.reference,
+    project.business_unit, project.status, project.stage,
+    project.project_owner, project.account_manager, project.sales_spoc,
+    project.delivery_manager, project.location, project.partner,
+    project.project_type, project.industry, project.saved_by,
+    project.opportunity_id,
+  ].join(' ').toLowerCase();
+  return haystack.includes(term);
+}
+
 function filterAllProjectsList(list, query) {
   const term = String(query || '').trim().toLowerCase();
   const f = _allProjectsFilters;
-  return list.filter(project => {
-    if (term) {
-      const haystack = [
-        project.customer, project.name, project.reference,
-        project.business_unit, project.status, project.stage,
-        project.project_owner, project.account_manager, project.sales_spoc,
-        project.delivery_manager, project.location, project.partner,
-        project.project_type, project.industry, project.saved_by,
-        project.opportunity_id,
-      ].join(' ').toLowerCase();
-      if (!haystack.includes(term)) return false;
-    }
-    if (f.business_unit.length && !f.business_unit.includes(project.business_unit || '')) return false;
-    if (f.location.length && !f.location.includes(project.location || '')) return false;
-    if (f.partner.length && !f.partner.includes(project.partner || '')) return false;
-    if (f.sales_spoc.length && !f.sales_spoc.includes(project.sales_spoc || '')) return false;
+  return list.filter(p => {
+    if (!_matchesSearch(p, term)) return false;
+    if (f.business_unit.length && !f.business_unit.includes(p.business_unit || '')) return false;
+    if (f.location.length   && !f.location.includes(p.location || ''))         return false;
+    if (f.partner.length    && !f.partner.includes(p.partner || ''))            return false;
+    if (f.sales_spoc.length && !f.sales_spoc.includes(p.sales_spoc || ''))     return false;
+    return true;
+  });
+}
+
+// Returns the list with all filters applied EXCEPT for `excludeField` — used to
+// build cascading dropdown options so each filter only shows values possible
+// given the current selections in all other filters.
+function _filterExcluding(list, query, excludeField) {
+  const term = String(query || '').trim().toLowerCase();
+  const f = _allProjectsFilters;
+  return list.filter(p => {
+    if (!_matchesSearch(p, term)) return false;
+    if (excludeField !== 'business_unit' && f.business_unit.length && !f.business_unit.includes(p.business_unit || '')) return false;
+    if (excludeField !== 'location'      && f.location.length      && !f.location.includes(p.location || ''))           return false;
+    if (excludeField !== 'partner'       && f.partner.length       && !f.partner.includes(p.partner || ''))             return false;
+    if (excludeField !== 'sales_spoc'    && f.sales_spoc.length    && !f.sales_spoc.includes(p.sales_spoc || ''))       return false;
     return true;
   });
 }
@@ -2111,8 +2153,8 @@ function _uniqueVals(list, field) {
   return vals;
 }
 
-function _renderFilterDropdown(field, label, list) {
-  const vals = _uniqueVals(list, field);
+function _renderFilterDropdown(field, label, optionsList) {
+  const vals = _uniqueVals(optionsList, field);
   const selected = _allProjectsFilters[field];
   const count = selected.length;
   const options = vals.map(v => `
@@ -2219,10 +2261,10 @@ async function loadAllProjects() {
             oninput="queueAllProjectsSearch(this.value)"
           />
         </div>
-        ${_renderFilterDropdown('business_unit', 'Business Unit', list)}
-        ${_renderFilterDropdown('location', 'Location', list)}
-        ${_renderFilterDropdown('partner', 'Partner', list)}
-        ${_renderFilterDropdown('sales_spoc', 'Sales SPOC', list)}
+        ${_renderFilterDropdown('business_unit', 'Business Unit', _filterExcluding(list, searchQuery, 'business_unit'))}
+        ${_renderFilterDropdown('location',      'Location',      _filterExcluding(list, searchQuery, 'location'))}
+        ${_renderFilterDropdown('partner',       'Partner',       _filterExcluding(list, searchQuery, 'partner'))}
+        ${_renderFilterDropdown('sales_spoc',    'Sales SPOC',    _filterExcluding(list, searchQuery, 'sales_spoc'))}
         <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
           <i class="bi bi-x-lg me-1"></i>Clear
         </button>
