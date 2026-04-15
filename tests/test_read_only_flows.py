@@ -5,7 +5,11 @@ import shutil
 import sys
 import unittest
 import uuid
+from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
+
+import openpyxl
 
 
 MODULES_TO_RELOAD = [
@@ -87,6 +91,15 @@ class ReadOnlyFlowTests(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.data_dir, ignore_errors=True)
+
+    def _build_excel_bytes(self, build_fn):
+        wb = openpyxl.Workbook()
+        build_fn(wb)
+        bio = BytesIO()
+        wb.save(bio)
+        wb.close()
+        bio.seek(0)
+        return bio
 
     def test_loading_project_does_not_overwrite_working_data(self):
         before = (self.data_dir / 'data.json').read_text(encoding='utf-8')
@@ -229,6 +242,153 @@ class ReadOnlyFlowTests(unittest.TestCase):
         self.assertIn('id="proj_discount_pct"', html)
         self.assertIn('id="proj_internal_notes"', html)
         self.assertIn('Application deployment refresh', html)
+
+    def test_import_excel_supports_dynamic_project_and_resource_sheets(self):
+        def build_workbook(wb):
+            ws_meta = wb.active
+            ws_meta.title = 'Intake'
+            ws_meta.append(['Customer Name', 'Region', 'Project Owner', 'Business Unit', 'Currency'])
+            ws_meta.append(['Dynamic Co', 'India', 'Alice', 'AI', 'USD'])
+            ws_meta.append([])
+            ws_meta.append(['Project Description', 'Billing Type', 'Expected Start Date'])
+            ws_meta.append(['Migration Program', 'Fixed Bid', '2026-05-01'])
+
+            ws_team = wb.create_sheet('Team Plan')
+            ws_team.append(['Practice', 'Position', 'Grade', 'Planned Hours'])
+            ws_team.append(['Delivery', 'Architect', 'L1', 12])
+            ws_team.append(['QA', 'Tester', 'L2', 24])
+
+        workbook = self._build_excel_bytes(build_workbook)
+
+        with patch('pnl.routes.import_excel.load_global_settings', return_value={}), \
+             patch('pnl.routes.import_excel.save_project_record') as save_project_record, \
+             patch('pnl.routes.import_excel.save_project_version') as save_project_version:
+            response = self.client.post(
+                '/api/import-excel',
+                data={'file': (workbook, 'dynamic-import.xlsx')},
+                content_type='multipart/form-data',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['imported_count'], 1)
+        self.assertEqual(len(payload['projects']), 1)
+        self.assertEqual(payload['projects'][0]['project']['customer'], 'Dynamic Co')
+        self.assertEqual(payload['projects'][0]['project']['project_owner'], 'Alice')
+        self.assertEqual(payload['projects'][0]['project']['business_unit'], 'AI')
+        self.assertEqual(payload['projects'][0]['project']['billing_type'], 'Fixed Bid')
+        save_project_record.assert_called_once()
+        save_project_version.assert_called_once()
+
+    def test_import_excel_scans_multiple_sheets_when_not_native(self):
+        def build_workbook(wb):
+            ws_notes = wb.active
+            ws_notes.title = 'Cover'
+            ws_notes['A1'] = 'Upload generated from another tool'
+
+            ws_project = wb.create_sheet('Project Summary')
+            ws_project.append(['Client', 'Reference Number', 'Delivery Model'])
+            ws_project.append(['Acme Labs', 'REF-777', 'Hybrid'])
+
+            ws_resources = wb.create_sheet('Resource Dump')
+            ws_resources.append(['Department', 'Job Role', 'Band', 'Effort Hours'])
+            ws_resources.append(['SAP', 'Consultant', 'L3', 40])
+            ws_resources.append(['SAP', 'Developer', 'L2', 32])
+
+        workbook = self._build_excel_bytes(build_workbook)
+
+        with patch('pnl.routes.import_excel.load_global_settings', return_value={}), \
+             patch('pnl.routes.import_excel.save_project_record') as save_project_record, \
+             patch('pnl.routes.import_excel.save_project_version') as save_project_version:
+            response = self.client.post(
+                '/api/import-excel',
+                data={'file': (workbook, 'multi-sheet.xlsx')},
+                content_type='multipart/form-data',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['imported_count'], 1)
+        self.assertEqual(payload['projects'][0]['project']['customer'], 'Acme Labs')
+        self.assertEqual(payload['projects'][0]['project']['reference'], 'REF-777')
+        self.assertEqual(payload['projects'][0]['project']['delivery_model'], 'Hybrid')
+        self.assertEqual(save_project_record.call_count, 1)
+        self.assertEqual(save_project_version.call_count, 1)
+
+    def test_import_excel_accepts_project_only_workbook(self):
+        def build_workbook(wb):
+            ws = wb.active
+            ws.title = 'Project Intake'
+            ws.append([
+                'Company Name', 'Customer Name', 'Project Status', 'Stage', 'Priority',
+                'Business Unit', 'Account Manager', 'Sales SPOC', 'Project Type',
+                'Industry', 'Currency', 'Next Follow Up Date'
+            ])
+            ws.append([
+                'AutomatonsX', 'Project Only Co', 'Submitted', 'Proposal', 'High',
+                'SAP', 'Bob', 'Carol', 'Implementation',
+                'Retail', 'USD', '2026-04-20'
+            ])
+
+        workbook = self._build_excel_bytes(build_workbook)
+
+        with patch('pnl.routes.import_excel.load_global_settings', return_value={}), \
+             patch('pnl.routes.import_excel.save_project_record') as save_project_record, \
+             patch('pnl.routes.import_excel.save_project_version') as save_project_version:
+            response = self.client.post(
+                '/api/import-excel',
+                data={'file': (workbook, 'project-only.xlsx')},
+                content_type='multipart/form-data',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['imported_count'], 1)
+        project = payload['projects'][0]['project']
+        self.assertEqual(project['company'], 'AutomatonsX')
+        self.assertEqual(project['customer'], 'Project Only Co')
+        self.assertEqual(project['status'], 'Submitted')
+        self.assertEqual(project['stage'], 'Proposal')
+        self.assertEqual(project['priority'], 'High')
+        self.assertEqual(project['business_unit'], 'SAP')
+        self.assertEqual(project['account_manager'], 'Bob')
+        self.assertEqual(project['sales_spoc'], 'Carol')
+        self.assertEqual(project['project_type'], 'Implementation')
+        self.assertEqual(project['industry'], 'Retail')
+        self.assertEqual(project['currency'], 'USD')
+        self.assertEqual(project['next_follow_up_date'], '2026-04-20')
+        self.assertEqual(save_project_record.call_count, 1)
+        self.assertEqual(save_project_version.call_count, 1)
+
+    def test_import_excel_imports_multiple_project_rows_with_fuzzy_headers(self):
+        def build_workbook(wb):
+            ws = wb.active
+            ws.title = 'Bulk Import'
+            ws.append(['Client Name', 'Project Stat', 'Pipeline Stag', 'Proj Owner', 'Follow-up Date'])
+            ws.append(['Alpha Corp', 'Draft', 'Discovery', 'Alice', '2026-04-22'])
+            ws.append(['Beta Corp', 'Submitted', 'Proposal', 'Bob', '2026-04-29'])
+
+        workbook = self._build_excel_bytes(build_workbook)
+
+        with patch('pnl.routes.import_excel.load_global_settings', return_value={}), \
+             patch('pnl.routes.import_excel.save_project_record') as save_project_record, \
+             patch('pnl.routes.import_excel.save_project_version') as save_project_version:
+            response = self.client.post(
+                '/api/import-excel',
+                data={'file': (workbook, 'bulk-projects.xlsx')},
+                content_type='multipart/form-data',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['imported_count'], 2)
+        self.assertEqual([item['project']['customer'] for item in payload['projects']], ['Alpha Corp', 'Beta Corp'])
+        self.assertEqual(payload['projects'][0]['project']['status'], 'Draft')
+        self.assertEqual(payload['projects'][0]['project']['stage'], 'Discovery')
+        self.assertEqual(payload['projects'][0]['project']['project_owner'], 'Alice')
+        self.assertEqual(payload['projects'][1]['project']['customer'], 'Beta Corp')
+        self.assertEqual(save_project_record.call_count, 2)
+        self.assertEqual(save_project_version.call_count, 2)
 
 
 if __name__ == '__main__':

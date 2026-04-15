@@ -1191,38 +1191,10 @@ function importExcel(input) {
     // Brief pause so user sees 100% before we switch views
     setTimeout(() => {
       ui.remove();
-
-      const catalog  = appData.role_catalog;
-      const rateCard = appData.rate_card;
-      _currentPid   = null;
-      _targetMargin = 0.40;
-      appData = {
-        project: buildDefaultProject({
-          customer: json.project?.customer || '',
-          location: json.project?.location || '',
-          reference: json.project?.reference || '',
-          proposal_date: json.project?.proposal_date || '',
-          duration_months: json.project?.duration_months || null,
-          project_description: json.project?.description || '',
-          partner: json.project?.partner || 'AutomatonsX',
-          payment_terms: json.project?.payment_terms || 'As per proposal',
-        }),
-        resources: (json.resources || []).map(r => ({
-          role: r.role, level: r.level, hours: r.hours, group: ''
-        })),
-        pnl_roles: [], releases: [],
-        rate_card: rateCard, role_catalog: catalog,
-        business_units: normalizeBusinessUnits(appData.business_units || []),
-        attachments: {customer_po:false, cloud4c_quote:false, partner_proposal:false},
-        funding: {marketing:{currency:'USD',value:null}, management:{currency:'USD',value:null}, discount:{currency:'USD',value:null}},
-        approvals: {prepared_by:'', reviewed_by:'', approved_by:''},
-        export_filename: '', target_margin: 0.40, fx_rate: _usdToInr,
-      };
-      populateAll();
-      updateProjectBadge(null);
-      document.querySelector('[href="#tab-project"]')?.click();
       const warn = json.warnings?.length ? ` (${json.warnings.join('; ')})` : '';
-      showToast(`Imported: ${json.resources?.length || 0} resources${warn}`, 'success');
+      document.querySelector('[href="#tab-all-projects"]')?.click();
+      loadAllProjects();
+      showToast(`Imported ${json.imported_count || 0} projects${warn}`, 'success');
     }, 600);
   };
 
