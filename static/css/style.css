@@ -671,6 +671,16 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   flex-shrink: 0;
 }
 
+/* ── Project tab sticky save bar ───────────────────────── */
+.proj-savebar {
+  background: #fff;
+  border-bottom: 1px solid #e0e4f0;
+  box-shadow: 0 2px 8px rgba(42,26,94,.07);
+  z-index: 120;
+  border-radius: 6px;
+  top: 0;
+}
+
 .ap-search-hl {
   background: #ffe066;
   color: #2a1a5e;

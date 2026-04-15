@@ -150,13 +150,28 @@
       </div>
     </div>
 
-    <!-- ===== PROJECT (merged Info + Resources) ===== -->
+    <!-- ===== PROJECT ===== -->
     <div class="tab-pane fade show active" id="tab-project">
+
+      <!-- Sticky Save bar -->
+      <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
+        <span class="text-muted small" id="proj-savebar-label">New project — fill in details below</span>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saveAsModal">
+            <i class="bi bi-floppy2 me-1"></i>Save As New Project…
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="saveAll()">
+            <i class="bi bi-floppy me-1"></i>Save Project
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW 1: Identity | Opportunity | Pipeline -->
       <div class="row g-3 mb-3">
-        <!-- Company & Customer -->
+        <!-- Project Identity -->
         <div class="col-md-4">
           <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-building me-1"></i>Company & Customer</div>
+            <div class="card-header fw-bold"><i class="bi bi-building me-1"></i>Project Identity</div>
             <div class="card-body">
               <div class="mb-3">
                 <label class="form-label">Company Name</label>
@@ -175,44 +190,69 @@
                 <label class="form-label">Reference</label>
                 <input type="text" class="form-control" id="proj_reference"/>
               </div>
+              <div class="mb-3">
+                <label class="form-label">Opportunity ID</label>
+                <input type="text" class="form-control" id="proj_opportunity_id"/>
+              </div>
+              <div class="mb-0">
+                <label class="form-label">Partner</label>
+                <input type="text" class="form-control" id="proj_partner"/>
+              </div>
             </div>
           </div>
         </div>
-        <!-- Proposal Details -->
+
+        <!-- Opportunity Details -->
         <div class="col-md-4">
           <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-file-text me-1"></i>Proposal Details</div>
+            <div class="card-header fw-bold"><i class="bi bi-file-text me-1"></i>Opportunity Details</div>
             <div class="card-body">
-              <div class="mb-3">
-                <label class="form-label">Proposal Date</label>
-                <input type="date" class="form-control" id="proj_proposal_date"/>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Customer First Touch Point</label>
-                <input type="text" class="form-control" id="proj_first_touch"/>
-              </div>
               <div class="mb-3">
                 <label class="form-label">Project Description</label>
                 <input type="text" class="form-control" id="proj_description"/>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Partner</label>
-                <input type="text" class="form-control" id="proj_partner"/>
+              <div class="row g-3 mb-3">
+                <div class="col-6">
+                  <label class="form-label">Project Type</label>
+                  <input type="text" class="form-control" id="proj_type"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Industry</label>
+                  <input type="text" class="form-control" id="proj_industry"/>
+                </div>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Payment Terms</label>
-                <input type="text" class="form-control" id="proj_payment_terms" placeholder="As per proposal"/>
+              <div class="row g-3 mb-3">
+                <div class="col-6">
+                  <label class="form-label">Proposal Date</label>
+                  <input type="date" class="form-control" id="proj_proposal_date"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Duration (Months)</label>
+                  <input type="number" class="form-control" id="proj_duration" min="1"/>
+                </div>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Duration (Months)</label>
-                <input type="number" class="form-control" id="proj_duration" min="1"/>
+              <div class="row g-3 mb-3">
+                <div class="col-6">
+                  <label class="form-label">Expected Start Date</label>
+                  <input type="date" class="form-control" id="proj_start_date"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Expected End Date</label>
+                  <input type="date" class="form-control" id="proj_end_date"/>
+                </div>
+              </div>
+              <div class="mb-0">
+                <label class="form-label">Customer First Touch Point</label>
+                <input type="text" class="form-control" id="proj_first_touch"/>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Pipeline -->
         <div class="col-md-4">
           <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-kanban me-1"></i>Pipeline & Ownership</div>
+            <div class="card-header fw-bold"><i class="bi bi-kanban me-1"></i>Pipeline</div>
             <div class="card-body">
               <div class="row g-3">
                 <div class="col-6">
@@ -247,10 +287,6 @@
                   </select>
                 </div>
                 <div class="col-6">
-                  <label class="form-label">Project Owner</label>
-                  <input type="text" class="form-control" id="proj_owner"/>
-                </div>
-                <div class="col-6">
                   <label class="form-label">Business Unit</label>
                   <div class="input-group">
                     <select class="form-select" id="proj_business_unit"></select>
@@ -259,105 +295,7 @@
                     </button>
                   </div>
                 </div>
-                <div class="col-6">
-                  <label class="form-label">Account Manager</label>
-                  <input type="text" class="form-control" id="proj_account_manager"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Sales SPOC</label>
-                  <input type="text" class="form-control" id="proj_sales_spoc"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Delivery Manager</label>
-                  <input type="text" class="form-control" id="proj_delivery_manager"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Technical Lead</label>
-                  <input type="text" class="form-control" id="proj_technical_lead"/>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Cost Summary -->
-        <div class="col-md-12">
-          <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-calculator me-1"></i>Cost Summary (live)</div>
-            <div class="card-body d-flex flex-column gap-3 justify-content-center">
-              <div class="summary-box bg-warning-subtle">
-                <div class="summary-label">Input Cost (USD)</div>
-                <div class="summary-value" id="sum_input_cost">—</div>
-              </div>
-              <div class="summary-box bg-success-subtle">
-                <div class="summary-label">Sell Cost / Revenue (USD)</div>
-                <div class="summary-value" id="sum_sell_cost">—</div>
-              </div>
-              <div class="summary-box bg-info-subtle">
-                <div class="summary-label">Markup (USD)</div>
-                <div class="summary-value" id="sum_markup">—</div>
-              </div>
-              <div class="summary-box bg-primary-subtle">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="summary-label">Gross Margin %</div>
-                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit target margin"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
-                </div>
-                <div class="summary-value" id="sum_margin">—</div>
-                <div id="margin-edit-row" class="d-none mt-2">
-                  <div class="input-group input-group-sm">
-                    <input type="number" class="form-control" id="target_margin_input" min="1" max="99" step="1" value="40" placeholder="40"/>
-                    <span class="input-group-text">%</span>
-                    <button class="btn btn-primary btn-sm" onclick="applyMargin()">Apply</button>
-                  </div>
-                  <div class="form-text">Target gross margin (default 40%)</div>
-                </div>
-              </div>
-              <div class="summary-box" style="background:#FFF3E0">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="summary-label">USD → INR Rate</div>
-                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleFxEdit()" title="Edit rate"><i class="bi bi-pencil" id="fx-edit-icon"></i></button>
-                </div>
-                <div class="summary-value" id="sum_inr_rate">—</div>
-                <div id="fx-edit-row" class="d-none mt-2">
-                  <div class="input-group input-group-sm">
-                    <span class="input-group-text">₹</span>
-                    <input type="number" class="form-control" id="fx_rate_input" min="1" step="0.01" placeholder="e.g. 93.13"/>
-                    <button class="btn btn-primary btn-sm" onclick="applyFxRate()">Apply</button>
-                  </div>
-                  <div class="form-text">Override live exchange rate</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row g-3 mb-3">
-        <div class="col-lg-4">
-          <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-calendar-range me-1"></i>Planning & Commercial</div>
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-6">
-                  <label class="form-label">Expected Start Date</label>
-                  <input type="date" class="form-control" id="proj_start_date"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Expected End Date</label>
-                  <input type="date" class="form-control" id="proj_end_date"/>
-                </div>
                 <div class="col-12">
-                  <label class="form-label">Opportunity ID</label>
-                  <input type="text" class="form-control" id="proj_opportunity_id"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Project Type</label>
-                  <input type="text" class="form-control" id="proj_type"/>
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Industry</label>
-                  <input type="text" class="form-control" id="proj_industry"/>
-                </div>
-                <div class="col-6">
                   <label class="form-label">Delivery Model</label>
                   <select class="form-select" id="proj_delivery_model">
                     <option>Offshore</option>
@@ -366,7 +304,7 @@
                     <option>Managed Service</option>
                   </select>
                 </div>
-                <div class="col-6">
+                <div class="col-12">
                   <label class="form-label">Billing Type</label>
                   <select class="form-select" id="proj_billing_type">
                     <option>Time & Material</option>
@@ -388,25 +326,53 @@
                   <label class="form-label">Discount %</label>
                   <input type="number" class="form-control" id="proj_discount_pct" min="0" max="100" step="0.1"/>
                 </div>
-                <div class="col-4">
-                  <label class="form-label">Travel Cost</label>
-                  <input type="number" class="form-control" id="proj_travel_cost" min="0" step="0.01"/>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: Team | Commercial & Costs -->
+      <div class="row g-3 mb-3">
+        <!-- Team -->
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-header fw-bold"><i class="bi bi-people me-1"></i>Team</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Project Owner</label>
+                  <input type="text" class="form-control" id="proj_owner"/>
                 </div>
-                <div class="col-4">
-                  <label class="form-label">Infra Cost</label>
-                  <input type="number" class="form-control" id="proj_infra_cost" min="0" step="0.01"/>
+                <div class="col-6">
+                  <label class="form-label">Account Manager</label>
+                  <input type="text" class="form-control" id="proj_account_manager"/>
                 </div>
-                <div class="col-4">
-                  <label class="form-label">Third-Party Cost</label>
-                  <input type="number" class="form-control" id="proj_third_party_cost" min="0" step="0.01"/>
+                <div class="col-6">
+                  <label class="form-label">Sales SPOC</label>
+                  <input type="text" class="form-control" id="proj_sales_spoc"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Delivery Manager</label>
+                  <input type="text" class="form-control" id="proj_delivery_manager"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Technical Lead</label>
+                  <input type="text" class="form-control" id="proj_technical_lead"/>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Payment Terms</label>
+                  <input type="text" class="form-control" id="proj_payment_terms" placeholder="As per proposal"/>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="col-lg-8">
+
+        <!-- Additional Costs & Notes -->
+        <div class="col-lg-7">
           <div class="card h-100">
-            <div class="card-header fw-bold"><i class="bi bi-journal-text me-1"></i>Execution Notes</div>
+            <div class="card-header fw-bold"><i class="bi bi-journal-text me-1"></i>Notes & Follow-up</div>
             <div class="card-body">
               <div class="row g-3">
                 <div class="col-md-6">
@@ -433,20 +399,31 @@
         </div>
       </div>
 
-      <!-- Project save bar -->
-      <div class="d-flex justify-content-end gap-2 mb-3">
-        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saveAsModal">
-          <i class="bi bi-floppy2 me-1"></i>Save As New Project…
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="saveAll()">
-          <i class="bi bi-floppy me-1"></i>Save Project
-        </button>
+      <!-- ROW 3: Additional Costs (slim bar) -->
+      <div class="card mb-3">
+        <div class="card-header fw-bold"><i class="bi bi-receipt me-1"></i>Additional Costs</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Travel Cost (USD)</label>
+              <input type="number" class="form-control" id="proj_travel_cost" min="0" step="0.01"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Infra Cost (USD)</label>
+              <input type="number" class="form-control" id="proj_infra_cost" min="0" step="0.01"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Third-Party Cost (USD)</label>
+              <input type="number" class="form-control" id="proj_third_party_cost" min="0" step="0.01"/>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Resources -->
-      <div class="card">
+      <div class="card mb-3">
         <div class="card-header fw-bold d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-people me-1"></i>Resources (Costing Calculation)</span>
+          <span><i class="bi bi-table me-1"></i>Resources &amp; Costing</span>
           <button class="btn btn-primary btn-sm" onclick="addResource()">
             <i class="bi bi-plus-circle me-1"></i>Add Resource
           </button>
@@ -482,6 +459,68 @@
           </div>
         </div>
       </div>
+
+      <!-- Cost Summary — bottom, as output of resources -->
+      <div class="card mb-3">
+        <div class="card-header fw-bold"><i class="bi bi-calculator me-1"></i>Cost Summary <span class="fw-normal text-muted small ms-1">— auto-calculated from resources above</span></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6 col-md">
+              <div class="summary-box bg-warning-subtle text-center h-100">
+                <div class="summary-label">Input Cost (USD)</div>
+                <div class="summary-value" id="sum_input_cost">—</div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box bg-success-subtle text-center h-100">
+                <div class="summary-label">Revenue (USD)</div>
+                <div class="summary-value" id="sum_sell_cost">—</div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box bg-info-subtle text-center h-100">
+                <div class="summary-label">Markup (USD)</div>
+                <div class="summary-value" id="sum_markup">—</div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box bg-primary-subtle text-center h-100">
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                  <div class="summary-label mb-0">Gross Margin %</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit target margin"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
+                </div>
+                <div class="summary-value" id="sum_margin">—</div>
+                <div id="margin-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="target_margin_input" min="1" max="99" step="1" value="40" placeholder="40"/>
+                    <span class="input-group-text">%</span>
+                    <button class="btn btn-primary btn-sm" onclick="applyMargin()">Apply</button>
+                  </div>
+                  <div class="form-text">Target gross margin (default 40%)</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box text-center h-100" style="background:#FFF3E0">
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                  <div class="summary-label mb-0">USD → INR Rate</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleFxEdit()" title="Edit rate"><i class="bi bi-pencil" id="fx-edit-icon"></i></button>
+                </div>
+                <div class="summary-value" id="sum_inr_rate">—</div>
+                <div id="fx-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" class="form-control" id="fx_rate_input" min="1" step="0.01" placeholder="e.g. 93.13"/>
+                    <button class="btn btn-primary btn-sm" onclick="applyFxRate()">Apply</button>
+                  </div>
+                  <div class="form-text">Override live exchange rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ===== RATE CARD ===== -->

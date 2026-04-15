@@ -2514,12 +2514,15 @@ function newProject() {
 function updateProjectBadge(name) {
   const badge = document.getElementById('current_project_badge');
   const pill  = document.getElementById('active_project_pill');
+  const lbl   = document.getElementById('proj-savebar-label');
   if (!name) {
     pill?.classList.add('d-none');
+    if (lbl) lbl.textContent = 'New project — fill in details below';
     return;
   }
   if (badge) badge.textContent = name;
   pill?.classList.remove('d-none');
+  if (lbl) lbl.textContent = name;
 }
 
 // Load projects list when Open modal opens
