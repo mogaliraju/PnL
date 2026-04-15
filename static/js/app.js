@@ -1321,7 +1321,8 @@ let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
 let _allProjectsDraftDraggedColumn = null;
 let _allProjectsListCache = null;
-let _allProjectsFilters = { business_unit: '', location: '', partner: '', sales_spoc: '' };
+let _allProjectsFilters = { business_unit: [], location: [], partner: [], sales_spoc: [] };
+let _allProjectsOpenFilter = null;
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1720,7 +1721,7 @@ function refilterAllProjects() {
   // Show/hide clear-all button
   const clearBtn = document.getElementById('all-projects-clear-filters');
   if (clearBtn) {
-    const hasFilter = searchQuery || Object.values(_allProjectsFilters).some(v => v);
+    const hasFilter = searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0);
     clearBtn.classList.toggle('d-none', !hasFilter);
   }
 }
@@ -1771,30 +1772,102 @@ function filterAllProjectsList(list, query) {
       ].join(' ').toLowerCase();
       if (!haystack.includes(term)) return false;
     }
-    if (f.business_unit && (project.business_unit || '') !== f.business_unit) return false;
-    if (f.location && (project.location || '') !== f.location) return false;
-    if (f.partner && (project.partner || '') !== f.partner) return false;
-    if (f.sales_spoc && (project.sales_spoc || '') !== f.sales_spoc) return false;
+    if (f.business_unit.length && !f.business_unit.includes(project.business_unit || '')) return false;
+    if (f.location.length && !f.location.includes(project.location || '')) return false;
+    if (f.partner.length && !f.partner.includes(project.partner || '')) return false;
+    if (f.sales_spoc.length && !f.sales_spoc.includes(project.sales_spoc || '')) return false;
     return true;
   });
 }
 
-function setAllProjectsFilter(field, value) {
-  _allProjectsFilters[field] = value;
+function toggleAllProjectsFilterValue(field, value, checked) {
+  const current = _allProjectsFilters[field];
+  _allProjectsFilters[field] = checked
+    ? [...current, value]
+    : current.filter(v => v !== value);
+  _syncFilterBadge(field);
   refilterAllProjects();
 }
 
+function toggleAllProjectsFilterDropdown(field) {
+  if (_allProjectsOpenFilter === field) {
+    _closeAllProjectsFilterDropdowns();
+    return;
+  }
+  _closeAllProjectsFilterDropdowns();
+  _allProjectsOpenFilter = field;
+  const dropdown = document.getElementById(`ap-filter-dropdown-${field}`);
+  const btn = document.getElementById(`ap-filter-btn-${field}`);
+  if (dropdown) dropdown.classList.remove('d-none');
+  if (btn) btn.classList.add('is-active');
+}
+
+function _closeAllProjectsFilterDropdowns() {
+  _allProjectsOpenFilter = null;
+  document.querySelectorAll('.ap-filter-dropdown').forEach(el => el.classList.add('d-none'));
+  document.querySelectorAll('.ap-filter-btn').forEach(el => {
+    const field = el.id.replace('ap-filter-btn-', '');
+    if ((_allProjectsFilters[field] || []).length === 0) el.classList.remove('is-active');
+  });
+}
+
+function _allProjectsOutsideClick(e) {
+  if (!e.target.closest('.ap-filter-wrap')) {
+    _closeAllProjectsFilterDropdowns();
+  }
+}
+
+function _syncFilterBadge(field) {
+  const count = _allProjectsFilters[field].length;
+  const badge = document.getElementById(`ap-filter-badge-${field}`);
+  const btn = document.getElementById(`ap-filter-btn-${field}`);
+  if (badge) { badge.textContent = count; badge.classList.toggle('d-none', count === 0); }
+  if (btn) btn.classList.toggle('is-active', count > 0);
+}
+
 function clearAllProjectsFilters() {
-  _allProjectsFilters = { business_unit: '', location: '', partner: '', sales_spoc: '' };
+  _allProjectsFilters = { business_unit: [], location: [], partner: [], sales_spoc: [] };
   saveAllProjectsSearch('');
+  _closeAllProjectsFilterDropdowns();
   const input = document.querySelector('.all-projects-search input');
   if (input) input.value = '';
+  // Uncheck all checkboxes in filter dropdowns
+  document.querySelectorAll('.ap-filter-option input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  ['business_unit','location','partner','sales_spoc'].forEach(f => _syncFilterBadge(f));
   refilterAllProjects();
 }
 
 function _uniqueVals(list, field) {
-  const vals = [...new Set(list.map(p => p[field] || '').filter(Boolean))].sort();
+  const vals = [...new Set(list.map(p => p[field] || ''))].sort((a, b) => {
+    if (a === '') return 1;
+    if (b === '') return -1;
+    return a.localeCompare(b);
+  });
   return vals;
+}
+
+function _renderFilterDropdown(field, label, list) {
+  const vals = _uniqueVals(list, field);
+  const selected = _allProjectsFilters[field];
+  const count = selected.length;
+  const options = vals.map(v => `
+    <label class="ap-filter-option">
+      <input type="checkbox" ${selected.includes(v) ? 'checked' : ''}
+        onchange="toggleAllProjectsFilterValue('${field}', '${esc(v)}', this.checked)">
+      <span>${v === '' ? '<em class="text-muted">(Blank)</em>' : esc(v)}</span>
+    </label>`).join('');
+  return `
+    <div class="ap-filter-wrap">
+      <button class="ap-filter-btn ${count > 0 ? 'is-active' : ''}" id="ap-filter-btn-${field}"
+        onclick="toggleAllProjectsFilterDropdown('${field}')">
+        ${label}
+        <span class="ap-filter-badge ${count === 0 ? 'd-none' : ''}" id="ap-filter-badge-${field}">${count}</span>
+        <i class="bi bi-chevron-down ap-filter-chevron"></i>
+      </button>
+      <div class="ap-filter-dropdown d-none" id="ap-filter-dropdown-${field}">
+        ${vals.length ? options : '<div class="ap-filter-empty">No values</div>'}
+      </div>
+    </div>`;
 }
 
 async function loadAllProjects() {
@@ -1814,6 +1887,10 @@ async function loadAllProjects() {
     return;
   }
   _allProjectsListCache = list;
+
+  // Close filter dropdowns when clicking outside
+  document.removeEventListener('click', _allProjectsOutsideClick);
+  document.addEventListener('click', _allProjectsOutsideClick);
 
   if (!list.length) {
     container.innerHTML = `<div class="text-center text-muted py-5">
@@ -1877,23 +1954,11 @@ async function loadAllProjects() {
             oninput="queueAllProjectsSearch(this.value)"
           />
         </div>
-        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('business_unit', this.value)" title="Business Unit">
-          <option value="">All BUs</option>
-          ${_uniqueVals(list, 'business_unit').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.business_unit === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-        </select>
-        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('location', this.value)" title="Location">
-          <option value="">All Locations</option>
-          ${_uniqueVals(list, 'location').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.location === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-        </select>
-        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('partner', this.value)" title="Partner">
-          <option value="">All Partners</option>
-          ${_uniqueVals(list, 'partner').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.partner === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-        </select>
-        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('sales_spoc', this.value)" title="Sales SPOC">
-          <option value="">All Sales SPOCs</option>
-          ${_uniqueVals(list, 'sales_spoc').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.sales_spoc === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-        </select>
-        <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(v => v)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
+        ${_renderFilterDropdown('business_unit', 'Business Unit', list)}
+        ${_renderFilterDropdown('location', 'Location', list)}
+        ${_renderFilterDropdown('partner', 'Partner', list)}
+        ${_renderFilterDropdown('sales_spoc', 'Sales SPOC', list)}
+        <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
           <i class="bi bi-x-lg me-1"></i>Clear
         </button>
       </div>
