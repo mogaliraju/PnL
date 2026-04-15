@@ -1224,70 +1224,305 @@ async function loadDashboard() {
   }
 
   const k = data.kpis || {};
-  const fmtMoneyShort = v => '$' + Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtMoney = v => {
+    const n = Number(v || 0);
+    if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000) return '$' + (n / 1_000).toFixed(1) + 'K';
+    return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  };
   const fmtNum = v => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
   const fmtPct = v => ((Number(v || 0)) * 100).toFixed(1) + '%';
+  const marginColor = m => {
+    const p = Number(m || 0) * 100;
+    return p >= 35 ? '#16a34a' : p >= 20 ? '#d97706' : '#dc2626';
+  };
 
   container.innerHTML = `
-    <div class="row g-3 mb-3">
-      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Saved Projects</div><div class="analytics-kpi-value">${fmtNum(k.projects)}</div></div></div>
-      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Total Resources</div><div class="analytics-kpi-value">${fmtNum(k.resources)}</div></div></div>
-      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Total Hours</div><div class="analytics-kpi-value">${fmtNum(k.hours)}</div></div></div>
-      <div class="col-6 col-lg-3"><div class="analytics-kpi"><div class="analytics-kpi-label">Avg Margin</div><div class="analytics-kpi-value">${fmtPct(k.avg_margin)}</div></div></div>
-      <div class="col-6 col-lg-4"><div class="analytics-kpi analytics-kpi-accent"><div class="analytics-kpi-label">Portfolio Input Cost</div><div class="analytics-kpi-value">${fmtMoneyShort(k.input_cost)}</div></div></div>
-      <div class="col-6 col-lg-4"><div class="analytics-kpi analytics-kpi-accent"><div class="analytics-kpi-label">Portfolio Revenue</div><div class="analytics-kpi-value">${fmtMoneyShort(k.revenue)}</div></div></div>
-      <div class="col-12 col-lg-4"><div class="analytics-kpi analytics-kpi-soft"><div class="analytics-kpi-label">Avg Resources / Project</div><div class="analytics-kpi-value">${fmtNum(k.avg_resources_per_project)}</div></div></div>
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="db-kpi">
+          <div class="db-kpi-icon" style="background:#ede9fe;color:#6d28d9"><i class="bi bi-folder2-open"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Total Projects</div>
+            <div class="db-kpi-value">${fmtNum(k.projects)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="db-kpi">
+          <div class="db-kpi-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-cash-stack"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Portfolio Revenue</div>
+            <div class="db-kpi-value">${fmtMoney(k.revenue)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="db-kpi">
+          <div class="db-kpi-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-coin"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Input Cost</div>
+            <div class="db-kpi-value">${fmtMoney(k.input_cost)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="db-kpi">
+          <div class="db-kpi-icon" style="background:#fce7f3;color:#db2777"><i class="bi bi-speedometer2"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Avg Gross Margin</div>
+            <div class="db-kpi-value" style="color:${marginColor(k.avg_margin)}">${fmtPct(k.avg_margin)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="db-kpi db-kpi-subtle">
+          <div class="db-kpi-icon" style="background:#e0f2fe;color:#0284c7"><i class="bi bi-people"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Total Resources</div>
+            <div class="db-kpi-value">${fmtNum(k.resources)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="db-kpi db-kpi-subtle">
+          <div class="db-kpi-icon" style="background:#f0fdf4;color:#15803d"><i class="bi bi-clock-history"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Total Hours</div>
+            <div class="db-kpi-value">${fmtNum(k.hours)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="db-kpi db-kpi-subtle">
+          <div class="db-kpi-icon" style="background:#f5f3ff;color:#7c3aed"><i class="bi bi-person-badge"></i></div>
+          <div class="db-kpi-body">
+            <div class="db-kpi-label">Avg Resources / Project</div>
+            <div class="db-kpi-value">${fmtNum(k.avg_resources_per_project)}</div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Status + Stage -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-5">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-circle-half me-2"></i>Project Status</div>
+          <div class="db-card-body">${renderStatusBars(data.status_breakdown)}</div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-funnel me-2"></i>Pipeline Stages</div>
+          <div class="db-card-body">${renderStagePipeline(data.stage_breakdown)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Margin + Priority + BU -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-bar-chart me-2"></i>Margin Distribution</div>
+          <div class="db-card-body">${renderMarginBars(data.margin_buckets)}</div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-flag me-2"></i>Priority Breakdown</div>
+          <div class="db-card-body">${renderPriorityBars(data.priority_breakdown)}</div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-grid me-2"></i>Business Units</div>
+          <div class="db-card-body">${renderAnalyticsBars(data.bu_breakdown, 'projects')}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customers + Groups + Owner -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-building me-2"></i>Top Customers <span class="db-card-sub">by revenue</span></div>
+          <div class="db-card-body">${renderAnalyticsBars(data.top_customers, 'revenue')}</div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-diagram-3 me-2"></i>Resource Groups</div>
+          <div class="db-card-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="db-card h-100">
+          <div class="db-card-header"><i class="bi bi-geo-alt me-2"></i>Top Locations</div>
+          <div class="db-card-body">${renderAnalyticsBars(data.top_locations, 'projects')}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
     <div class="row g-3">
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-geo-alt me-1"></i>Top Locations</div><div class="card-body">${renderAnalyticsBars(data.top_locations, 'projects')}</div></div></div>
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-person-workspace me-1"></i>Projects by Owner</div><div class="card-body">${renderAnalyticsBars(data.projects_by_owner, 'projects')}</div></div></div>
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-briefcase me-1"></i>Top Customers</div><div class="card-body">${renderAnalyticsBars(data.top_customers, 'projects')}</div></div></div>
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-diagram-3 me-1"></i>Resource Groups by Hours</div><div class="card-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div></div></div>
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-people me-1"></i>Top Roles by Hours</div><div class="card-body">${renderAnalyticsBars(data.top_roles_by_hours, 'hours')}</div></div></div>
-      <div class="col-xl-6"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-speedometer2 me-1"></i>Margin Distribution</div><div class="card-body">${renderAnalyticsBars(data.margin_buckets, 'projects')}</div></div></div>
-      <div class="col-12"><div class="card analytics-card"><div class="card-header fw-bold"><i class="bi bi-calendar3 me-1"></i>Projects Saved Over Time</div><div class="card-body">${renderAnalyticsTimeline(data.projects_by_month)}</div></div></div>
+      <div class="col-12">
+        <div class="db-card">
+          <div class="db-card-header"><i class="bi bi-calendar3 me-2"></i>Projects Saved Over Time</div>
+          <div class="db-card-body">${renderAnalyticsTimeline(data.projects_by_month)}</div>
+        </div>
+      </div>
     </div>`;
 }
 
+const STATUS_COLORS = {
+  'Won':        '#16a34a',
+  'Active':     '#2563eb',
+  'Submitted':  '#7c3aed',
+  'Proposal':   '#0891b2',
+  'Draft':      '#6b7280',
+  'On Hold':    '#d97706',
+  'Lost':       '#dc2626',
+};
+const PRIORITY_COLORS = {
+  'Critical': '#dc2626',
+  'High':     '#ea580c',
+  'Medium':   '#d97706',
+  'Low':      '#16a34a',
+};
+const MARGIN_COLORS = {
+  'Below 20%': '#dc2626',
+  '20–35%':    '#d97706',
+  '35–50%':    '#2563eb',
+  '50%+':      '#16a34a',
+};
+
+function renderStatusBars(items) {
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
+  const total = items.reduce((s, i) => s + Number(i.value || 0), 0) || 1;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+  return items.map(item => {
+    const v = Number(item.value || 0);
+    const color = STATUS_COLORS[item.label] || '#8b5cf6';
+    const pct = Math.round((v / total) * 100);
+    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
+    return `
+      <div class="db-status-row">
+        <div class="db-status-dot" style="background:${color}"></div>
+        <span class="db-status-label">${esc(item.label)}</span>
+        <div class="db-status-track">
+          <div class="db-status-fill" style="width:${width}%;background:${color}"></div>
+        </div>
+        <span class="db-status-count">${v}</span>
+        <span class="db-status-pct">${pct}%</span>
+      </div>`;
+  }).join('');
+}
+
+function renderStagePipeline(items) {
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+  const palette = ['#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#0891b2','#2563eb','#16a34a','#dc2626','#6b7280'];
+  return items.map((item, idx) => {
+    const v = Number(item.value || 0);
+    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
+    const color = palette[idx % palette.length];
+    return `
+      <div class="db-stage-row">
+        <span class="db-stage-label">${esc(item.label)}</span>
+        <div class="db-stage-track">
+          <div class="db-stage-fill" style="width:${width}%;background:${color}">
+            ${v > 0 ? `<span class="db-stage-val">${v}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderMarginBars(items) {
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+  return items.map(item => {
+    const v = Number(item.value || 0);
+    const color = MARGIN_COLORS[item.label] || '#8b5cf6';
+    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
+    return `
+      <div class="db-bar-row">
+        <div class="db-bar-head">
+          <span class="db-bar-label" style="color:${color}">${esc(item.label)}</span>
+          <span class="db-bar-val">${v} projects</span>
+        </div>
+        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%;background:${color}"></div></div>
+      </div>`;
+  }).join('');
+}
+
+function renderPriorityBars(items) {
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+  return items.map(item => {
+    const v = Number(item.value || 0);
+    const color = PRIORITY_COLORS[item.label] || '#8b5cf6';
+    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
+    return `
+      <div class="db-bar-row">
+        <div class="db-bar-head">
+          <span class="db-bar-label" style="color:${color}">${esc(item.label)}</span>
+          <span class="db-bar-val">${v} projects</span>
+        </div>
+        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%;background:${color}"></div></div>
+      </div>`;
+  }).join('');
+}
+
 function renderAnalyticsBars(items, unit = 'count') {
-  if (!Array.isArray(items) || !items.length) {
-    return `<div class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i>No data yet</div>`;
-  }
-  const maxValue = Math.max(...items.map(item => Number(item.value || 0)), 1);
-  const fmt = value => {
-    const n = Number(value || 0);
-    if (unit === 'hours') return `${n.toLocaleString('en-US', { maximumFractionDigits: 1 })} hrs`;
-    return `${n.toLocaleString('en-US')} ${unit}`;
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+  const fmt = v => {
+    const n = Number(v || 0);
+    if (unit === 'hours') return n.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' hrs';
+    if (unit === 'revenue') {
+      if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
+      if (n >= 1_000) return '$' + (n / 1_000).toFixed(0) + 'K';
+      return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    }
+    return n.toLocaleString('en-US');
   };
   return items.map(item => {
-    const value = Number(item.value || 0);
-    const width = Math.max((value / maxValue) * 100, value > 0 ? 8 : 0);
+    const v = Number(item.value || 0);
+    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
     return `
-      <div class="analytics-bar-row">
-        <div class="analytics-bar-head">
-          <span class="analytics-bar-label" title="${esc(item.label)}">${esc(item.label)}</span>
-          <span class="analytics-bar-value">${fmt(value)}</span>
+      <div class="db-bar-row">
+        <div class="db-bar-head">
+          <span class="db-bar-label" title="${esc(item.label)}">${esc(item.label)}</span>
+          <span class="db-bar-val">${fmt(v)}</span>
         </div>
-        <div class="analytics-bar-track"><div class="analytics-bar-fill" style="width:${width}%"></div></div>
+        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%"></div></div>
       </div>`;
   }).join('');
 }
 
 function renderAnalyticsTimeline(items) {
-  if (!Array.isArray(items) || !items.length) {
-    return `<div class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i>No saved project history yet</div>`;
-  }
-  const maxValue = Math.max(...items.map(item => Number(item.value || 0)), 1);
+  if (!Array.isArray(items) || !items.length)
+    return `<div class="db-empty"><i class="bi bi-inbox"></i>No saved project history yet</div>`;
+  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
   return `
-    <div class="analytics-timeline">
+    <div class="db-timeline">
       ${items.map(item => {
-        const value = Number(item.value || 0);
-        const height = Math.max((value / maxValue) * 100, value > 0 ? 10 : 0);
+        const v = Number(item.value || 0);
+        const h = Math.max((v / maxVal) * 100, v > 0 ? 8 : 0);
+        const label = item.label.length === 7 ? item.label.slice(0, 4) + '\'' + item.label.slice(5) : esc(item.label);
         return `
-          <div class="analytics-timeline-item">
-            <div class="analytics-timeline-count">${value}</div>
-            <div class="analytics-timeline-bar-wrap"><div class="analytics-timeline-bar" style="height:${height}%"></div></div>
-            <div class="analytics-timeline-label">${esc(item.label)}</div>
+          <div class="db-timeline-col">
+            <div class="db-timeline-count">${v || ''}</div>
+            <div class="db-timeline-wrap"><div class="db-timeline-bar" style="height:${h}%"></div></div>
+            <div class="db-timeline-label">${label}</div>
           </div>`;
       }).join('')}
     </div>`;

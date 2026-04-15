@@ -103,16 +103,21 @@ def dashboard_data():
 
     location_counter = Counter()
     customer_counter = Counter()
+    customer_revenue = defaultdict(float)
     role_counter = Counter()
     group_counter = Counter()
     saved_by_counter = Counter()
+    status_counter = Counter()
+    stage_counter = Counter()
+    priority_counter = Counter()
+    bu_counter = Counter()
     monthly_projects = defaultdict(int)
-    margin_buckets = {
-        'Below 20%': 0,
-        '20%-35%': 0,
-        '35%-50%': 0,
-        '50%+': 0,
-    }
+    margin_buckets = {'Below 20%': 0, '20–35%': 0, '35–50%': 0, '50%+': 0}
+
+    STATUS_ORDER  = ['Won', 'Active', 'Submitted', 'Proposal', 'Draft', 'On Hold', 'Lost']
+    STAGE_ORDER   = ['Qualification', 'Discovery', 'Solutioning', 'Proposal',
+                     'Commercial Review', 'Negotiation', 'Closed Won', 'Closed Lost', 'Closed']
+    PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low']
 
     for payload in projects:
         meta = payload.get('_meta', {})
@@ -127,12 +132,22 @@ def dashboard_data():
         total_revenue += costs['sell_cost']
         margin_sum += costs['gross_margin']
 
-        if project.get('location'):
-            location_counter[project['location']] += 1
-        if project.get('customer'):
-            customer_counter[project['customer']] += 1
+        loc = (project.get('location') or '').strip()
+        cust = (project.get('customer') or '').strip()
+        if loc:
+            location_counter[loc] += 1
+        if cust:
+            customer_counter[cust] += 1
+            customer_revenue[cust] += costs['sell_cost']
         if meta.get('saved_by'):
             saved_by_counter[meta['saved_by']] += 1
+
+        status_counter[(project.get('status') or 'Draft').strip()] += 1
+        stage_counter[(project.get('stage') or 'Qualification').strip()] += 1
+        priority_counter[(project.get('priority') or 'Medium').strip()] += 1
+        bu = (project.get('business_unit') or '').strip()
+        if bu:
+            bu_counter[bu] += 1
 
         saved_at = meta.get('saved_at', '')
         if saved_at:
@@ -142,9 +157,9 @@ def dashboard_data():
         if margin_pct < 20:
             margin_buckets['Below 20%'] += 1
         elif margin_pct < 35:
-            margin_buckets['20%-35%'] += 1
+            margin_buckets['20–35%'] += 1
         elif margin_pct < 50:
-            margin_buckets['35%-50%'] += 1
+            margin_buckets['35–50%'] += 1
         else:
             margin_buckets['50%+'] += 1
 
@@ -160,6 +175,17 @@ def dashboard_data():
     avg_margin = (margin_sum / total_projects) if total_projects else 0
     avg_resources = (total_resources / total_projects) if total_projects else 0
 
+    def ordered_list(counter, order, limit=None):
+        result = [{'label': k, 'value': counter[k]} for k in order if k in counter]
+        extras = [{'label': k, 'value': v} for k, v in counter.most_common() if k not in order]
+        result += extras
+        return result[:limit] if limit else result
+
+    top_customers_by_rev = sorted(
+        [{'label': k, 'value': round(v, 0)} for k, v in customer_revenue.items()],
+        key=lambda x: x['value'], reverse=True
+    )[:6]
+
     return jsonify({
         'kpis': {
             'projects': total_projects,
@@ -170,14 +196,18 @@ def dashboard_data():
             'avg_margin': round(avg_margin, 4),
             'avg_resources_per_project': round(avg_resources, 1),
         },
-        'top_locations': [{'label': k, 'value': v} for k, v in location_counter.most_common(6)],
-        'top_customers': [{'label': k, 'value': v} for k, v in customer_counter.most_common(6)],
+        'status_breakdown':   ordered_list(status_counter, STATUS_ORDER),
+        'stage_breakdown':    ordered_list(stage_counter, STAGE_ORDER),
+        'priority_breakdown': ordered_list(priority_counter, PRIORITY_ORDER),
+        'bu_breakdown':       [{'label': k, 'value': v} for k, v in bu_counter.most_common(8)],
+        'top_locations':      [{'label': k, 'value': v} for k, v in location_counter.most_common(6)],
+        'top_customers':      top_customers_by_rev,
         'top_roles_by_hours': [{'label': k, 'value': round(v, 1)} for k, v in role_counter.most_common(8)],
-        'top_groups_by_hours': [{'label': k, 'value': round(v, 1)} for k, v in group_counter.most_common(8)],
-        'projects_by_owner': [{'label': k, 'value': v} for k, v in saved_by_counter.most_common(6)],
-        'projects_by_month': [
-            {'label': month, 'value': monthly_projects[month]}
-            for month in sorted(monthly_projects.keys())
+        'top_groups_by_hours':[{'label': k, 'value': round(v, 1)} for k, v in group_counter.most_common(8)],
+        'projects_by_owner':  [{'label': k, 'value': v} for k, v in saved_by_counter.most_common(6)],
+        'projects_by_month':  [
+            {'label': m, 'value': monthly_projects[m]}
+            for m in sorted(monthly_projects.keys())
         ],
         'margin_buckets': [{'label': k, 'value': v} for k, v in margin_buckets.items()],
     })
