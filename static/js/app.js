@@ -1321,6 +1321,7 @@ let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
 let _allProjectsDraftDraggedColumn = null;
 let _allProjectsListCache = null;
+let _allProjectsFilters = { business_unit: '', location: '', partner: '', sales_spoc: '' };
 
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
@@ -1685,7 +1686,6 @@ function refilterAllProjects() {
   const filteredList = filterAllProjectsList(list, searchQuery);
   const sortedList = sortAllProjectsList(filteredList, columnDefs);
 
-  // Update only the table body — no re-render of search input or header
   const tbody = document.querySelector('.all-projects-table tbody');
   if (tbody) {
     tbody.innerHTML = sortedList.length ? sortedList.map((p, i) => `
@@ -1703,24 +1703,25 @@ function refilterAllProjects() {
         <td colspan="${visibleColumns.length + 2}" class="text-center py-5">
           <div class="all-projects-empty-state">
             <div class="all-projects-empty-icon"><i class="bi bi-search"></i></div>
-            <div class="all-projects-empty-title">No projects match this search</div>
-            <div class="all-projects-empty-copy">Try a different customer, project, owner, location, or business unit keyword.</div>
-            <button class="btn btn-outline-secondary btn-sm mt-3" onclick="updateAllProjectsSearch('')">
-              <i class="bi bi-arrow-counterclockwise me-1"></i>Clear Search
+            <div class="all-projects-empty-title">No projects match these filters</div>
+            <div class="all-projects-empty-copy">Try adjusting your search or filter selections.</div>
+            <button class="btn btn-outline-secondary btn-sm mt-3" onclick="clearAllProjectsFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Clear All Filters
             </button>
           </div>
         </td>
       </tr>`;
   }
 
-  // Update filter pill and project count stat
-  const pill = document.querySelector('.all-projects-meta-pill');
-  if (pill) {
-    pill.innerHTML = `<i class="bi bi-funnel me-1"></i>${searchQuery ? `Filtered results: ${sortedList.length}` : 'No filter applied'}`;
-  }
-  const statValue = document.querySelector('.all-projects-stat-value');
-  if (statValue) {
-    statValue.innerHTML = `${sortedList.length}<small>/ ${list.length}</small>`;
+  // Update count badge
+  const badge = document.getElementById('all-projects-count-badge');
+  if (badge) badge.textContent = `${sortedList.length} / ${list.length}`;
+
+  // Show/hide clear-all button
+  const clearBtn = document.getElementById('all-projects-clear-filters');
+  if (clearBtn) {
+    const hasFilter = searchQuery || Object.values(_allProjectsFilters).some(v => v);
+    clearBtn.classList.toggle('d-none', !hasFilter);
   }
 }
 
@@ -1757,28 +1758,43 @@ function sortAllProjectsList(list, columnDefs) {
 
 function filterAllProjectsList(list, query) {
   const term = String(query || '').trim().toLowerCase();
-  if (!term) return [...list];
+  const f = _allProjectsFilters;
   return list.filter(project => {
-    const haystack = [
-      project.customer,
-      project.name,
-      project.reference,
-      project.business_unit,
-      project.status,
-      project.stage,
-      project.project_owner,
-      project.account_manager,
-      project.sales_spoc,
-      project.delivery_manager,
-      project.location,
-      project.partner,
-      project.project_type,
-      project.industry,
-      project.saved_by,
-      project.opportunity_id,
-    ].join(' ').toLowerCase();
-    return haystack.includes(term);
+    if (term) {
+      const haystack = [
+        project.customer, project.name, project.reference,
+        project.business_unit, project.status, project.stage,
+        project.project_owner, project.account_manager, project.sales_spoc,
+        project.delivery_manager, project.location, project.partner,
+        project.project_type, project.industry, project.saved_by,
+        project.opportunity_id,
+      ].join(' ').toLowerCase();
+      if (!haystack.includes(term)) return false;
+    }
+    if (f.business_unit && (project.business_unit || '') !== f.business_unit) return false;
+    if (f.location && (project.location || '') !== f.location) return false;
+    if (f.partner && (project.partner || '') !== f.partner) return false;
+    if (f.sales_spoc && (project.sales_spoc || '') !== f.sales_spoc) return false;
+    return true;
   });
+}
+
+function setAllProjectsFilter(field, value) {
+  _allProjectsFilters[field] = value;
+  refilterAllProjects();
+}
+
+function clearAllProjectsFilters() {
+  _allProjectsFilters = { business_unit: '', location: '', partner: '', sales_spoc: '' };
+  saveAllProjectsSearch('');
+  const input = document.querySelector('.all-projects-search input');
+  if (input) input.value = '';
+  refilterAllProjects();
+}
+
+function _uniqueVals(list, field) {
+  const vals = [...new Set(list.map(p => p[field] || '').filter(Boolean))].sort();
+  return vals;
 }
 
 async function loadAllProjects() {
@@ -1832,50 +1848,54 @@ async function loadAllProjects() {
 
   container.innerHTML = `
     <div class="all-projects-shell">
-      <div class="all-projects-hero mb-3">
-        <div class="all-projects-hero-copy">
+      <div class="all-projects-header mb-3">
+        <div class="all-projects-header-left">
           <div class="all-projects-eyebrow">Portfolio View</div>
-          <div class="all-projects-hero-title">All Saved Projects</div>
-          <div class="all-projects-hero-subtitle">Open any row to jump into the project. Tune the table layout only when you need extra context.</div>
+          <div class="all-projects-hero-title">
+            All Saved Projects
+            <span class="all-projects-count-badge" id="all-projects-count-badge">${sortedList.length} / ${list.length}</span>
+          </div>
         </div>
-        <div class="all-projects-actions">
-          <div class="all-projects-stat">
-            <span class="all-projects-stat-label">Projects</span>
-            <span class="all-projects-stat-value">${sortedList.length}<small>/ ${list.length}</small></span>
-          </div>
-          <div class="all-projects-stat">
-            <span class="all-projects-stat-label">Visible</span>
-            <span class="all-projects-stat-value">${visibleColumns.length} columns</span>
-          </div>
-          <div class="all-projects-stat">
-            <span class="all-projects-stat-label">Sorted By</span>
-            <span class="all-projects-stat-value">${esc(activeSortLabel)}</span>
-          </div>
-          <button class="btn btn-outline-secondary btn-sm" onclick="toggleAllProjectsColumnPicker()">
-            <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide Layout' : 'Customize Layout'} <i id="all-projects-column-toggle-icon" class="bi ${_allProjectsPickerOpen ? 'bi-chevron-up' : 'bi-chevron-down'} ms-1"></i>
+        <div class="all-projects-header-actions">
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllProjectsColumnPicker()">
+            <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide Layout' : 'Customize Layout'}
           </button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="resetAllProjectsColumns()">Reset Default</button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="loadAllProjects()">
+          <button class="btn btn-sm btn-outline-secondary" onclick="resetAllProjectsColumns()">Reset Default</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="loadAllProjects()">
             <i class="bi bi-arrow-repeat me-1"></i>Refresh
           </button>
         </div>
       </div>
-      <div class="all-projects-commandbar mb-3">
+      <div class="all-projects-filterbar mb-3">
         <div class="all-projects-search">
           <i class="bi bi-search"></i>
           <input
             type="search"
             class="form-control"
-            placeholder="Search customer, project, owner, business unit, location..."
+            placeholder="Search customer, project, reference, owner…"
             value="${esc(searchQuery)}"
             oninput="queueAllProjectsSearch(this.value)"
           />
         </div>
-        <div class="all-projects-commandbar-meta">
-          <span class="all-projects-meta-pill"><i class="bi bi-funnel me-1"></i>${searchQuery ? `Filtered results: ${sortedList.length}` : 'No filter applied'}</span>
-          <span class="all-projects-meta-pill"><i class="bi bi-arrow-down-up me-1"></i>${esc(activeSortLabel)}</span>
-          <span class="all-projects-meta-pill"><i class="bi bi-layout-sidebar-inset me-1"></i>Use Customize Layout to add, remove, or reorder columns</span>
-        </div>
+        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('business_unit', this.value)" title="Business Unit">
+          <option value="">All BUs</option>
+          ${_uniqueVals(list, 'business_unit').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.business_unit === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+        </select>
+        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('location', this.value)" title="Location">
+          <option value="">All Locations</option>
+          ${_uniqueVals(list, 'location').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.location === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+        </select>
+        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('partner', this.value)" title="Partner">
+          <option value="">All Partners</option>
+          ${_uniqueVals(list, 'partner').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.partner === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+        </select>
+        <select class="all-projects-filter-select" onchange="setAllProjectsFilter('sales_spoc', this.value)" title="Sales SPOC">
+          <option value="">All Sales SPOCs</option>
+          ${_uniqueVals(list, 'sales_spoc').map(v => `<option value="${esc(v)}" ${_allProjectsFilters.sales_spoc === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+        </select>
+        <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(v => v)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
+          <i class="bi bi-x-lg me-1"></i>Clear
+        </button>
       </div>
       <div id="all-projects-column-picker" class="all-projects-picker ${_allProjectsPickerOpen ? '' : 'd-none'} mb-3">
         <div class="all-projects-picker-header">
@@ -1914,8 +1934,8 @@ async function loadAllProjects() {
           </tr>
         </thead>
         <tbody>
-          ${sortedList.length ? sortedList.map((p, i) => {
-            return `<tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
+          ${sortedList.length ? sortedList.map((p, i) => `
+            <tr onclick="loadProjectAndSwitch('${esc(p.id)}','${esc(p.name)}')" title="Click to open">
               <td class="text-center text-muted small">${i+1}</td>
               ${visibleColumns.map(def => def.cell(p)).join('')}
               <td class="text-center" onclick="event.stopPropagation()">
@@ -1924,21 +1944,19 @@ async function loadAllProjects() {
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
-            </tr>`;
-          }).join('') : `
+            </tr>`).join('') : `
             <tr>
               <td colspan="${visibleColumns.length + 2}" class="text-center py-5">
                 <div class="all-projects-empty-state">
                   <div class="all-projects-empty-icon"><i class="bi bi-search"></i></div>
-                  <div class="all-projects-empty-title">No projects match this search</div>
-                  <div class="all-projects-empty-copy">Try a different customer, project, owner, location, or business unit keyword.</div>
-                  <button class="btn btn-outline-secondary btn-sm mt-3" onclick="updateAllProjectsSearch('')">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>Clear Search
+                  <div class="all-projects-empty-title">No projects match these filters</div>
+                  <div class="all-projects-empty-copy">Try adjusting your search or filter selections.</div>
+                  <button class="btn btn-outline-secondary btn-sm mt-3" onclick="clearAllProjectsFilters()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Clear All Filters
                   </button>
                 </div>
               </td>
-            </tr>
-          `}
+            </tr>`}
         </tbody>
       </table>
     </div>`;
