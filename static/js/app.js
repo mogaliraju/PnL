@@ -2850,23 +2850,25 @@ let _bookingsData = [];
 let _bookingsMeta = { custom_fields: [], column_labels: {} };
 
 const BK_BUILTIN_COLS = [
-  { key: 'booking_type',          defaultLabel: 'Type' },
-  { key: 'opf_number',            defaultLabel: 'OPF Number' },
-  { key: 'opf_date',              defaultLabel: 'OPF Date' },
-  { key: 'cdd',                   defaultLabel: 'CDD' },
-  { key: 'bu',                    defaultLabel: 'BU' },
-  { key: 'customer_name',         defaultLabel: 'Customer Name' },
-  { key: 'otc',                   defaultLabel: 'OTC (USD)' },
-  { key: 'mrc',                   defaultLabel: 'MRC (USD/mo)' },
-  { key: 'billed_pct',            defaultLabel: 'Billed %' },
-  { key: 'milestones',            defaultLabel: 'Milestones' },
-  { key: 'c4c_invoice_raised',    defaultLabel: 'C4C Invoice Raised' },
-  { key: 'c4c_amount_received',   defaultLabel: 'C4C Amt Received' },
-  { key: 'c4c_pending_billing',   defaultLabel: 'C4C Pending Billing' },
-  { key: 'ax_invoice_raised',     defaultLabel: 'AX Invoice Raised' },
-  { key: 'ax_amount_received',    defaultLabel: 'AX Amt Received' },
-  { key: 'ax_pending_collection', defaultLabel: 'AX Pending Collection' },
-  { key: 'updates',               defaultLabel: 'Updates' },
+  { key: 'booking_type',           defaultLabel: 'Type' },
+  { key: 'opf_number',             defaultLabel: 'OPF Number' },
+  { key: 'opf_date',               defaultLabel: 'OPF Date' },
+  { key: 'cdd',                    defaultLabel: 'CDD' },
+  { key: 'bu',                     defaultLabel: 'BU' },
+  { key: 'customer_name',          defaultLabel: 'Customer Name' },
+  { key: 'otc',                    defaultLabel: 'OTC (USD)' },
+  { key: 'mrc',                    defaultLabel: 'MRC (USD/mo)' },
+  { key: 'billed_pct',             defaultLabel: 'Billed %' },
+  { key: 'milestones',             defaultLabel: 'Milestones' },
+  { key: 'c4c_invoice_raised',     defaultLabel: 'C4C Invoice Raised' },
+  { key: 'c4c_amount_received',    defaultLabel: 'C4C Amt Received' },
+  { key: 'c4c_pending_billing',    defaultLabel: 'C4C Pending Billing' },
+  { key: 'ax_invoice_raised',      defaultLabel: 'AX Invoice Raised' },
+  { key: 'ax_amount_received',     defaultLabel: 'AX Amt Received' },
+  { key: 'ax_pending_collection',  defaultLabel: 'AX Pending Collection' },
+  { key: 'updates',                defaultLabel: 'Updates' },
+  { key: 'billing_team_comments',  defaultLabel: 'Billing Team Comments' },
+  { key: 'pmo',                    defaultLabel: 'PMO' },
 ];
 
 function bkLabel(key) {
@@ -2946,55 +2948,115 @@ function renderBookingsTable() {
     return;
   }
 
-  const MONEY_KEYS = ['otc','mrc','c4c_invoice_raised','c4c_amount_received','c4c_pending_billing',
-                      'ax_invoice_raised','ax_amount_received','ax_pending_collection'];
-  const cols = [
-    { key: 'booking_type',  label: bkLabel('booking_type') },
-    { key: 'opf_number',    label: bkLabel('opf_number') },
-    { key: 'opf_date',      label: bkLabel('opf_date') },
-    { key: 'customer_name', label: bkLabel('customer_name') },
-    { key: 'bu',            label: bkLabel('bu') },
-    { key: 'otc',           label: bkLabel('otc') },
-    { key: 'mrc',           label: bkLabel('mrc') },
-    { key: 'billed_pct',    label: bkLabel('billed_pct') },
-    { key: 'c4c_invoice_raised', label: bkLabel('c4c_invoice_raised') },
-    { key: 'ax_invoice_raised',  label: bkLabel('ax_invoice_raised') },
-    { key: 'updates',       label: bkLabel('updates') },
-    ...(_bookingsMeta.custom_fields || []).map(cf => ({ key: `cf_${cf.key}`, label: cf.label, custom: true, cfKey: cf.key })),
-  ];
+  const typeFilter = document.getElementById('bk-filter-type')?.value || '';
+  const showOtc  = !typeFilter || typeFilter === 'OTC';
+  const showMrc  = !typeFilter || typeFilter === 'MRC';
+  const showType = !typeFilter;
+  const customCols = (_bookingsMeta.custom_fields || []).map(cf => ({ key: `cf_${cf.key}`, label: cf.label, custom: true, cfKey: cf.key }));
 
+  // Money formatter
+  const fmtMoney = v => {
+    if (v == null || v === '') return '<td class="text-end text-muted small">—</td>';
+    const n = Number(v);
+    if (isNaN(n)) return `<td class="text-end">${esc(String(v))}</td>`;
+    return `<td class="text-end fw-medium">$${n.toLocaleString('en-US', {maximumFractionDigits:0})}</td>`;
+  };
+  const fmtPct = v => {
+    if (v == null || v === '') return '<td class="text-end text-muted small">—</td>';
+    if (typeof v === 'string' && v.includes('%')) return `<td class="text-end">${esc(v)}</td>`;
+    const n = Number(v);
+    if (isNaN(n)) return `<td class="text-end">${esc(String(v))}</td>`;
+    const pct = n <= 1 ? (n * 100).toFixed(0) : n.toFixed(0);
+    const color = n >= (n <= 1 ? 1 : 100) ? 'text-success' : n > (n <= 1 ? 0.5 : 50) ? 'text-warning' : 'text-danger';
+    return `<td class="text-end ${color} fw-medium">${pct}%</td>`;
+  };
+  const fmtText = (v, opts={}) => {
+    if (v == null || v === '') return '<td class="text-muted small">—</td>';
+    const s = esc(String(v));
+    if (opts.truncate) return `<td style="max-width:${opts.maxWidth||160}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${s}">${s}</td>`;
+    return `<td>${s}</td>`;
+  };
   const typeBadge = t => t === 'OTC'
     ? '<span class="badge text-bg-primary">OTC</span>'
-    : '<span class="badge text-bg-info">MRC</span>';
+    : '<span class="badge text-bg-info text-dark">MRC</span>';
 
-  const fmtCell = (r, c) => {
-    if (c.custom) return `<td>${esc((r.extra_fields || {})[c.cfKey] ?? '')}</td>`;
-    const v = r[c.key];
-    if (c.key === 'booking_type') return `<td>${typeBadge(v)}</td>`;
-    if (v == null || v === '') return '<td><span class="text-muted">—</span></td>';
-    if (MONEY_KEYS.includes(c.key)) return `<td class="text-end">$${Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}</td>`;
-    if (c.key === 'billed_pct')     return `<td class="text-end">${(Number(v)*100).toFixed(0)}%</td>`;
-    if (c.key === 'updates')        return `<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(v)}">${esc(v)}</td>`;
-    return `<td>${esc(String(v))}</td>`;
+  const fmtRow = r => {
+    let cells = '';
+    if (showType) cells += `<td class="text-center">${typeBadge(r.booking_type)}</td>`;
+    cells += fmtText(r.opf_number);
+    cells += fmtText(r.opf_date);
+    cells += fmtText(r.cdd);
+    cells += fmtText(r.bu);
+    cells += fmtText(r.customer_name);
+    if (showOtc) cells += fmtMoney(r.otc);
+    if (showMrc) cells += fmtMoney(r.mrc);
+    cells += fmtPct(r.billed_pct);
+    cells += fmtText(r.milestones);
+    // Cloud 4C group
+    cells += fmtMoney(r.c4c_invoice_raised);
+    cells += fmtMoney(r.c4c_amount_received);
+    cells += fmtMoney(r.c4c_pending_billing);
+    // AutomatonsX group
+    cells += fmtMoney(r.ax_invoice_raised);
+    cells += fmtMoney(r.ax_amount_received);
+    cells += fmtMoney(r.ax_pending_collection);
+    // Updates + billing comments + PMO + custom
+    cells += fmtText(r.updates, { truncate: true, maxWidth: 200 });
+    cells += fmtText(r.billing_team_comments, { truncate: true, maxWidth: 200 });
+    cells += fmtText(r.pmo);
+    customCols.forEach(c => { cells += `<td>${esc((r.extra_fields || {})[c.cfKey] ?? '')}</td>`; });
+    cells += `<td class="text-center text-nowrap">
+      <button class="btn btn-outline-primary btn-sm py-0 px-1 me-1" onclick="showBookingsEntry('${esc(r.id)}')" title="Edit"><i class="bi bi-pencil"></i></button>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteBookingEntry('${esc(r.id)}')" title="Delete"><i class="bi bi-trash"></i></button>
+    </td>`;
+    return `<tr>${cells}</tr>`;
   };
 
+  // Column counts for group colspan calc
+  const mainColCount = (showType ? 1 : 0) + 6 + (showOtc ? 1 : 0) + (showMrc ? 1 : 0) + 2; // type?, opf#, date, cdd, bu, customer, otc?, mrc?, billed%, milestones
+  const c4cCount  = 3;
+  const axCount   = 3;
+  const tailCount = 1 + customCols.length + 1; // updates + custom + actions
+
+  // Build header row 1 — fixed cols use rowspan=2, group headers use colspan
+  const th = (label, extra='') => `<th rowspan="2" class="align-middle" ${extra}>${label}</th>`;
+  let hdr1 = '';
+  if (showType) hdr1 += th('Type', 'style="width:56px"');
+  hdr1 += th(bkLabel('opf_number'));
+  hdr1 += th(bkLabel('opf_date'),      'style="width:90px"');
+  hdr1 += th(bkLabel('cdd'),           'style="width:90px"');
+  hdr1 += th(bkLabel('bu'),            'style="width:60px"');
+  hdr1 += th(bkLabel('customer_name'), 'style="min-width:140px"');
+  if (showOtc) hdr1 += th(bkLabel('otc'),  'style="width:100px"');
+  if (showMrc) hdr1 += th(bkLabel('mrc'),  'style="width:100px"');
+  hdr1 += th(bkLabel('billed_pct'),    'style="width:72px"');
+  hdr1 += th(bkLabel('milestones'),    'style="width:70px"');
+  hdr1 += `<th colspan="${c4cCount}" class="text-center align-middle" style="background:#1a5fa8;color:#fff;font-weight:700;letter-spacing:.02em">Cloud 4C Services</th>`;
+  hdr1 += `<th colspan="${axCount}"  class="text-center align-middle" style="background:#c97d00;color:#fff;font-weight:700;letter-spacing:.02em">AutomatonsX</th>`;
+  hdr1 += th(bkLabel('updates'),                'style="min-width:160px"');
+  hdr1 += th(bkLabel('billing_team_comments'), 'style="min-width:160px"');
+  hdr1 += th(bkLabel('pmo'),                   'style="width:90px"');
+  customCols.forEach(c => { hdr1 += th(esc(c.label)); });
+  hdr1 += `<th rowspan="2" style="width:72px"></th>`;
+
+  // Header row 2 — only sub-headers for the two groups
+  const subTh = label => `<th class="text-center small" style="font-weight:600">${label}</th>`;
+  const hdr2 =
+    subTh('Invoice Raised<br>from C4C') +
+    subTh('Amount Received<br>from Customer') +
+    subTh('Pending Billing<br>from C4C') +
+    subTh('Invoice Raised<br>from AX') +
+    subTh('Amount Received<br>C4C → AX') +
+    subTh('Pending<br>Collection');
+
   wrap.innerHTML = `
-    <table class="table table-bordered table-hover table-sm align-middle" style="font-size:0.82rem">
-      <thead class="table-dark sticky-top">
-        <tr>
-          ${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}
-          <th style="width:80px"></th>
-        </tr>
+    <table class="table table-bordered table-hover table-sm align-middle" style="font-size:0.81rem">
+      <thead class="sticky-top" style="top:0;z-index:10">
+        <tr style="background:#212529;color:#fff">${hdr1}</tr>
+        <tr style="background:#343a40;color:#dee2e6">${hdr2}</tr>
       </thead>
       <tbody>
-        ${rows.map(r => `
-          <tr>
-            ${cols.map(c => fmtCell(r, c)).join('')}
-            <td>
-              <button class="btn btn-outline-primary btn-sm py-0 px-1 me-1" onclick="showBookingsEntry('${esc(r.id)}')" title="Edit"><i class="bi bi-pencil"></i></button>
-              <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteBookingEntry('${esc(r.id)}')" title="Delete"><i class="bi bi-trash"></i></button>
-            </td>
-          </tr>`).join('')}
+        ${rows.map(fmtRow).join('')}
       </tbody>
     </table>`;
 }
@@ -3043,10 +3105,12 @@ async function showBookingsEntry(id) {
   sv('bk_c4c_invoice_raised',    d.c4c_invoice_raised);
   sv('bk_c4c_amount_received',   d.c4c_amount_received);
   sv('bk_c4c_pending_billing',   d.c4c_pending_billing);
-  sv('bk_ax_invoice_raised',     d.ax_invoice_raised);
-  sv('bk_ax_amount_received',    d.ax_amount_received);
-  sv('bk_ax_pending_collection', d.ax_pending_collection);
-  sv('bk_updates',               d.updates);
+  sv('bk_ax_invoice_raised',        d.ax_invoice_raised);
+  sv('bk_ax_amount_received',       d.ax_amount_received);
+  sv('bk_ax_pending_collection',    d.ax_pending_collection);
+  sv('bk_updates',                  d.updates);
+  sv('bk_billing_team_comments',    d.billing_team_comments);
+  sv('bk_pmo',                      d.pmo);
 
   const extra = d.extra_fields || {};
   (_bookingsMeta.custom_fields || []).forEach(cf => {
@@ -3060,7 +3124,8 @@ function clearBookingsForm() {
   const ids = ['bk_opf_number','bk_opf_date','bk_cdd','bk_bu','bk_customer_name',
                'bk_otc','bk_mrc','bk_billed_pct','bk_milestones','bk_c4c_invoice_raised',
                'bk_c4c_amount_received','bk_c4c_pending_billing','bk_ax_invoice_raised',
-               'bk_ax_amount_received','bk_ax_pending_collection','bk_updates'];
+               'bk_ax_amount_received','bk_ax_pending_collection','bk_updates',
+               'bk_billing_team_comments','bk_pmo'];
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const bt = document.getElementById('bk_booking_type');
   if (bt) bt.value = 'OTC';
@@ -3098,9 +3163,11 @@ async function saveBookingEntry() {
     c4c_pending_billing:   g('bk_c4c_pending_billing'),
     ax_invoice_raised:     g('bk_ax_invoice_raised'),
     ax_amount_received:    g('bk_ax_amount_received'),
-    ax_pending_collection: g('bk_ax_pending_collection'),
-    updates:               g('bk_updates'),
-    extra_fields:          extra,
+    ax_pending_collection:  g('bk_ax_pending_collection'),
+    updates:                g('bk_updates'),
+    billing_team_comments:  g('bk_billing_team_comments'),
+    pmo:                    g('bk_pmo'),
+    extra_fields:           extra,
   };
 
   const url    = id ? `/api/bookings/${id}` : '/api/bookings';

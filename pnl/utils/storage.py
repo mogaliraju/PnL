@@ -161,12 +161,19 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             ax_amount_received REAL,
             ax_pending_collection REAL,
             updates TEXT,
+            billing_team_comments TEXT,
+            pmo TEXT,
             extra_fields TEXT,
             saved_at TEXT,
             saved_by TEXT
         );
         """
     )
+    # Add new columns to existing databases that predate this schema
+    existing = {row['name'] for row in conn.execute("PRAGMA table_info(order_bookings)").fetchall()}
+    for col, col_type in [('billing_team_comments', 'TEXT'), ('pmo', 'TEXT')]:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE order_bookings ADD COLUMN {col} {col_type}")
     conn.commit()
 
 
@@ -734,8 +741,9 @@ def save_order_booking(booking_id: str, data: dict) -> None:
                 otc, mrc, billed_pct, milestones,
                 c4c_invoice_raised, c4c_amount_received, c4c_pending_billing,
                 ax_invoice_raised, ax_amount_received, ax_pending_collection,
-                updates, extra_fields, saved_at, saved_by
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                updates, billing_team_comments, pmo,
+                extra_fields, saved_at, saved_by
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 booking_type=excluded.booking_type,
                 opf_number=excluded.opf_number,
@@ -754,6 +762,8 @@ def save_order_booking(booking_id: str, data: dict) -> None:
                 ax_amount_received=excluded.ax_amount_received,
                 ax_pending_collection=excluded.ax_pending_collection,
                 updates=excluded.updates,
+                billing_team_comments=excluded.billing_team_comments,
+                pmo=excluded.pmo,
                 extra_fields=excluded.extra_fields,
                 saved_at=excluded.saved_at,
                 saved_by=excluded.saved_by
@@ -777,6 +787,8 @@ def save_order_booking(booking_id: str, data: dict) -> None:
                 _to_float(data.get('ax_amount_received'), None),
                 _to_float(data.get('ax_pending_collection'), None),
                 data.get('updates', ''),
+                data.get('billing_team_comments', ''),
+                data.get('pmo', ''),
                 _json_dumps(extra),
                 data.get('saved_at', ''),
                 data.get('saved_by', ''),

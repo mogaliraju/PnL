@@ -119,6 +119,8 @@ _OTC_ALIASES = {
     'c4c_pending_billing':  ('pending billing from c4c', 'c4c pending billing', 'c4c pending', 'pending billing'),
     'ax_invoice_raised':    ('invoice raised from ax', 'ax invoice raised', 'ax billed', 'ax invoice', 'automatonsx invoice'),
     'ax_amount_received':   ('amount received from c4c to ax', 'ax amount received', 'ax collected', 'ax received'),
+    'billing_team_comments':('billing team comments', 'billing comments', 'billing team'),
+    'pmo':                  ('pmo',),
 }
 
 # MRC sheet column aliases
@@ -136,7 +138,9 @@ _MRC_ALIASES = {
     'ax_invoice_raised':    ('invoice raised from ax', 'ax invoice raised', 'ax billed', 'ax invoice'),
     'ax_amount_received':   ('amount received from c4c to ax', 'ax amount received', 'ax received'),
     'ax_pending_collection':('pending collection from cloud4c', 'ax pending collection', 'pending collection'),
-    'updates':              ('updates', 'comments', 'billing team comments', 'notes', 'remarks'),
+    'billing_team_comments':('billing team comments', 'billing comments', 'billing team'),
+    'pmo':                  ('pmo',),
+    'updates':              ('updates', 'notes', 'remarks'),
 }
 
 
