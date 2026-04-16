@@ -3205,6 +3205,35 @@ async function saveBookingsColumnSettings() {
   await loadBookingsOverview();
 }
 
+async function importBookings(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';   // reset so same file can be re-imported
+
+  const wrap = document.getElementById('bookings-table-wrap');
+  wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Importing…</div>';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const res = await fetch('/api/bookings/import', { method: 'POST', body: fd });
+    const body = await res.json();
+    if (!res.ok) {
+      showToast(body.error || 'Import failed', 'danger');
+      renderBookingsTable();
+      return;
+    }
+    let msg = `Imported ${body.imported_count} booking row${body.imported_count !== 1 ? 's' : ''}.`;
+    if (body.warnings?.length) msg += ` (${body.warnings.length} warning${body.warnings.length > 1 ? 's' : ''})`;
+    showToast(msg, 'success');
+    await loadBookingsOverview();
+  } catch (e) {
+    showToast('Import error: ' + e.message, 'danger');
+    renderBookingsTable();
+  }
+}
+
 
 // ============================================================
 // FUNNEL REPORT
@@ -3585,4 +3614,33 @@ async function saveFunnelColumnSettings() {
   showToast('Column settings saved');
   bootstrap.Modal.getInstance(document.getElementById('funnelColumnModal'))?.hide();
   await loadFunnelOverview();
+}
+
+async function importFunnel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const wrap = document.getElementById('funnel-table-wrap');
+  wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Importing…</div>';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const res = await fetch('/api/funnel/import', { method: 'POST', body: fd });
+    const body = await res.json();
+    if (!res.ok) {
+      showToast(body.error || 'Import failed', 'danger');
+      renderFunnelTable();
+      return;
+    }
+    let msg = `Imported ${body.imported_count} funnel row${body.imported_count !== 1 ? 's' : ''}.`;
+    if (body.warnings?.length) msg += ` (${body.warnings.length} warning${body.warnings.length > 1 ? 's' : ''})`;
+    showToast(msg, 'success');
+    await loadFunnelOverview();
+  } catch (e) {
+    showToast('Import error: ' + e.message, 'danger');
+    renderFunnelTable();
+  }
 }
