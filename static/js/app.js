@@ -2882,7 +2882,6 @@ async function loadBookingsOverview() {
   _bookingsMeta = await metaRes.json();
   applyBookingsColumnLabels();
   populateBookingsBuFilter();
-  renderBookingsKpis();
   renderBookingsTable();
 }
 
@@ -2899,13 +2898,14 @@ function populateBookingsBuFilter() {
   sel.innerHTML = '<option value="">All BUs</option>' + bus.map(b => `<option>${esc(b)}</option>`).join('');
 }
 
-function renderBookingsKpis() {
-  const otcRows = _bookingsData.filter(r => r.booking_type === 'OTC');
-  const mrcRows = _bookingsData.filter(r => r.booking_type === 'MRC');
+function renderBookingsKpis(rows) {
+  if (!rows) rows = getFilteredBookings();
+  const otcRows = rows.filter(r => r.booking_type === 'OTC');
+  const mrcRows = rows.filter(r => r.booking_type === 'MRC');
   const totalOtc       = otcRows.reduce((s, r) => s + (r.otc || 0), 0);
   const totalMrc       = mrcRows.reduce((s, r) => s + (r.mrc || 0), 0);
-  const totalC4cBilled = _bookingsData.reduce((s, r) => s + (r.c4c_invoice_raised || 0), 0);
-  const totalAxBilled  = _bookingsData.reduce((s, r) => s + (r.ax_invoice_raised || 0), 0);
+  const totalC4cBilled = rows.reduce((s, r) => s + (r.c4c_invoice_raised || 0), 0);
+  const totalAxBilled  = rows.reduce((s, r) => s + (r.ax_invoice_raised || 0), 0);
   const strip = document.getElementById('bookings-kpi-strip');
   strip.innerHTML = [
     { label: 'OTC Entries',   value: otcRows.length,                                 icon: 'bi-receipt',        color: 'primary' },
@@ -2939,6 +2939,7 @@ function getFilteredBookings() {
 
 function renderBookingsTable() {
   const rows = getFilteredBookings();
+  renderBookingsKpis(rows);
   const wrap = document.getElementById('bookings-table-wrap');
   if (!rows.length) {
     wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox me-1"></i>No entries found. Click <strong>Add Entry</strong> to get started.</div>';
@@ -3275,7 +3276,6 @@ async function loadFunnelOverview() {
   _funnelMeta = await metaRes.json();
   applyFunnelColumnLabels();
   populateFunnelFilters();
-  renderFunnelKpis();
   renderFunnelTable();
 }
 
@@ -3305,16 +3305,17 @@ function populateFunnelFilters() {
   fill('fn-filter-fq',      fqs);
 }
 
-function renderFunnelKpis() {
-  const totalAcv = _funnelData.reduce((s, r) => s + (r.acv_usd_k || 0), 0);
-  const totalOtc = _funnelData.reduce((s, r) => s + (r.otc_usd_k || 0), 0);
+function renderFunnelKpis(rows) {
+  if (!rows) rows = getFilteredFunnel();
+  const totalAcv = rows.reduce((s, r) => s + (r.acv_usd_k || 0), 0);
+  const totalOtc = rows.reduce((s, r) => s + (r.otc_usd_k || 0), 0);
   const stageCounts = {};
-  _funnelData.forEach(r => { if (r.stage) stageCounts[r.stage] = (stageCounts[r.stage] || 0) + 1; });
+  rows.forEach(r => { if (r.stage) stageCounts[r.stage] = (stageCounts[r.stage] || 0) + 1; });
   const topStage = Object.entries(stageCounts).sort((a,b) => b[1]-a[1])[0];
 
   const strip = document.getElementById('funnel-kpi-strip');
   strip.innerHTML = [
-    { label: 'Total Opportunities', value: _funnelData.length,                      icon: 'bi-briefcase',      color: 'primary' },
+    { label: 'Total Opportunities', value: rows.length,                             icon: 'bi-briefcase',      color: 'primary' },
     { label: 'Total ACV (USD k)',   value: '$' + totalAcv.toFixed(0) + 'k',          icon: 'bi-graph-up',       color: 'success' },
     { label: 'Total OTC (USD k)',   value: '$' + totalOtc.toFixed(0) + 'k',          icon: 'bi-currency-dollar',color: 'warning' },
     { label: 'Top Stage',           value: topStage ? `${topStage[0]} (${topStage[1]})` : '—', icon: 'bi-bar-chart-steps', color: 'info' },
@@ -3356,6 +3357,7 @@ const FORECAST_COLORS = {
 
 function renderFunnelTable() {
   const rows = getFilteredFunnel();
+  renderFunnelKpis(rows);
   const wrap = document.getElementById('funnel-table-wrap');
   if (!rows.length) {
     wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox me-1"></i>No entries found. Click <strong>Add Entry</strong> to get started.</div>';
