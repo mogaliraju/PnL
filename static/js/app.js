@@ -2840,3 +2840,749 @@ async function runCompare() {
   noChanges.classList.toggle('d-none', data.has_changes !== false);
   document.getElementById('compare_result').classList.remove('d-none');
 }
+
+
+// ============================================================
+// ORDER BOOKINGS & COMMITS
+// ============================================================
+
+let _bookingsData = [];
+let _bookingsMeta = { custom_fields: [], column_labels: {} };
+
+const BK_BUILTIN_COLS = [
+  { key: 'booking_type',          defaultLabel: 'Type' },
+  { key: 'opf_number',            defaultLabel: 'OPF Number' },
+  { key: 'opf_date',              defaultLabel: 'OPF Date' },
+  { key: 'cdd',                   defaultLabel: 'CDD' },
+  { key: 'bu',                    defaultLabel: 'BU' },
+  { key: 'customer_name',         defaultLabel: 'Customer Name' },
+  { key: 'otc',                   defaultLabel: 'OTC (USD)' },
+  { key: 'mrc',                   defaultLabel: 'MRC (USD/mo)' },
+  { key: 'billed_pct',            defaultLabel: 'Billed %' },
+  { key: 'milestones',            defaultLabel: 'Milestones' },
+  { key: 'c4c_invoice_raised',    defaultLabel: 'C4C Invoice Raised' },
+  { key: 'c4c_amount_received',   defaultLabel: 'C4C Amt Received' },
+  { key: 'c4c_pending_billing',   defaultLabel: 'C4C Pending Billing' },
+  { key: 'ax_invoice_raised',     defaultLabel: 'AX Invoice Raised' },
+  { key: 'ax_amount_received',    defaultLabel: 'AX Amt Received' },
+  { key: 'ax_pending_collection', defaultLabel: 'AX Pending Collection' },
+  { key: 'updates',               defaultLabel: 'Updates' },
+];
+
+function bkLabel(key) {
+  return _bookingsMeta.column_labels[key] || BK_BUILTIN_COLS.find(c => c.key === key)?.defaultLabel || key;
+}
+
+async function loadBookingsOverview() {
+  const [dataRes, metaRes] = await Promise.all([
+    fetch('/api/bookings'),
+    fetch('/api/bookings/meta/custom-fields'),
+  ]);
+  _bookingsData = await dataRes.json();
+  _bookingsMeta = await metaRes.json();
+  applyBookingsColumnLabels();
+  populateBookingsBuFilter();
+  renderBookingsKpis();
+  renderBookingsTable();
+}
+
+function applyBookingsColumnLabels() {
+  document.querySelectorAll('.bk-label[data-field]').forEach(el => {
+    const key = el.dataset.field;
+    if (_bookingsMeta.column_labels[key]) el.textContent = _bookingsMeta.column_labels[key];
+  });
+}
+
+function populateBookingsBuFilter() {
+  const bus = [...new Set(_bookingsData.map(r => r.bu).filter(Boolean))].sort();
+  const sel = document.getElementById('bk-filter-bu');
+  sel.innerHTML = '<option value="">All BUs</option>' + bus.map(b => `<option>${esc(b)}</option>`).join('');
+}
+
+function renderBookingsKpis() {
+  const otcRows = _bookingsData.filter(r => r.booking_type === 'OTC');
+  const mrcRows = _bookingsData.filter(r => r.booking_type === 'MRC');
+  const totalOtc       = otcRows.reduce((s, r) => s + (r.otc || 0), 0);
+  const totalMrc       = mrcRows.reduce((s, r) => s + (r.mrc || 0), 0);
+  const totalC4cBilled = _bookingsData.reduce((s, r) => s + (r.c4c_invoice_raised || 0), 0);
+  const totalAxBilled  = _bookingsData.reduce((s, r) => s + (r.ax_invoice_raised || 0), 0);
+  const strip = document.getElementById('bookings-kpi-strip');
+  strip.innerHTML = [
+    { label: 'OTC Entries',   value: otcRows.length,                                 icon: 'bi-receipt',        color: 'primary' },
+    { label: 'MRC Entries',   value: mrcRows.length,                                 icon: 'bi-arrow-repeat',   color: 'info' },
+    { label: 'Total OTC',     value: '$' + (totalOtc / 1000).toFixed(1) + 'k',       icon: 'bi-currency-dollar',color: 'success' },
+    { label: 'Total MRC/mo',  value: '$' + (totalMrc / 1000).toFixed(1) + 'k',       icon: 'bi-calendar-month', color: 'warning' },
+    { label: 'C4C Billed',    value: '$' + (totalC4cBilled / 1000).toFixed(1) + 'k', icon: 'bi-buildings',      color: 'secondary' },
+    { label: 'AX Billed',     value: '$' + (totalAxBilled / 1000).toFixed(1) + 'k',  icon: 'bi-building',       color: 'secondary' },
+  ].map(k => `
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center py-2">
+        <div class="card-body py-1 px-2">
+          <div class="text-muted small mb-1"><i class="bi ${k.icon} me-1"></i>${k.label}</div>
+          <div class="fw-bold fs-5 text-${k.color}">${k.value}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function getFilteredBookings() {
+  const type   = document.getElementById('bk-filter-type')?.value || '';
+  const bu     = document.getElementById('bk-filter-bu')?.value || '';
+  const search = (document.getElementById('bk-filter-search')?.value || '').toLowerCase();
+  return _bookingsData.filter(r => {
+    if (type   && r.booking_type !== type)   return false;
+    if (bu     && r.bu !== bu)               return false;
+    if (search && !`${r.opf_number} ${r.customer_name} ${r.updates}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+function renderBookingsTable() {
+  const rows = getFilteredBookings();
+  const wrap = document.getElementById('bookings-table-wrap');
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox me-1"></i>No entries found. Click <strong>Add Entry</strong> to get started.</div>';
+    return;
+  }
+
+  const MONEY_KEYS = ['otc','mrc','c4c_invoice_raised','c4c_amount_received','c4c_pending_billing',
+                      'ax_invoice_raised','ax_amount_received','ax_pending_collection'];
+  const cols = [
+    { key: 'booking_type',  label: bkLabel('booking_type') },
+    { key: 'opf_number',    label: bkLabel('opf_number') },
+    { key: 'opf_date',      label: bkLabel('opf_date') },
+    { key: 'customer_name', label: bkLabel('customer_name') },
+    { key: 'bu',            label: bkLabel('bu') },
+    { key: 'otc',           label: bkLabel('otc') },
+    { key: 'mrc',           label: bkLabel('mrc') },
+    { key: 'billed_pct',    label: bkLabel('billed_pct') },
+    { key: 'c4c_invoice_raised', label: bkLabel('c4c_invoice_raised') },
+    { key: 'ax_invoice_raised',  label: bkLabel('ax_invoice_raised') },
+    { key: 'updates',       label: bkLabel('updates') },
+    ...(_bookingsMeta.custom_fields || []).map(cf => ({ key: `cf_${cf.key}`, label: cf.label, custom: true, cfKey: cf.key })),
+  ];
+
+  const typeBadge = t => t === 'OTC'
+    ? '<span class="badge text-bg-primary">OTC</span>'
+    : '<span class="badge text-bg-info">MRC</span>';
+
+  const fmtCell = (r, c) => {
+    if (c.custom) return `<td>${esc((r.extra_fields || {})[c.cfKey] ?? '')}</td>`;
+    const v = r[c.key];
+    if (c.key === 'booking_type') return `<td>${typeBadge(v)}</td>`;
+    if (v == null || v === '') return '<td><span class="text-muted">—</span></td>';
+    if (MONEY_KEYS.includes(c.key)) return `<td class="text-end">$${Number(v).toLocaleString('en-US',{maximumFractionDigits:0})}</td>`;
+    if (c.key === 'billed_pct')     return `<td class="text-end">${(Number(v)*100).toFixed(0)}%</td>`;
+    if (c.key === 'updates')        return `<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(v)}">${esc(v)}</td>`;
+    return `<td>${esc(String(v))}</td>`;
+  };
+
+  wrap.innerHTML = `
+    <table class="table table-bordered table-hover table-sm align-middle" style="font-size:0.82rem">
+      <thead class="table-dark sticky-top">
+        <tr>
+          ${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            ${cols.map(c => fmtCell(r, c)).join('')}
+            <td>
+              <button class="btn btn-outline-primary btn-sm py-0 px-1 me-1" onclick="showBookingsEntry('${esc(r.id)}')" title="Edit"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteBookingEntry('${esc(r.id)}')" title="Delete"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function clearBookingsFilters() {
+  document.getElementById('bk-filter-type').value   = '';
+  document.getElementById('bk-filter-bu').value     = '';
+  document.getElementById('bk-filter-search').value = '';
+  renderBookingsTable();
+}
+
+function showBookingsOverview() {
+  document.getElementById('bookings-sub-entry').classList.add('d-none');
+  document.getElementById('bookings-sub-overview').classList.remove('d-none');
+}
+
+async function showBookingsEntry(id) {
+  document.getElementById('bookings-sub-overview').classList.add('d-none');
+  document.getElementById('bookings-sub-entry').classList.remove('d-none');
+  renderBookingsCustomFieldsEntry();
+
+  if (!id) {
+    document.getElementById('bk-entry-id').value    = '';
+    document.getElementById('bk-entry-title').textContent = 'New Booking';
+    clearBookingsForm();
+    toggleBookingTypeFields();
+    return;
+  }
+
+  const res = await fetch(`/api/bookings/${id}`);
+  const d   = await res.json();
+  document.getElementById('bk-entry-id').value = d.id;
+  document.getElementById('bk-entry-title').textContent = `Edit: ${d.opf_number || d.customer_name || d.id}`;
+
+  const sv = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val ?? ''; };
+  sv('bk_booking_type',          d.booking_type || 'OTC');
+  sv('bk_opf_number',            d.opf_number);
+  sv('bk_opf_date',              d.opf_date ? d.opf_date.slice(0,10) : '');
+  sv('bk_cdd',                   d.cdd ? d.cdd.slice(0,10) : '');
+  sv('bk_bu',                    d.bu);
+  sv('bk_customer_name',         d.customer_name);
+  sv('bk_otc',                   d.otc);
+  sv('bk_mrc',                   d.mrc);
+  sv('bk_billed_pct',            d.billed_pct);
+  sv('bk_milestones',            d.milestones);
+  sv('bk_c4c_invoice_raised',    d.c4c_invoice_raised);
+  sv('bk_c4c_amount_received',   d.c4c_amount_received);
+  sv('bk_c4c_pending_billing',   d.c4c_pending_billing);
+  sv('bk_ax_invoice_raised',     d.ax_invoice_raised);
+  sv('bk_ax_amount_received',    d.ax_amount_received);
+  sv('bk_ax_pending_collection', d.ax_pending_collection);
+  sv('bk_updates',               d.updates);
+
+  const extra = d.extra_fields || {};
+  (_bookingsMeta.custom_fields || []).forEach(cf => {
+    const el = document.getElementById(`bk_cf_${cf.key}`);
+    if (el) el.value = extra[cf.key] ?? '';
+  });
+  toggleBookingTypeFields();
+}
+
+function clearBookingsForm() {
+  const ids = ['bk_opf_number','bk_opf_date','bk_cdd','bk_bu','bk_customer_name',
+               'bk_otc','bk_mrc','bk_billed_pct','bk_milestones','bk_c4c_invoice_raised',
+               'bk_c4c_amount_received','bk_c4c_pending_billing','bk_ax_invoice_raised',
+               'bk_ax_amount_received','bk_ax_pending_collection','bk_updates'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const bt = document.getElementById('bk_booking_type');
+  if (bt) bt.value = 'OTC';
+}
+
+function toggleBookingTypeFields() {
+  const type = document.getElementById('bk_booking_type').value;
+  document.getElementById('bk-otc-fields').classList.toggle('d-none', type !== 'OTC');
+  document.getElementById('bk-mrc-fields').classList.toggle('d-none', type !== 'MRC');
+  document.getElementById('bk-ax-pending-coll-wrap').classList.toggle('d-none', type !== 'MRC');
+}
+
+async function saveBookingEntry() {
+  const id = document.getElementById('bk-entry-id').value;
+  const extra = {};
+  (_bookingsMeta.custom_fields || []).forEach(cf => {
+    const el = document.getElementById(`bk_cf_${cf.key}`);
+    if (el) extra[cf.key] = el.value;
+  });
+
+  const g = elId => { const el = document.getElementById(elId); return el?.value || null; };
+  const payload = {
+    booking_type:          document.getElementById('bk_booking_type').value,
+    opf_number:            g('bk_opf_number'),
+    opf_date:              g('bk_opf_date'),
+    cdd:                   g('bk_cdd'),
+    bu:                    g('bk_bu'),
+    customer_name:         g('bk_customer_name'),
+    otc:                   g('bk_otc'),
+    mrc:                   g('bk_mrc'),
+    billed_pct:            g('bk_billed_pct'),
+    milestones:            g('bk_milestones'),
+    c4c_invoice_raised:    g('bk_c4c_invoice_raised'),
+    c4c_amount_received:   g('bk_c4c_amount_received'),
+    c4c_pending_billing:   g('bk_c4c_pending_billing'),
+    ax_invoice_raised:     g('bk_ax_invoice_raised'),
+    ax_amount_received:    g('bk_ax_amount_received'),
+    ax_pending_collection: g('bk_ax_pending_collection'),
+    updates:               g('bk_updates'),
+    extra_fields:          extra,
+  };
+
+  const url    = id ? `/api/bookings/${id}` : '/api/bookings';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!res.ok) { showToast('Save failed', 'danger'); return; }
+  showToast('Booking saved');
+  await loadBookingsOverview();
+  showBookingsOverview();
+}
+
+async function deleteBookingEntry(id) {
+  if (!confirm('Delete this booking entry?')) return;
+  await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+  showToast('Deleted', 'warning');
+  await loadBookingsOverview();
+}
+
+// ── Bookings Column Settings ──────────────────────────────────
+
+function renderBookingsCustomFieldsEntry() {
+  const container = document.getElementById('bk-custom-fields-entry');
+  if (!container) return;
+  container.innerHTML = (_bookingsMeta.custom_fields || []).map(cf => `
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">${esc(cf.label)}</label>
+      <input type="${cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : 'text'}"
+             class="form-control" id="bk_cf_${esc(cf.key)}"/>
+    </div>`).join('');
+}
+
+async function openBookingsColumnSettings() {
+  const res  = await fetch('/api/bookings/meta/custom-fields');
+  _bookingsMeta = await res.json();
+
+  const renameList = document.getElementById('bk-col-rename-list');
+  renameList.innerHTML = '<div class="row g-2">' +
+    BK_BUILTIN_COLS.map(c => `
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-0">${esc(c.defaultLabel)}</label>
+        <input type="text" class="form-control form-control-sm" id="bk_rename_${c.key}"
+               value="${esc(_bookingsMeta.column_labels[c.key] || '')}"
+               placeholder="${esc(c.defaultLabel)}"/>
+      </div>`).join('') +
+    '</div>';
+
+  renderBookingsCustomColList();
+  new bootstrap.Modal(document.getElementById('bookingsColumnModal')).show();
+}
+
+function renderBookingsCustomColList() {
+  const list   = document.getElementById('bk-custom-col-list');
+  const fields = _bookingsMeta.custom_fields || [];
+  if (!fields.length) {
+    list.innerHTML = '<div class="text-muted small mb-2">No custom columns yet.</div>';
+    return;
+  }
+  list.innerHTML = fields.map((cf, i) => `
+    <div class="d-flex gap-2 mb-2 align-items-center">
+      <input type="text" class="form-control form-control-sm" placeholder="Column Label"
+             value="${esc(cf.label)}" id="bk_cf_label_${i}"/>
+      <select class="form-select form-select-sm" style="max-width:120px" id="bk_cf_type_${i}">
+        <option value="text"   ${cf.type==='text'  ?'selected':''}>Text</option>
+        <option value="number" ${cf.type==='number'?'selected':''}>Number</option>
+        <option value="date"   ${cf.type==='date'  ?'selected':''}>Date</option>
+      </select>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="removeBookingsCustomField(${i})">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>`).join('');
+}
+
+function addBookingsCustomField() {
+  if (!_bookingsMeta.custom_fields) _bookingsMeta.custom_fields = [];
+  _bookingsMeta.custom_fields.push({ key: 'cf_' + Date.now(), label: 'New Column', type: 'text' });
+  renderBookingsCustomColList();
+}
+
+function removeBookingsCustomField(i) {
+  _bookingsMeta.custom_fields.splice(i, 1);
+  renderBookingsCustomColList();
+}
+
+async function saveBookingsColumnSettings() {
+  const labels = {};
+  BK_BUILTIN_COLS.forEach(c => {
+    const val = document.getElementById(`bk_rename_${c.key}`)?.value?.trim();
+    if (val) labels[c.key] = val;
+  });
+  const fields = (_bookingsMeta.custom_fields || []).map((cf, i) => ({
+    key:   cf.key,
+    label: document.getElementById(`bk_cf_label_${i}`)?.value?.trim() || cf.label,
+    type:  document.getElementById(`bk_cf_type_${i}`)?.value || 'text',
+  }));
+
+  await fetch('/api/bookings/meta/custom-fields', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ column_labels: labels, custom_fields: fields }),
+  });
+  showToast('Column settings saved');
+  bootstrap.Modal.getInstance(document.getElementById('bookingsColumnModal'))?.hide();
+  await loadBookingsOverview();
+}
+
+
+// ============================================================
+// FUNNEL REPORT
+// ============================================================
+
+let _funnelData = [];
+let _funnelMeta = { custom_fields: [], column_labels: {} };
+
+const FN_BUILTIN_COLS = [
+  { key: 'reporting_manager',  defaultLabel: 'Reporting Manager' },
+  { key: 'opportunity_owner',  defaultLabel: 'Opportunity Owner' },
+  { key: 'region',             defaultLabel: 'Region' },
+  { key: 'account_name',       defaultLabel: 'Account Name' },
+  { key: 'description',        defaultLabel: 'Description' },
+  { key: 'opportunity_name',   defaultLabel: 'Opportunity Name' },
+  { key: 'closing_month',      defaultLabel: 'Closing Month' },
+  { key: 'ageing_days',        defaultLabel: 'Ageing Days' },
+  { key: 'stage',              defaultLabel: 'Stage' },
+  { key: 'fq',                 defaultLabel: 'FQ' },
+  { key: 'final_product',      defaultLabel: 'Final Product' },
+  { key: 'net_forecasting',    defaultLabel: 'Net Forecasting' },
+  { key: 'acv_usd_k',          defaultLabel: 'ACV (USD k)' },
+  { key: 'otc_usd_k',          defaultLabel: 'OTC (USD k)' },
+  { key: 'mrc_usd_k',          defaultLabel: 'MRC (USD k)' },
+  { key: 'tcv_usd',            defaultLabel: 'TCV (USD)' },
+  { key: 'updates',            defaultLabel: 'Updates' },
+];
+
+function fnLabel(key) {
+  return _funnelMeta.column_labels[key] || FN_BUILTIN_COLS.find(c => c.key === key)?.defaultLabel || key;
+}
+
+async function loadFunnelOverview() {
+  const [dataRes, metaRes] = await Promise.all([
+    fetch('/api/funnel'),
+    fetch('/api/funnel/meta/custom-fields'),
+  ]);
+  _funnelData = await dataRes.json();
+  _funnelMeta = await metaRes.json();
+  applyFunnelColumnLabels();
+  populateFunnelFilters();
+  renderFunnelKpis();
+  renderFunnelTable();
+}
+
+function applyFunnelColumnLabels() {
+  document.querySelectorAll('.fn-label[data-field]').forEach(el => {
+    const key = el.dataset.field;
+    if (_funnelMeta.column_labels[key]) el.textContent = _funnelMeta.column_labels[key];
+  });
+}
+
+function populateFunnelFilters() {
+  const regions  = [...new Set(_funnelData.map(r => r.region).filter(Boolean))].sort();
+  const stages   = [...new Set(_funnelData.map(r => r.stage).filter(Boolean))].sort();
+  const products = [...new Set(_funnelData.map(r => r.final_product).filter(Boolean))].sort();
+  const fqs      = [...new Set(_funnelData.map(r => r.fq).filter(Boolean))].sort();
+
+  const fill = (id, items) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur   = sel.value;
+    const first = sel.options[0]?.outerHTML || '';
+    sel.innerHTML = first + items.map(v => `<option ${v===cur?'selected':''}>${esc(v)}</option>`).join('');
+  };
+  fill('fn-filter-region',  regions);
+  fill('fn-filter-stage',   stages);
+  fill('fn-filter-product', products);
+  fill('fn-filter-fq',      fqs);
+}
+
+function renderFunnelKpis() {
+  const totalAcv = _funnelData.reduce((s, r) => s + (r.acv_usd_k || 0), 0);
+  const totalOtc = _funnelData.reduce((s, r) => s + (r.otc_usd_k || 0), 0);
+  const stageCounts = {};
+  _funnelData.forEach(r => { if (r.stage) stageCounts[r.stage] = (stageCounts[r.stage] || 0) + 1; });
+  const topStage = Object.entries(stageCounts).sort((a,b) => b[1]-a[1])[0];
+
+  const strip = document.getElementById('funnel-kpi-strip');
+  strip.innerHTML = [
+    { label: 'Total Opportunities', value: _funnelData.length,                      icon: 'bi-briefcase',      color: 'primary' },
+    { label: 'Total ACV (USD k)',   value: '$' + totalAcv.toFixed(0) + 'k',          icon: 'bi-graph-up',       color: 'success' },
+    { label: 'Total OTC (USD k)',   value: '$' + totalOtc.toFixed(0) + 'k',          icon: 'bi-currency-dollar',color: 'warning' },
+    { label: 'Top Stage',           value: topStage ? `${topStage[0]} (${topStage[1]})` : '—', icon: 'bi-bar-chart-steps', color: 'info' },
+  ].map(k => `
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center py-2">
+        <div class="card-body py-1 px-2">
+          <div class="text-muted small mb-1"><i class="bi ${k.icon} me-1"></i>${k.label}</div>
+          <div class="fw-bold fs-5 text-${k.color}">${k.value}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function getFilteredFunnel() {
+  const region  = document.getElementById('fn-filter-region')?.value  || '';
+  const stage   = document.getElementById('fn-filter-stage')?.value   || '';
+  const product = document.getElementById('fn-filter-product')?.value || '';
+  const fq      = document.getElementById('fn-filter-fq')?.value      || '';
+  const search  = (document.getElementById('fn-filter-search')?.value || '').toLowerCase();
+  return _funnelData.filter(r => {
+    if (region  && r.region        !== region)  return false;
+    if (stage   && r.stage         !== stage)   return false;
+    if (product && r.final_product !== product) return false;
+    if (fq      && r.fq            !== fq)      return false;
+    if (search  && !`${r.account_name} ${r.opportunity_name} ${r.opportunity_owner} ${r.updates}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+const STAGE_COLORS = {
+  'Identified': 'secondary', 'Qualified': 'primary', 'Proposal Sent': 'info',
+  'Negotiation': 'warning',  'Closed Won': 'success', 'Closed Lost': 'danger',
+  'Pipeline': 'dark',
+};
+const FORECAST_COLORS = {
+  'Pipeline': 'secondary', 'Upside': 'warning', 'Best Case': 'info', 'Commit': 'success',
+};
+
+function renderFunnelTable() {
+  const rows = getFilteredFunnel();
+  const wrap = document.getElementById('funnel-table-wrap');
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox me-1"></i>No entries found. Click <strong>Add Entry</strong> to get started.</div>';
+    return;
+  }
+
+  const NUM_KEYS = ['acv_usd_k','otc_usd_k','mrc_usd_k','tcv_usd'];
+  const cols = [
+    { key: 'account_name',      label: fnLabel('account_name') },
+    { key: 'opportunity_name',  label: fnLabel('opportunity_name') },
+    { key: 'opportunity_owner', label: fnLabel('opportunity_owner') },
+    { key: 'region',            label: fnLabel('region') },
+    { key: 'stage',             label: fnLabel('stage') },
+    { key: 'fq',                label: fnLabel('fq') },
+    { key: 'final_product',     label: fnLabel('final_product') },
+    { key: 'net_forecasting',   label: fnLabel('net_forecasting') },
+    { key: 'acv_usd_k',         label: fnLabel('acv_usd_k') },
+    { key: 'otc_usd_k',         label: fnLabel('otc_usd_k') },
+    { key: 'updates',           label: fnLabel('updates') },
+    ...(_funnelMeta.custom_fields || []).map(cf => ({ key: `cf_${cf.key}`, label: cf.label, custom: true, cfKey: cf.key })),
+  ];
+
+  const renderCell = (r, c) => {
+    if (c.custom) return `<td>${esc((r.extra_fields || {})[c.cfKey] ?? '')}</td>`;
+    const v = r[c.key];
+    if (c.key === 'stage') {
+      const color = STAGE_COLORS[v] || 'secondary';
+      return `<td><span class="badge text-bg-${color}">${esc(v || '—')}</span></td>`;
+    }
+    if (c.key === 'net_forecasting') {
+      const color = FORECAST_COLORS[v] || 'secondary';
+      return `<td><span class="badge text-bg-${color}">${esc(v || '—')}</span></td>`;
+    }
+    if (v == null || v === '') return '<td><span class="text-muted">—</span></td>';
+    if (NUM_KEYS.includes(c.key)) return `<td class="text-end">${Number(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>`;
+    if (c.key === 'updates') return `<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(v)}">${esc(v)}</td>`;
+    return `<td>${esc(String(v))}</td>`;
+  };
+
+  wrap.innerHTML = `
+    <table class="table table-bordered table-hover table-sm align-middle" style="font-size:0.82rem">
+      <thead class="table-dark sticky-top">
+        <tr>
+          ${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            ${cols.map(c => renderCell(r, c)).join('')}
+            <td>
+              <button class="btn btn-outline-primary btn-sm py-0 px-1 me-1" onclick="showFunnelEntry('${esc(r.id)}')" title="Edit"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteFunnelEntry('${esc(r.id)}')" title="Delete"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function clearFunnelFilters() {
+  ['fn-filter-region','fn-filter-stage','fn-filter-product','fn-filter-fq'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const s = document.getElementById('fn-filter-search'); if (s) s.value = '';
+  renderFunnelTable();
+}
+
+function showFunnelOverview() {
+  document.getElementById('funnel-sub-entry').classList.add('d-none');
+  document.getElementById('funnel-sub-overview').classList.remove('d-none');
+}
+
+async function showFunnelEntry(id) {
+  document.getElementById('funnel-sub-overview').classList.add('d-none');
+  document.getElementById('funnel-sub-entry').classList.remove('d-none');
+  renderFunnelCustomFieldsEntry();
+
+  if (!id) {
+    document.getElementById('fn-entry-id').value = '';
+    document.getElementById('fn-entry-title').textContent = 'New Funnel Entry';
+    clearFunnelForm();
+    return;
+  }
+
+  const res = await fetch(`/api/funnel/${id}`);
+  const d   = await res.json();
+  document.getElementById('fn-entry-id').value = d.id;
+  document.getElementById('fn-entry-title').textContent = `Edit: ${d.account_name || d.opportunity_name || d.id}`;
+
+  const sv = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val ?? ''; };
+  sv('fn_record_id',         d.record_id);
+  sv('fn_account_name',      d.account_name);
+  sv('fn_description',       d.description);
+  sv('fn_opportunity_name',  d.opportunity_name);
+  sv('fn_region',            d.region);
+  sv('fn_reporting_manager', d.reporting_manager);
+  sv('fn_opportunity_owner', d.opportunity_owner);
+  sv('fn_stage',             d.stage);
+  sv('fn_fq',                d.fq);
+  sv('fn_final_product',     d.final_product);
+  sv('fn_net_forecasting',   d.net_forecasting);
+  sv('fn_closing_month',     d.closing_month);
+  sv('fn_ageing_days',       d.ageing_days);
+  sv('fn_created_time',      d.created_time ? d.created_time.slice(0,10) : '');
+  sv('fn_acv_usd_k',         d.acv_usd_k);
+  sv('fn_otc_usd_k',         d.otc_usd_k);
+  sv('fn_mrc_usd_k',         d.mrc_usd_k);
+  sv('fn_tcv_usd',           d.tcv_usd);
+  sv('fn_updates',           d.updates);
+
+  const extra = d.extra_fields || {};
+  (_funnelMeta.custom_fields || []).forEach(cf => {
+    const el = document.getElementById(`fn_cf_${cf.key}`);
+    if (el) el.value = extra[cf.key] ?? '';
+  });
+}
+
+function clearFunnelForm() {
+  document.querySelectorAll('#funnel-sub-entry input, #funnel-sub-entry textarea, #funnel-sub-entry select').forEach(el => {
+    if (el.id === 'fn-entry-id') return;
+    el.value = '';
+  });
+}
+
+async function saveFunnelEntry() {
+  const id = document.getElementById('fn-entry-id').value;
+  const extra = {};
+  (_funnelMeta.custom_fields || []).forEach(cf => {
+    const el = document.getElementById(`fn_cf_${cf.key}`);
+    if (el) extra[cf.key] = el.value;
+  });
+
+  const g = elId => document.getElementById(elId)?.value || null;
+  const payload = {
+    record_id:         g('fn_record_id'),
+    account_name:      g('fn_account_name'),
+    description:       g('fn_description'),
+    opportunity_name:  g('fn_opportunity_name'),
+    region:            g('fn_region'),
+    reporting_manager: g('fn_reporting_manager'),
+    opportunity_owner: g('fn_opportunity_owner'),
+    stage:             g('fn_stage'),
+    fq:                g('fn_fq'),
+    final_product:     g('fn_final_product'),
+    net_forecasting:   g('fn_net_forecasting'),
+    closing_month:     g('fn_closing_month'),
+    ageing_days:       g('fn_ageing_days'),
+    created_time:      g('fn_created_time'),
+    acv_usd_k:         g('fn_acv_usd_k'),
+    otc_usd_k:         g('fn_otc_usd_k'),
+    mrc_usd_k:         g('fn_mrc_usd_k'),
+    tcv_usd:           g('fn_tcv_usd'),
+    updates:           g('fn_updates'),
+    extra_fields:      extra,
+  };
+
+  const url    = id ? `/api/funnel/${id}` : '/api/funnel';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!res.ok) { showToast('Save failed', 'danger'); return; }
+  showToast('Funnel entry saved');
+  await loadFunnelOverview();
+  showFunnelOverview();
+}
+
+async function deleteFunnelEntry(id) {
+  if (!confirm('Delete this funnel entry?')) return;
+  await fetch(`/api/funnel/${id}`, { method: 'DELETE' });
+  showToast('Deleted', 'warning');
+  await loadFunnelOverview();
+}
+
+// ── Funnel Column Settings ────────────────────────────────────
+
+function renderFunnelCustomFieldsEntry() {
+  const container = document.getElementById('fn-custom-fields-entry');
+  if (!container) return;
+  container.innerHTML = (_funnelMeta.custom_fields || []).map(cf => `
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">${esc(cf.label)}</label>
+      <input type="${cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : 'text'}"
+             class="form-control" id="fn_cf_${esc(cf.key)}"/>
+    </div>`).join('');
+}
+
+async function openFunnelColumnSettings() {
+  const res = await fetch('/api/funnel/meta/custom-fields');
+  _funnelMeta = await res.json();
+
+  const renameList = document.getElementById('fn-col-rename-list');
+  renameList.innerHTML = '<div class="row g-2">' +
+    FN_BUILTIN_COLS.map(c => `
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-0">${esc(c.defaultLabel)}</label>
+        <input type="text" class="form-control form-control-sm" id="fn_rename_${c.key}"
+               value="${esc(_funnelMeta.column_labels[c.key] || '')}"
+               placeholder="${esc(c.defaultLabel)}"/>
+      </div>`).join('') +
+    '</div>';
+
+  renderFunnelCustomColList();
+  new bootstrap.Modal(document.getElementById('funnelColumnModal')).show();
+}
+
+function renderFunnelCustomColList() {
+  const list   = document.getElementById('fn-custom-col-list');
+  const fields = _funnelMeta.custom_fields || [];
+  if (!fields.length) {
+    list.innerHTML = '<div class="text-muted small mb-2">No custom columns yet.</div>';
+    return;
+  }
+  list.innerHTML = fields.map((cf, i) => `
+    <div class="d-flex gap-2 mb-2 align-items-center">
+      <input type="text" class="form-control form-control-sm" placeholder="Column Label"
+             value="${esc(cf.label)}" id="fn_cf_label_${i}"/>
+      <select class="form-select form-select-sm" style="max-width:120px" id="fn_cf_type_${i}">
+        <option value="text"   ${cf.type==='text'  ?'selected':''}>Text</option>
+        <option value="number" ${cf.type==='number'?'selected':''}>Number</option>
+        <option value="date"   ${cf.type==='date'  ?'selected':''}>Date</option>
+      </select>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="removeFunnelCustomField(${i})">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>`).join('');
+}
+
+function addFunnelCustomField() {
+  if (!_funnelMeta.custom_fields) _funnelMeta.custom_fields = [];
+  _funnelMeta.custom_fields.push({ key: 'cf_' + Date.now(), label: 'New Column', type: 'text' });
+  renderFunnelCustomColList();
+}
+
+function removeFunnelCustomField(i) {
+  _funnelMeta.custom_fields.splice(i, 1);
+  renderFunnelCustomColList();
+}
+
+async function saveFunnelColumnSettings() {
+  const labels = {};
+  FN_BUILTIN_COLS.forEach(c => {
+    const val = document.getElementById(`fn_rename_${c.key}`)?.value?.trim();
+    if (val) labels[c.key] = val;
+  });
+  const fields = (_funnelMeta.custom_fields || []).map((cf, i) => ({
+    key:   cf.key,
+    label: document.getElementById(`fn_cf_label_${i}`)?.value?.trim() || cf.label,
+    type:  document.getElementById(`fn_cf_type_${i}`)?.value || 'text',
+  }));
+
+  await fetch('/api/funnel/meta/custom-fields', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ column_labels: labels, custom_fields: fields }),
+  });
+  showToast('Column settings saved');
+  bootstrap.Modal.getInstance(document.getElementById('funnelColumnModal'))?.hide();
+  await loadFunnelOverview();
+}

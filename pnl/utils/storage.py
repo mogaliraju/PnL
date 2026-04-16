@@ -35,7 +35,7 @@ def _json_loads(value: str | None, default):
     return json.loads(value)
 
 
-def _to_float(value, default: float = 0.0) -> float:
+def _to_float(value, default=0.0):
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -114,6 +114,56 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             saved_by TEXT,
             payload TEXT NOT NULL,
             PRIMARY KEY (pid, vid)
+        );
+
+        CREATE TABLE IF NOT EXISTS funnel_entries (
+            id TEXT PRIMARY KEY,
+            record_id TEXT,
+            reporting_manager TEXT,
+            opportunity_owner TEXT,
+            region TEXT,
+            account_name TEXT,
+            description TEXT,
+            opportunity_name TEXT,
+            closing_month TEXT,
+            ageing_days TEXT,
+            stage TEXT,
+            fq TEXT,
+            final_product TEXT,
+            created_time TEXT,
+            net_forecasting TEXT,
+            otc_usd_k REAL,
+            tcv_usd REAL,
+            mrc_usd_k REAL,
+            acv_usd_k REAL,
+            updates TEXT,
+            extra_fields TEXT,
+            saved_at TEXT,
+            saved_by TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS order_bookings (
+            id TEXT PRIMARY KEY,
+            booking_type TEXT NOT NULL,
+            opf_number TEXT,
+            opf_date TEXT,
+            cdd TEXT,
+            bu TEXT,
+            customer_name TEXT,
+            otc REAL,
+            mrc REAL,
+            billed_pct REAL,
+            milestones TEXT,
+            c4c_invoice_raised REAL,
+            c4c_amount_received REAL,
+            c4c_pending_billing REAL,
+            ax_invoice_raised REAL,
+            ax_amount_received REAL,
+            ax_pending_collection REAL,
+            updates TEXT,
+            extra_fields TEXT,
+            saved_at TEXT,
+            saved_by TEXT
         );
         """
     )
@@ -547,3 +597,240 @@ load_settings = load_global_settings
 save_settings = save_global_settings
 load_data = load_working_data
 save_data = save_working_data
+
+
+# ── Funnel Entries ────────────────────────────────────────────
+
+def list_funnel_entries() -> list[dict]:
+    _ensure_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM funnel_entries ORDER BY saved_at DESC, id DESC"
+        ).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d['extra_fields'] = _json_loads(d.get('extra_fields'), {})
+        result.append(d)
+    return result
+
+
+def save_funnel_entry(entry_id: str, data: dict) -> None:
+    _ensure_db()
+    extra = data.get('extra_fields') or {}
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO funnel_entries(
+                id, record_id, reporting_manager, opportunity_owner, region,
+                account_name, description, opportunity_name, closing_month,
+                ageing_days, stage, fq, final_product, created_time,
+                net_forecasting, otc_usd_k, tcv_usd, mrc_usd_k, acv_usd_k,
+                updates, extra_fields, saved_at, saved_by
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                record_id=excluded.record_id,
+                reporting_manager=excluded.reporting_manager,
+                opportunity_owner=excluded.opportunity_owner,
+                region=excluded.region,
+                account_name=excluded.account_name,
+                description=excluded.description,
+                opportunity_name=excluded.opportunity_name,
+                closing_month=excluded.closing_month,
+                ageing_days=excluded.ageing_days,
+                stage=excluded.stage,
+                fq=excluded.fq,
+                final_product=excluded.final_product,
+                created_time=excluded.created_time,
+                net_forecasting=excluded.net_forecasting,
+                otc_usd_k=excluded.otc_usd_k,
+                tcv_usd=excluded.tcv_usd,
+                mrc_usd_k=excluded.mrc_usd_k,
+                acv_usd_k=excluded.acv_usd_k,
+                updates=excluded.updates,
+                extra_fields=excluded.extra_fields,
+                saved_at=excluded.saved_at,
+                saved_by=excluded.saved_by
+            """,
+            (
+                entry_id,
+                data.get('record_id', ''),
+                data.get('reporting_manager', ''),
+                data.get('opportunity_owner', ''),
+                data.get('region', ''),
+                data.get('account_name', ''),
+                data.get('description', ''),
+                data.get('opportunity_name', ''),
+                data.get('closing_month', ''),
+                data.get('ageing_days', ''),
+                data.get('stage', ''),
+                data.get('fq', ''),
+                data.get('final_product', ''),
+                data.get('created_time', ''),
+                data.get('net_forecasting', ''),
+                _to_float(data.get('otc_usd_k'), None),
+                _to_float(data.get('tcv_usd'), None),
+                _to_float(data.get('mrc_usd_k'), None),
+                _to_float(data.get('acv_usd_k'), None),
+                data.get('updates', ''),
+                _json_dumps(extra),
+                data.get('saved_at', ''),
+                data.get('saved_by', ''),
+            ),
+        )
+        conn.commit()
+
+
+def load_funnel_entry(entry_id: str) -> dict | None:
+    _ensure_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM funnel_entries WHERE id = ?", (entry_id,)
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d['extra_fields'] = _json_loads(d.get('extra_fields'), {})
+    return d
+
+
+def delete_funnel_entry(entry_id: str) -> None:
+    _ensure_db()
+    with _connect() as conn:
+        conn.execute("DELETE FROM funnel_entries WHERE id = ?", (entry_id,))
+        conn.commit()
+
+
+# ── Order Bookings ────────────────────────────────────────────
+
+def list_order_bookings(booking_type: str | None = None) -> list[dict]:
+    _ensure_db()
+    with _connect() as conn:
+        if booking_type:
+            rows = conn.execute(
+                "SELECT * FROM order_bookings WHERE booking_type = ? ORDER BY saved_at DESC, id DESC",
+                (booking_type,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM order_bookings ORDER BY saved_at DESC, id DESC"
+            ).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d['extra_fields'] = _json_loads(d.get('extra_fields'), {})
+        result.append(d)
+    return result
+
+
+def save_order_booking(booking_id: str, data: dict) -> None:
+    _ensure_db()
+    extra = data.get('extra_fields') or {}
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO order_bookings(
+                id, booking_type, opf_number, opf_date, cdd, bu, customer_name,
+                otc, mrc, billed_pct, milestones,
+                c4c_invoice_raised, c4c_amount_received, c4c_pending_billing,
+                ax_invoice_raised, ax_amount_received, ax_pending_collection,
+                updates, extra_fields, saved_at, saved_by
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                booking_type=excluded.booking_type,
+                opf_number=excluded.opf_number,
+                opf_date=excluded.opf_date,
+                cdd=excluded.cdd,
+                bu=excluded.bu,
+                customer_name=excluded.customer_name,
+                otc=excluded.otc,
+                mrc=excluded.mrc,
+                billed_pct=excluded.billed_pct,
+                milestones=excluded.milestones,
+                c4c_invoice_raised=excluded.c4c_invoice_raised,
+                c4c_amount_received=excluded.c4c_amount_received,
+                c4c_pending_billing=excluded.c4c_pending_billing,
+                ax_invoice_raised=excluded.ax_invoice_raised,
+                ax_amount_received=excluded.ax_amount_received,
+                ax_pending_collection=excluded.ax_pending_collection,
+                updates=excluded.updates,
+                extra_fields=excluded.extra_fields,
+                saved_at=excluded.saved_at,
+                saved_by=excluded.saved_by
+            """,
+            (
+                booking_id,
+                data.get('booking_type', 'OTC'),
+                data.get('opf_number', ''),
+                data.get('opf_date', ''),
+                data.get('cdd', ''),
+                data.get('bu', ''),
+                data.get('customer_name', ''),
+                _to_float(data.get('otc'), None),
+                _to_float(data.get('mrc'), None),
+                _to_float(data.get('billed_pct'), None),
+                data.get('milestones', ''),
+                _to_float(data.get('c4c_invoice_raised'), None),
+                _to_float(data.get('c4c_amount_received'), None),
+                _to_float(data.get('c4c_pending_billing'), None),
+                _to_float(data.get('ax_invoice_raised'), None),
+                _to_float(data.get('ax_amount_received'), None),
+                _to_float(data.get('ax_pending_collection'), None),
+                data.get('updates', ''),
+                _json_dumps(extra),
+                data.get('saved_at', ''),
+                data.get('saved_by', ''),
+            ),
+        )
+        conn.commit()
+
+
+def load_order_booking(booking_id: str) -> dict | None:
+    _ensure_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM order_bookings WHERE id = ?", (booking_id,)
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d['extra_fields'] = _json_loads(d.get('extra_fields'), {})
+    return d
+
+
+def delete_order_booking(booking_id: str) -> None:
+    _ensure_db()
+    with _connect() as conn:
+        conn.execute("DELETE FROM order_bookings WHERE id = ?", (booking_id,))
+        conn.commit()
+
+
+# ── Custom Field Schemas ──────────────────────────────────────
+# Each module ('funnel' | 'bookings') stores a list of custom field defs:
+#   [{'key': 'cf_xyz', 'label': 'My Column', 'type': 'text|number|date'}, ...]
+
+def load_custom_fields(module: str) -> list:
+    _ensure_db()
+    with _connect() as conn:
+        return _get_state(conn, f'custom_fields_{module}', [])
+
+
+def save_custom_fields(module: str, fields: list) -> None:
+    _ensure_db()
+    with _connect() as conn:
+        _set_state(conn, f'custom_fields_{module}', fields)
+        conn.commit()
+
+
+def load_column_labels(module: str) -> dict:
+    """Returns overridden display labels for built-in columns: {field_key: label}."""
+    _ensure_db()
+    with _connect() as conn:
+        return _get_state(conn, f'column_labels_{module}', {})
+
+
+def save_column_labels(module: str, labels: dict) -> None:
+    _ensure_db()
+    with _connect() as conn:
+        _set_state(conn, f'column_labels_{module}', labels)
+        conn.commit()

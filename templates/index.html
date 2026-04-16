@@ -122,6 +122,8 @@
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-export"><i class="bi bi-gear me-1"></i>Export Settings</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bookings" onclick="loadBookingsOverview()"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funnel" onclick="loadFunnelOverview()"><i class="bi bi-funnel me-1"></i>Funnel Report</a></li>
   </ul>
 
   <div class="tab-content">
@@ -642,8 +644,436 @@
       </div>
     </div>
 
+    <!-- ===== ORDER BOOKINGS & COMMITS ===== -->
+    <div class="tab-pane fade" id="tab-bookings">
+      <div id="bookings-sub-overview" class="">
+        <!-- Overview -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h6 class="mb-1 fw-bold"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</h6>
+            <div class="text-muted small">OTC &amp; MRC closures — billing and collection tracking.</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="openBookingsColumnSettings()">
+              <i class="bi bi-gear me-1"></i>Column Settings
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="showBookingsEntry(null)">
+              <i class="bi bi-plus-lg me-1"></i>Add Entry
+            </button>
+          </div>
+        </div>
+        <!-- KPI strip -->
+        <div id="bookings-kpi-strip" class="row g-2 mb-3"></div>
+        <!-- Filters -->
+        <div class="d-flex flex-wrap gap-2 mb-3 align-items-end" id="bookings-filters">
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Type</label>
+            <select class="form-select form-select-sm" id="bk-filter-type" onchange="renderBookingsTable()">
+              <option value="">All</option>
+              <option value="OTC">OTC</option>
+              <option value="MRC">MRC</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">BU</label>
+            <select class="form-select form-select-sm" id="bk-filter-bu" onchange="renderBookingsTable()">
+              <option value="">All BUs</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Search</label>
+            <input type="text" class="form-control form-control-sm" id="bk-filter-search" placeholder="Customer / OPF…" oninput="renderBookingsTable()" style="min-width:200px"/>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm align-self-end" onclick="clearBookingsFilters()">
+            <i class="bi bi-x-lg me-1"></i>Clear
+          </button>
+        </div>
+        <div id="bookings-table-wrap" class="table-responsive">
+          <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Entry form (hidden by default) -->
+      <div id="bookings-sub-entry" class="d-none">
+        <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
+          <button class="btn btn-outline-secondary btn-sm" onclick="showBookingsOverview()">
+            <i class="bi bi-arrow-left me-1"></i>Back to Overview
+          </button>
+          <span class="fw-semibold small" id="bk-entry-title">New Booking</span>
+          <button class="btn btn-primary btn-sm" onclick="saveBookingEntry()">
+            <i class="bi bi-floppy me-1"></i>Save
+          </button>
+        </div>
+        <input type="hidden" id="bk-entry-id"/>
+
+        <div class="row g-3 mb-3">
+          <!-- Core Details -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold"><i class="bi bi-file-text me-1"></i>Booking Details</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="booking_type">Type</label>
+                  <select class="form-select" id="bk_booking_type" onchange="toggleBookingTypeFields()">
+                    <option value="OTC">OTC (One-Time Cost)</option>
+                    <option value="MRC">MRC (Monthly Recurring Cost)</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="opf_number">OPF Number</label>
+                  <input type="text" class="form-control" id="bk_opf_number"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="opf_date">OPF Date</label>
+                  <input type="date" class="form-control" id="bk_opf_date"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="cdd">CDD (Contract Delivery Date)</label>
+                  <input type="date" class="form-control" id="bk_cdd"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="bu">Business Unit</label>
+                  <select class="form-select" id="bk_bu">
+                    <option value="">— Select —</option>
+                    <option>SAP</option><option>EDM</option><option>AE</option>
+                    <option>AI</option><option>MWP</option><option>RPA</option><option>Data</option>
+                  </select>
+                </div>
+                <div class="mb-0">
+                  <label class="form-label bk-label" data-field="customer_name">Customer Name</label>
+                  <input type="text" class="form-control" id="bk_customer_name"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold"><i class="bi bi-currency-dollar me-1"></i>Financial Details</div>
+              <div class="card-body">
+                <div id="bk-otc-fields">
+                  <div class="mb-3">
+                    <label class="form-label bk-label" data-field="otc">OTC (USD)</label>
+                    <input type="number" class="form-control" id="bk_otc" step="0.01"/>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label bk-label" data-field="milestones">Milestones</label>
+                    <input type="text" class="form-control" id="bk_milestones" placeholder="e.g. 4"/>
+                  </div>
+                </div>
+                <div id="bk-mrc-fields" class="d-none">
+                  <div class="mb-3">
+                    <label class="form-label bk-label" data-field="mrc">MRC (USD/month)</label>
+                    <input type="number" class="form-control" id="bk_mrc" step="0.01"/>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="billed_pct">Billed %</label>
+                  <input type="number" class="form-control" id="bk_billed_pct" min="0" max="1" step="0.01" placeholder="0–1"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="c4c_invoice_raised">C4C Invoice Raised (USD)</label>
+                  <input type="number" class="form-control" id="bk_c4c_invoice_raised" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="c4c_amount_received">C4C Amount Received (USD)</label>
+                  <input type="number" class="form-control" id="bk_c4c_amount_received" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="c4c_pending_billing">C4C Pending Billing (USD)</label>
+                  <input type="number" class="form-control" id="bk_c4c_pending_billing" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="ax_invoice_raised">AX Invoice Raised (USD)</label>
+                  <input type="number" class="form-control" id="bk_ax_invoice_raised" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="ax_amount_received">AX Amount Received (USD)</label>
+                  <input type="number" class="form-control" id="bk_ax_amount_received" step="0.01"/>
+                </div>
+                <div id="bk-ax-pending-coll-wrap" class="mb-0 d-none">
+                  <label class="form-label bk-label" data-field="ax_pending_collection">AX Pending Collection (USD)</label>
+                  <input type="number" class="form-control" id="bk_ax_pending_collection" step="0.01"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes + Custom -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-chat-text me-1"></i>Notes &amp; Custom Fields</span>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label bk-label" data-field="updates">Updates / Comments</label>
+                  <textarea class="form-control" id="bk_updates" rows="4"></textarea>
+                </div>
+                <div id="bk-custom-fields-entry"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FUNNEL REPORT ===== -->
+    <div class="tab-pane fade" id="tab-funnel">
+      <div id="funnel-sub-overview" class="">
+        <!-- Overview header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h6 class="mb-1 fw-bold"><i class="bi bi-funnel me-1"></i>Funnel Report</h6>
+            <div class="text-muted small">Pipeline opportunities — stages, forecasts, and ACV tracking.</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="openFunnelColumnSettings()">
+              <i class="bi bi-gear me-1"></i>Column Settings
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="showFunnelEntry(null)">
+              <i class="bi bi-plus-lg me-1"></i>Add Entry
+            </button>
+          </div>
+        </div>
+        <!-- KPI strip -->
+        <div id="funnel-kpi-strip" class="row g-2 mb-3"></div>
+        <!-- Filters -->
+        <div class="d-flex flex-wrap gap-2 mb-3 align-items-end" id="funnel-filters">
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Region</label>
+            <select class="form-select form-select-sm" id="fn-filter-region" onchange="renderFunnelTable()">
+              <option value="">All Regions</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Stage</label>
+            <select class="form-select form-select-sm" id="fn-filter-stage" onchange="renderFunnelTable()">
+              <option value="">All Stages</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Product</label>
+            <select class="form-select form-select-sm" id="fn-filter-product" onchange="renderFunnelTable()">
+              <option value="">All Products</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">FQ</label>
+            <select class="form-select form-select-sm" id="fn-filter-fq" onchange="renderFunnelTable()">
+              <option value="">All FQs</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label mb-1 small fw-semibold">Search</label>
+            <input type="text" class="form-control form-control-sm" id="fn-filter-search" placeholder="Account / Opportunity…" oninput="renderFunnelTable()" style="min-width:200px"/>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm align-self-end" onclick="clearFunnelFilters()">
+            <i class="bi bi-x-lg me-1"></i>Clear
+          </button>
+        </div>
+        <div id="funnel-table-wrap" class="table-responsive">
+          <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Entry form -->
+      <div id="funnel-sub-entry" class="d-none">
+        <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
+          <button class="btn btn-outline-secondary btn-sm" onclick="showFunnelOverview()">
+            <i class="bi bi-arrow-left me-1"></i>Back to Overview
+          </button>
+          <span class="fw-semibold small" id="fn-entry-title">New Funnel Entry</span>
+          <button class="btn btn-primary btn-sm" onclick="saveFunnelEntry()">
+            <i class="bi bi-floppy me-1"></i>Save
+          </button>
+        </div>
+        <input type="hidden" id="fn-entry-id"/>
+
+        <div class="row g-3 mb-3">
+          <!-- Opportunity Identity -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold"><i class="bi bi-building me-1"></i>Opportunity Identity</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="record_id">Record ID</label>
+                  <input type="text" class="form-control" id="fn_record_id"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="account_name">Account Name</label>
+                  <input type="text" class="form-control" id="fn_account_name"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="description">What are they into</label>
+                  <input type="text" class="form-control" id="fn_description"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="opportunity_name">Opportunity Name</label>
+                  <input type="text" class="form-control" id="fn_opportunity_name"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="region">Region</label>
+                  <select class="form-select" id="fn_region">
+                    <option value="">— Select —</option>
+                    <option>India</option><option>MEST</option><option>ASEAN</option>
+                    <option>ROW</option><option>APAC</option><option>North America</option>
+                    <option>South America</option><option>Europe</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="reporting_manager">Reporting Manager</label>
+                  <input type="text" class="form-control" id="fn_reporting_manager"/>
+                </div>
+                <div class="mb-0">
+                  <label class="form-label fn-label" data-field="opportunity_owner">Opportunity Owner</label>
+                  <input type="text" class="form-control" id="fn_opportunity_owner"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pipeline Details -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold"><i class="bi bi-bar-chart-steps me-1"></i>Pipeline Details</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="stage">Stage</label>
+                  <select class="form-select" id="fn_stage">
+                    <option value="">— Select —</option>
+                    <option>Identified</option><option>Qualified</option>
+                    <option>Proposal Sent</option><option>Negotiation</option>
+                    <option>Closed Won</option><option>Closed Lost</option><option>Pipeline</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="fq">Fiscal Quarter</label>
+                  <input type="text" class="form-control" id="fn_fq" placeholder="e.g. Q2'26"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="final_product">Final Product</label>
+                  <select class="form-select" id="fn_final_product">
+                    <option value="">— Select —</option>
+                    <option>Data</option><option>SAP Services</option><option>Echo</option>
+                    <option>AE</option><option>AI</option><option>Connect / Echo</option>
+                    <option>MWP</option><option>RPA</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="net_forecasting">Net Forecasting</label>
+                  <select class="form-select" id="fn_net_forecasting">
+                    <option value="">— Select —</option>
+                    <option>Pipeline</option><option>Upside</option>
+                    <option>Best Case</option><option>Commit</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="closing_month">Closing Month</label>
+                  <input type="text" class="form-control" id="fn_closing_month" placeholder="e.g. October"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="ageing_days">Ageing Days</label>
+                  <input type="text" class="form-control" id="fn_ageing_days"/>
+                </div>
+                <div class="mb-0">
+                  <label class="form-label fn-label" data-field="created_time">Created Time</label>
+                  <input type="date" class="form-control" id="fn_created_time"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financials + Notes -->
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-header fw-bold"><i class="bi bi-currency-dollar me-1"></i>Financials &amp; Notes</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="acv_usd_k">ACV (USD k)</label>
+                  <input type="number" class="form-control" id="fn_acv_usd_k" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="otc_usd_k">OTC (USD k)</label>
+                  <input type="number" class="form-control" id="fn_otc_usd_k" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="mrc_usd_k">MRC (USD k)</label>
+                  <input type="number" class="form-control" id="fn_mrc_usd_k" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="tcv_usd">TCV (USD)</label>
+                  <input type="number" class="form-control" id="fn_tcv_usd" step="0.01"/>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fn-label" data-field="updates">Updates / Notes</label>
+                  <textarea class="form-control" id="fn_updates" rows="4"></textarea>
+                </div>
+                <div id="fn-custom-fields-entry"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /tab-content -->
 </div><!-- /container -->
+
+<!-- Bookings Column Settings Modal -->
+<div class="modal fade" id="bookingsColumnModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--ax-grad)">
+        <h5 class="modal-title text-white"><i class="bi bi-gear me-2"></i>Bookings — Column Settings</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">Rename Built-in Columns</h6>
+        <div id="bk-col-rename-list" class="mb-4"></div>
+        <h6 class="fw-bold mb-2">Custom Columns</h6>
+        <div id="bk-custom-col-list" class="mb-2"></div>
+        <button class="btn btn-outline-primary btn-sm" onclick="addBookingsCustomField()">
+          <i class="bi bi-plus-lg me-1"></i>Add Column
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveBookingsColumnSettings()">
+          <i class="bi bi-floppy me-1"></i>Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Funnel Column Settings Modal -->
+<div class="modal fade" id="funnelColumnModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--ax-grad)">
+        <h5 class="modal-title text-white"><i class="bi bi-gear me-2"></i>Funnel — Column Settings</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">Rename Built-in Columns</h6>
+        <div id="fn-col-rename-list" class="mb-4"></div>
+        <h6 class="fw-bold mb-2">Custom Columns</h6>
+        <div id="fn-custom-col-list" class="mb-2"></div>
+        <button class="btn btn-outline-primary btn-sm" onclick="addFunnelCustomField()">
+          <i class="bi bi-plus-lg me-1"></i>Add Column
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveFunnelColumnSettings()">
+          <i class="bi bi-floppy me-1"></i>Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
