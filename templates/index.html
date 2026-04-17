@@ -549,7 +549,7 @@
           <button class="btn btn-primary btn-sm ratecard-action-btn" onclick="addRateLevel()">
             <i class="bi bi-plus-circle me-1"></i>Add Level
           </button>
-          <button class="btn btn-success btn-sm ratecard-action-btn" onclick="saveSettings(); showToast('Rate card saved!', 'success')">
+          <button class="btn btn-success btn-sm ratecard-action-btn" onclick="collectAllRates(); saveSettings().then(() => showToast('Rate card saved!', 'success'))">
             <i class="bi bi-floppy me-1"></i>Save
           </button>
         </div>

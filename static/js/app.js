@@ -795,7 +795,7 @@ function renderRateCard() {
       <td><input type="text" class="form-control form-control-sm" value="${esc(item.level)}"
           oninput="appData.rate_card[${i}].level=this.value; renderRateChart(); saveSettings();"/></td>
       <td><input type="number" class="form-control form-control-sm text-end" value="${rate}" min="0" step="0.5"
-          onchange="setRate(${i},this.value,'${esc(selectedCat)}'); renderResources(); updateSummary(); renderRateChart(); saveSettings();"/></td>
+          oninput="setRate(${i},this.value,'${esc(selectedCat)}'); renderResources(); updateSummary(); renderRateChart();"/></td>
       ${inrCell}
       <td class="text-center">
         <button class="btn btn-outline-danger btn-icon" onclick="removeRateLevel(${i})" title="Remove">
@@ -808,8 +808,21 @@ function renderRateCard() {
   renderRateChart();
 }
 
-function saveSettings() {
-  fetch('/api/settings', {
+function collectAllRates() {
+  // Explicitly read every rate input from the DOM into appData before saving
+  const cat = document.getElementById('ratecard-category-filter')?.value || '';
+  document.querySelectorAll('#ratecard-tbody tr[data-rc-idx]').forEach(row => {
+    const i = parseInt(row.dataset.rcIdx);
+    if (!appData.rate_card[i]) return;
+    const levelInput = row.querySelector('input[type="text"]');
+    const rateInput  = row.querySelector('input[type="number"]');
+    if (levelInput) appData.rate_card[i].level = levelInput.value.trim();
+    if (rateInput)  setRate(i, rateInput.value, cat);
+  });
+}
+
+async function saveSettings() {
+  const res = await fetch('/api/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -817,6 +830,7 @@ function saveSettings() {
       role_catalog: appData.role_catalog
     })
   });
+  if (!res.ok) showToast('Save failed — please try again', 'danger');
 }
 
 function sortRateCard(category) {
