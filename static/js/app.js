@@ -1557,11 +1557,12 @@ const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'saved_by',
 ];
 const ALL_PROJECTS_COLUMN_GROUPS = [
-  { label: 'Basics', keys: ['customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date'] },
-  { label: 'Pipeline', keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id'] },
-  { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency'] },
-  { label: 'Financial', keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
-  { label: 'Audit', keys: ['since_save', 'saved_at', 'saved_by'] },
+  { label: 'Basics',     keys: ['customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date', 'project_description', 'customer_first_touch_point'] },
+  { label: 'Pipeline',   keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'technical_lead', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id', 'next_action'] },
+  { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency', 'payment_terms'] },
+  { label: 'Financial',  keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'travel_cost', 'infra_cost', 'third_party_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
+  { label: 'Notes',      keys: ['internal_notes', 'risks', 'dependencies'] },
+  { label: 'Audit',      keys: ['since_save', 'saved_at', 'saved_by'] },
 ];
 let _allProjectsPickerOpen = false;
 let _allProjectsDraftColumns = null;
@@ -1626,6 +1627,17 @@ function getAllProjectsColumnDefs(formatters) {
         return `<td class="text-end small ${p.costs?.gross_margin ? marginColor : ''}">${p.costs?.gross_margin ? pct(p.costs.gross_margin) : ''}</td>`;
       }
     },
+    { key: 'technical_lead',             label: 'Technical Lead',    headerClass: '', sortValue: p => p.technical_lead || '',             cell: p => `<td class="small">${esc(p.technical_lead || '')}</td>` },
+    { key: 'payment_terms',              label: 'Payment Terms',     headerClass: '', sortValue: p => p.payment_terms || '',              cell: p => `<td class="small">${esc(p.payment_terms || '')}</td>` },
+    { key: 'customer_first_touch_point', label: 'First Touch',       headerClass: '', sortValue: p => p.customer_first_touch_point || '', cell: p => `<td class="small">${esc(p.customer_first_touch_point || '')}</td>` },
+    { key: 'project_description',        label: 'Description',       headerClass: '', sortValue: p => p.project_description || '',        cell: p => `<td class="small" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.project_description || '')}">${esc(p.project_description || '')}</td>` },
+    { key: 'next_action',                label: 'Next Action',       headerClass: '', sortValue: p => p.next_action || '',                cell: p => `<td class="small" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.next_action || '')}">${esc(p.next_action || '')}</td>` },
+    { key: 'internal_notes',             label: 'Internal Notes',    headerClass: '', sortValue: p => p.internal_notes || '',             cell: p => `<td class="small" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.internal_notes || '')}">${esc(p.internal_notes || '')}</td>` },
+    { key: 'risks',                      label: 'Risks',             headerClass: '', sortValue: p => p.risks || '',                      cell: p => `<td class="small" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.risks || '')}">${esc(p.risks || '')}</td>` },
+    { key: 'dependencies',               label: 'Dependencies',      headerClass: '', sortValue: p => p.dependencies || '',               cell: p => `<td class="small" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.dependencies || '')}">${esc(p.dependencies || '')}</td>` },
+    { key: 'travel_cost',      label: 'Travel Cost',      headerClass: 'text-end', sortValue: p => Number(p.travel_cost || 0),      cell: p => `<td class="text-end small">${p.travel_cost ? fmt(p.travel_cost) : ''}</td>` },
+    { key: 'infra_cost',       label: 'Infra Cost',       headerClass: 'text-end', sortValue: p => Number(p.infra_cost || 0),       cell: p => `<td class="text-end small">${p.infra_cost ? fmt(p.infra_cost) : ''}</td>` },
+    { key: 'third_party_cost', label: '3rd Party Cost',   headerClass: 'text-end', sortValue: p => Number(p.third_party_cost || 0), cell: p => `<td class="text-end small">${p.third_party_cost ? fmt(p.third_party_cost) : ''}</td>` },
     { key: 'since_save', label: 'Since Save', headerClass: 'text-center', sortValue: p => p.saved_at || '', cell: p => `<td class="text-center small text-muted">${daysAgo(p.saved_at)}</td>` },
     { key: 'saved_at', label: 'Saved At', headerClass: '', sortValue: p => p.saved_at || '', cell: p => `<td class="small text-muted">${shortDateTime(p.saved_at)}</td>` },
     { key: 'saved_by', label: 'Saved By', headerClass: '', sortValue: p => p.saved_by || '', cell: p => `<td class="small text-muted">${esc(p.saved_by || '')}</td>` },
