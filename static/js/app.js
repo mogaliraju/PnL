@@ -1577,7 +1577,7 @@ let _allProjectsOpenFilter = null;
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
   return [
-    { key: 'customer', label: 'Customer', headerClass: '', sortValue: p => p.customer || '', cell: p => `<td class="fw-semibold">${esc(p.customer || '')}</td>` },
+    { key: 'customer', label: 'Customer', headerClass: '', sortValue: p => p.customer || '', cell: p => `<td class="ap-col-customer">${esc(p.customer || '')}</td>` },
     { key: 'project', label: 'Project', headerClass: '', sortValue: p => p.name || '', cell: p => `<td>${esc(p.name)}</td>` },
     { key: 'reference', label: 'Reference', headerClass: '', sortValue: p => p.reference || '', cell: p => `<td class="small">${esc(p.reference || '')}</td>` },
     { key: 'business_unit', label: 'Business Unit', headerClass: '', sortValue: p => p.business_unit || '', cell: p => `<td class="small">${esc(p.business_unit || '')}</td>` },
@@ -1586,7 +1586,12 @@ function getAllProjectsColumnDefs(formatters) {
       label: 'Status',
       headerClass: '',
       sortValue: p => p.status || '',
-      cell: p => `<td><span class="badge text-bg-${p.status === 'Won' ? 'success' : p.status === 'Lost' ? 'danger' : p.status === 'On Hold' ? 'warning' : 'secondary'}">${esc(p.status || '')}</span></td>`
+      cell: p => {
+        const s = p.status || '';
+        const cls = s==='Won'?'ap-status-won':s==='Lost'?'ap-status-lost':s==='Submitted'?'ap-status-submitted':s==='On Hold'?'ap-status-onhold':s==='Draft'?'ap-status-draft':'ap-status-default';
+        const icon = s==='Won'?'bi-check-circle-fill':s==='Lost'?'bi-x-circle-fill':s==='Submitted'?'bi-send-fill':s==='On Hold'?'bi-pause-circle-fill':s==='Draft'?'bi-pencil-fill':'bi-circle-fill';
+        return s ? `<td><span class="ap-status-badge ${cls}"><i class="bi ${icon}"></i>${esc(s)}</span></td>` : '<td></td>';
+      }
     },
     { key: 'stage', label: 'Stage', headerClass: '', sortValue: p => p.stage || '', cell: p => `<td class="small">${esc(p.stage || '')}</td>` },
     { key: 'priority', label: 'Priority', headerClass: '', sortValue: p => p.priority || '', cell: p => `<td class="small">${esc(p.priority || '')}</td>` },
@@ -1596,9 +1601,9 @@ function getAllProjectsColumnDefs(formatters) {
     { key: 'delivery_manager', label: 'Delivery Manager', headerClass: '', sortValue: p => p.delivery_manager || '', cell: p => `<td class="small">${esc(p.delivery_manager || '')}</td>` },
     { key: 'location', label: 'Location', headerClass: '', sortValue: p => p.location || '', cell: p => `<td class="text-muted small">${esc(p.location || '')}</td>` },
     { key: 'duration', label: 'Duration', headerClass: 'text-center', sortValue: p => Number(p.duration || 0), cell: p => `<td class="text-center small">${p.duration ? p.duration + ' mo' : ''}</td>` },
-    { key: 'proposal_date', label: 'Proposal Date', headerClass: '', sortValue: p => p.proposal_date || '', cell: p => `<td class="small text-muted">${esc(p.proposal_date || '')}</td>` },
-    { key: 'expected_start_date', label: 'Start Date', headerClass: '', sortValue: p => p.expected_start_date || '', cell: p => `<td class="small text-muted">${esc(p.expected_start_date || '')}</td>` },
-    { key: 'expected_end_date', label: 'End Date', headerClass: '', sortValue: p => p.expected_end_date || '', cell: p => `<td class="small text-muted">${esc(p.expected_end_date || '')}</td>` },
+    { key: 'proposal_date', label: 'Proposal Date', headerClass: '', sortValue: p => p.proposal_date || '', cell: p => `<td class="ap-col-date">${esc(p.proposal_date || '')}</td>` },
+    { key: 'expected_start_date', label: 'Start Date', headerClass: '', sortValue: p => p.expected_start_date || '', cell: p => `<td class="ap-col-date">${esc(p.expected_start_date || '')}</td>` },
+    { key: 'expected_end_date', label: 'End Date', headerClass: '', sortValue: p => p.expected_end_date || '', cell: p => `<td class="ap-col-date">${esc(p.expected_end_date || '')}</td>` },
     { key: 'next_follow_up_date', label: 'Follow-Up', headerClass: '', sortValue: p => p.next_follow_up_date || '', cell: p => `<td class="small">${esc(p.next_follow_up_date || '')}</td>` },
     { key: 'opportunity_id', label: 'Opportunity ID', headerClass: '', sortValue: p => p.opportunity_id || '', cell: p => `<td class="small">${esc(p.opportunity_id || '')}</td>` },
     { key: 'partner', label: 'Partner', headerClass: '', sortValue: p => p.partner || '', cell: p => `<td class="small">${esc(p.partner || '')}</td>` },
@@ -1613,8 +1618,8 @@ function getAllProjectsColumnDefs(formatters) {
     { key: 'input_cost', label: 'Input Cost', headerClass: 'text-end', sortValue: p => Number(p.costs?.input_cost || 0), cell: p => `<td class="text-end small">${p.costs?.input_cost ? fmt(p.costs.input_cost) : ''}</td>` },
     { key: 'add_on_cost', label: 'Add-On Cost', headerClass: 'text-end', sortValue: p => Number(p.add_on_cost || 0), cell: p => `<td class="text-end small">${p.add_on_cost ? fmt(p.add_on_cost) : ''}</td>` },
     { key: 'discount_pct', label: 'Discount %', headerClass: 'text-end', sortValue: p => Number(p.discount_pct || 0), cell: p => `<td class="text-end small">${p.discount_pct ? pctNumber(p.discount_pct) : ''}</td>` },
-    { key: 'markup', label: 'MarkUp', headerClass: 'text-end', sortValue: p => Number(p.costs?.markup || 0), cell: p => `<td class="text-end small">${p.costs?.markup ? fmt(p.costs.markup) : ''}</td>` },
-    { key: 'revenue', label: 'Revenue', headerClass: 'text-end', sortValue: p => Number(p.costs?.sell_cost || 0), cell: p => `<td class="text-end small">${p.costs?.sell_cost ? fmt(p.costs.sell_cost) : ''}</td>` },
+    { key: 'markup', label: 'MarkUp', headerClass: 'text-end', sortValue: p => Number(p.costs?.markup || 0), cell: p => `<td class="text-end ap-col-number" style="color:#6d28d9;font-weight:700">${p.costs?.markup ? fmt(p.costs.markup) : ''}</td>` },
+    { key: 'revenue', label: 'Revenue', headerClass: 'text-end', sortValue: p => Number(p.costs?.sell_cost || 0), cell: p => `<td class="text-end ap-col-number" style="color:#15803d;font-weight:700">${p.costs?.sell_cost ? fmt(p.costs.sell_cost) : ''}</td>` },
     { key: 'profit_amount', label: 'Profit', headerClass: 'text-end', sortValue: p => Number(p.profit_amount || 0), cell: p => `<td class="text-end small">${p.profit_amount ? fmt(p.profit_amount) : ''}</td>` },
     {
       key: 'gross_margin',
@@ -1623,8 +1628,11 @@ function getAllProjectsColumnDefs(formatters) {
       sortValue: p => Number(p.costs?.gross_margin || 0),
       cell: p => {
         const margin = (p.costs?.gross_margin || 0) * 100;
-        const marginColor = margin >= 35 ? 'text-success fw-bold' : margin >= 20 ? 'text-warning fw-bold' : 'text-danger fw-bold';
-        return `<td class="text-end small ${p.costs?.gross_margin ? marginColor : ''}">${p.costs?.gross_margin ? pct(p.costs.gross_margin) : ''}</td>`;
+        const gmColor = margin >= 35 ? '#15803d' : margin >= 20 ? '#d97706' : '#b91c1c';
+        const gmBg    = margin >= 35 ? '#dcfce7' : margin >= 20 ? '#fef3c7' : '#fee2e2';
+        return p.costs?.gross_margin
+          ? `<td class="text-end"><span style="background:${gmBg};color:${gmColor};font-weight:700;font-size:0.8rem;padding:2px 8px;border-radius:6px;display:inline-block">${pct(p.costs.gross_margin)}</span></td>`
+          : '<td></td>';
       }
     },
     { key: 'technical_lead',             label: 'Technical Lead',    headerClass: '', sortValue: p => p.technical_lead || '',             cell: p => `<td class="small">${esc(p.technical_lead || '')}</td>` },
@@ -1638,9 +1646,9 @@ function getAllProjectsColumnDefs(formatters) {
     { key: 'travel_cost',      label: 'Travel Cost',      headerClass: 'text-end', sortValue: p => Number(p.travel_cost || 0),      cell: p => `<td class="text-end small">${p.travel_cost ? fmt(p.travel_cost) : ''}</td>` },
     { key: 'infra_cost',       label: 'Infra Cost',       headerClass: 'text-end', sortValue: p => Number(p.infra_cost || 0),       cell: p => `<td class="text-end small">${p.infra_cost ? fmt(p.infra_cost) : ''}</td>` },
     { key: 'third_party_cost', label: '3rd Party Cost',   headerClass: 'text-end', sortValue: p => Number(p.third_party_cost || 0), cell: p => `<td class="text-end small">${p.third_party_cost ? fmt(p.third_party_cost) : ''}</td>` },
-    { key: 'since_save', label: 'Since Save', headerClass: 'text-center', sortValue: p => p.saved_at || '', cell: p => `<td class="text-center small text-muted">${daysAgo(p.saved_at)}</td>` },
-    { key: 'saved_at', label: 'Saved At', headerClass: '', sortValue: p => p.saved_at || '', cell: p => `<td class="small text-muted">${shortDateTime(p.saved_at)}</td>` },
-    { key: 'saved_by', label: 'Saved By', headerClass: '', sortValue: p => p.saved_by || '', cell: p => `<td class="small text-muted">${esc(p.saved_by || '')}</td>` },
+    { key: 'since_save', label: 'Since Save', headerClass: 'text-center', sortValue: p => p.saved_at || '', cell: p => `<td class="text-center ap-col-secondary">${daysAgo(p.saved_at)}</td>` },
+    { key: 'saved_at', label: 'Saved At', headerClass: '', sortValue: p => p.saved_at || '', cell: p => `<td class="ap-col-date">${shortDateTime(p.saved_at)}</td>` },
+    { key: 'saved_by', label: 'Saved By', headerClass: '', sortValue: p => p.saved_by || '', cell: p => `<td class="ap-col-secondary">${esc(p.saved_by || '')}</td>` },
   ];
 }
 
