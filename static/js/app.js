@@ -1972,7 +1972,7 @@ function refilterAllProjects() {
 
   const columnDefs = getAllProjectsColumnDefs({ fmt, pct, pctNumber, num, shortDateTime, daysAgo });
   const visibleKeys = loadVisibleAllProjectsColumns();
-  const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
+  const visibleColumns = visibleKeys.map(key => columnDefs.find(def => def.key === key)).filter(Boolean);
   const searchQuery = loadAllProjectsSearch();
   const filteredList = filterAllProjectsList(list, searchQuery);
   const sortedList = sortAllProjectsList(filteredList, columnDefs);
@@ -2247,7 +2247,7 @@ async function loadAllProjects() {
 
   const columnDefs = getAllProjectsColumnDefs({ fmt, pct, pctNumber, num, shortDateTime, daysAgo });
   const visibleKeys = loadVisibleAllProjectsColumns();
-  const visibleColumns = columnDefs.filter(def => visibleKeys.includes(def.key));
+  const visibleColumns = visibleKeys.map(key => columnDefs.find(def => def.key === key)).filter(Boolean);
   const draftKeys = _allProjectsDraftColumns || [...visibleKeys];
   const sortState = loadAllProjectsSort();
   const searchQuery = loadAllProjectsSearch();
