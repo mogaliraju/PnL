@@ -46,10 +46,6 @@
 
       <div class="vr opacity-25 mx-1" style="height:24px"></div>
 
-      <!-- Export -->
-      <button class="btn btn-success btn-sm" onclick="exportExcel()">
-        <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
-      </button>
       <!-- User dropdown -->
       <div class="dropdown">
         <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
@@ -159,6 +155,9 @@
       <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
         <span class="text-muted small" id="proj-savebar-label">New project — fill in details below</span>
         <div class="d-flex gap-2">
+          <button class="btn btn-outline-success btn-sm" onclick="exportExcel()">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+          </button>
           <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saveAsModal">
             <i class="bi bi-floppy2 me-1"></i>Save As New Project…
           </button>

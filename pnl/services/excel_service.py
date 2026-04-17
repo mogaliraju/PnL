@@ -5,15 +5,18 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter, range_boundaries
 
 # ── AX Brand Palette ──────────────────────────────────────────
-AX_DARK   = '2D1B69'   # deep navy-purple  (primary headers)
-AX_MED    = '5B21B6'   # medium purple     (sub-headers)
-AX_LIGHT  = '7C3AED'   # violet            (table headers)
-AX_PALE   = 'EDE9FE'   # lavender tint     (label cells)
-AX_ACCENT = 'DDD6FE'   # light purple      (alternate rows)
-AX_AMBER  = 'FEF3C7'   # amber tint        (cost highlight)
-AX_GREEN  = 'DCFCE7'   # green tint        (revenue highlight)
-AX_WHITE  = 'FFFFFF'
-AX_TEXT   = '1E1B4B'   # dark indigo text
+AX_DARK      = '2D1B69'   # deep navy-purple  (primary headers)
+AX_MED       = '5B21B6'   # medium purple     (sub-headers)
+AX_LIGHT     = '7C3AED'   # violet            (table headers)
+AX_PALE      = 'EDE9FE'   # lavender tint     (label cells)
+AX_ACCENT    = 'DDD6FE'   # light purple      (alternate rows)
+AX_AMBER     = 'FEF3C7'   # amber tint        (cost highlight)
+AX_AMBER_STR = 'F59E0B'   # strong amber      (markup % border)
+AX_GREEN     = 'DCFCE7'   # green tint        (revenue / markup highlight)
+AX_GREEN_STR = '16A34A'   # strong green      (gross margin font)
+AX_GOLD      = 'FDE68A'   # gold              (markup % highlight)
+AX_WHITE     = 'FFFFFF'
+AX_TEXT      = '1E1B4B'   # dark indigo text
 
 
 def _side(style='thin'):
@@ -167,24 +170,37 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
 
     for idx, role in enumerate(pnl_roles):
         r = 7 + idx
-        ws.row_dimensions[r].height = 22
+        ws.row_dimensions[r].height = 24
         row_bg = AX_PALE if idx % 2 == 0 else AX_WHITE
 
         desc = (proj.get('project_description') or proj.get('customer', '')) if idx == 0 else role.get('name', '')
         _merge(ws, f'A{r}:B{r}', desc, bold=(idx == 0), size=10, bg=row_bg)
-        _cell(ws, r, 3,  role.get('name', ''),          size=10, bg=row_bg)
-        _cell(ws, r, 4,  role.get('partner', ''),        size=10, bg=row_bg)
-        _cell(ws, r, 5,  role.get('payment_terms', ''),  size=10, bg=row_bg)
-        _cell(ws, r, 6,  proj.get('duration_months', ''),size=10, bg=row_bg, h_align='center')
+        # Col 3: Delivery Method (project-level)
+        _cell(ws, r, 3,  proj.get('delivery_model', '') if idx == 0 else '',  size=10, bg=row_bg)
+        # Col 4: Partner Details (project-level)
+        _cell(ws, r, 4,  proj.get('partner', '')        if idx == 0 else '',  size=10, bg=row_bg)
+        # Col 5: Payment Terms (project-level)
+        _cell(ws, r, 5,  proj.get('payment_terms', '')  if idx == 0 else '',  size=10, bg=row_bg)
+        _cell(ws, r, 6,  proj.get('duration_months', '') if idx == 0 else '', size=10, bg=row_bg, h_align='center')
 
         if idx == 0:
-            _cell(ws, r, 7,  sell_cost,    size=10, bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
+            # Revenue — bold green, prominent
+            _cell(ws, r, 7,  sell_cost,    bold=True, size=11, color=AX_TEXT,
+                  bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
             _cell(ws, r, 8,  '',           size=10, bg=row_bg)
             _cell(ws, r, 9,  '',           size=10, bg=row_bg)
+            # Cost — amber
             _cell(ws, r, 10, input_cost,   size=10, bg=AX_AMBER, num_fmt='#,##0.00', h_align='right')
-            _cell(ws, r, 11, markup,       size=10, bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
-            _cell(ws, r, 12, markup_pct,   size=10, bg=row_bg,   num_fmt='0.0%',     h_align='center')
-            _cell(ws, r, 13, gross_margin, size=10, bg=row_bg,   num_fmt='0.0%',     h_align='center')
+            # Markup USD — bold green
+            _cell(ws, r, 11, markup,       bold=True, size=11, color=AX_TEXT,
+                  bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
+            # Markup % — bold gold background
+            _cell(ws, r, 12, markup_pct,   bold=True, size=11, color=AX_TEXT,
+                  bg=AX_GOLD,  num_fmt='0.0%', h_align='center')
+            # Gross Margin — bold, strong green font, pale green bg
+            gm_color = AX_GREEN_STR if gross_margin >= 0.30 else AX_AMBER_STR if gross_margin >= 0.15 else 'DC2626'
+            _cell(ws, r, 13, gross_margin, bold=True, size=12, color=gm_color,
+                  bg=AX_GREEN, num_fmt='0.0%', h_align='center')
         else:
             for col in range(7, 14):
                 _cell(ws, r, col, '', size=10, bg=row_bg)
