@@ -1711,9 +1711,9 @@ function updateAllProjectsDraftColumnSelection(columnKey, checked) {
   const defs = getAllProjectsColumnDefs({ fmt: () => '', pct: () => '', pctNumber: () => '', num: () => '', shortDateTime: () => '', daysAgo: () => '' });
   const validKeys = new Set(defs.map(def => def.key));
   const selected = (_allProjectsDraftColumns || loadVisibleAllProjectsColumns()).filter(key => validKeys.has(key));
+  // Preserve user-defined order: only append when adding, filter when removing
   let next = checked ? [...selected, columnKey] : selected.filter(key => key !== columnKey);
   if (!next.length) next = [...ALL_PROJECTS_DEFAULT_COLUMNS];
-  next = defs.map(def => def.key).filter(key => next.includes(key));
   _allProjectsDraftColumns = next;
   updateAllProjectsPickerState();
 }
