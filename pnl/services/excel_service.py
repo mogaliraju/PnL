@@ -5,18 +5,19 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter, range_boundaries
 
 # ── AX Brand Palette ──────────────────────────────────────────
-AX_DARK      = '2D1B69'   # deep navy-purple  (primary headers)
-AX_MED       = '5B21B6'   # medium purple     (sub-headers)
-AX_LIGHT     = '7C3AED'   # violet            (table headers)
-AX_PALE      = 'EDE9FE'   # lavender tint     (label cells)
-AX_ACCENT    = 'DDD6FE'   # light purple      (alternate rows)
-AX_AMBER     = 'FEF3C7'   # amber tint        (cost highlight)
-AX_AMBER_STR = 'F59E0B'   # strong amber      (markup % border)
-AX_GREEN     = 'DCFCE7'   # green tint        (revenue / markup highlight)
-AX_GREEN_STR = '16A34A'   # strong green      (gross margin font)
-AX_GOLD      = 'FDE68A'   # gold              (markup % highlight)
+AX_DARK      = '1E0B4B'   # logo navy-purple   (primary headers — matches --ax-dark)
+AX_MED       = '6D28D9'   # logo medium purple (sub-headers  — matches --ax-mid)
+AX_LIGHT     = 'A855F7'   # logo light purple  (table headers — matches --ax-light)
+AX_MAGENTA   = 'C026D3'   # logo X magenta     (accent — matches --ax-magenta)
+AX_PALE      = 'EDE9FE'   # lavender tint      (label cells  — matches --ax-tint)
+AX_ACCENT    = 'F5F3FF'   # very light purple  (alternate rows — matches --ax-tint2)
+AX_AMBER     = 'FEF3C7'   # amber tint         (cost highlight)
+AX_AMBER_STR = 'F59E0B'   # strong amber       (markup % border)
+AX_GREEN     = 'DCFCE7'   # green tint         (revenue / markup highlight)
+AX_GREEN_STR = '16A34A'   # strong green       (gross margin font)
+AX_GOLD      = 'FDE68A'   # gold               (markup % highlight)
 AX_WHITE     = 'FFFFFF'
-AX_TEXT      = '1E1B4B'   # dark indigo text
+AX_TEXT      = '1E0B4B'   # dark text (same as AX_DARK for consistency)
 
 
 def _side(style='thin'):
@@ -121,7 +122,7 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
     ws.row_dimensions[2].height = 24
     _merge(ws, 'A2:M2',
            value='Project Profit and Loss Statement',
-           bold=True, size=12, color=AX_WHITE, bg=AX_MED,
+           bold=True, size=12, color=AX_WHITE, bg=AX_MAGENTA,
            h_align='center', italic=True)
 
     # ── Rows 3–5: Info section ─────────────────────────────────
@@ -231,8 +232,8 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
     # ── Header row ─────────────────────────────────────────────
     wc.row_dimensions[1].height = 28
     sheet2_hdrs = ['#', 'Role', 'Level', 'Hours', 'Rate ($/hr)', 'Cost (USD)']
-    hdr_bgs = [AX_PALE, AX_LIGHT, AX_LIGHT, AX_AMBER, AX_PALE, AX_GREEN]
-    hdr_colors = [AX_TEXT, AX_WHITE, AX_WHITE, AX_TEXT, AX_TEXT, AX_TEXT]
+    hdr_bgs = [AX_DARK, AX_MED, AX_MED, AX_AMBER, AX_MAGENTA, AX_GREEN]
+    hdr_colors = [AX_WHITE, AX_WHITE, AX_WHITE, AX_TEXT, AX_WHITE, AX_TEXT]
     for col, (h, bg, fc) in enumerate(zip(sheet2_hdrs, hdr_bgs, hdr_colors), 1):
         _cell(wc, 1, col, h, bold=True, size=10, color=fc, bg=bg, h_align='center')
 
