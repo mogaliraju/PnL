@@ -104,6 +104,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             proposal_date TEXT,
             saved_at TEXT,
             saved_by TEXT,
+            folder TEXT DEFAULT '',
             payload TEXT NOT NULL
         );
 
@@ -112,6 +113,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             vid TEXT NOT NULL,
             saved_at TEXT,
             saved_by TEXT,
+            label TEXT DEFAULT '',
             payload TEXT NOT NULL,
             PRIMARY KEY (pid, vid)
         );
@@ -170,10 +172,19 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         """
     )
     # Add new columns to existing databases that predate this schema
-    existing = {row['name'] for row in conn.execute("PRAGMA table_info(order_bookings)").fetchall()}
+    existing_ob = {row['name'] for row in conn.execute("PRAGMA table_info(order_bookings)").fetchall()}
     for col, col_type in [('billing_team_comments', 'TEXT'), ('pmo', 'TEXT')]:
-        if col not in existing:
+        if col not in existing_ob:
             conn.execute(f"ALTER TABLE order_bookings ADD COLUMN {col} {col_type}")
+
+    existing_proj = {row['name'] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
+    if 'folder' not in existing_proj:
+        conn.execute("ALTER TABLE projects ADD COLUMN folder TEXT DEFAULT ''")
+
+    existing_ver = {row['name'] for row in conn.execute("PRAGMA table_info(project_versions)").fetchall()}
+    if 'label' not in existing_ver:
+        conn.execute("ALTER TABLE project_versions ADD COLUMN label TEXT DEFAULT ''")
+
     conn.commit()
 
 
@@ -385,7 +396,7 @@ def list_projects(summary: bool = False) -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(
             """
-            SELECT pid, name, customer, location, duration, proposal_date, saved_at, saved_by, payload
+            SELECT pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload
             FROM projects
             ORDER BY saved_at DESC, pid DESC
             """
@@ -402,6 +413,7 @@ def list_projects(summary: bool = False) -> list[dict]:
             'proposal_date': row['proposal_date'] or '',
             'saved_at': row['saved_at'] or '',
             'saved_by': row['saved_by'] or '',
+            'folder': row['folder'] or '',
         }
         if summary:
             payload = _json_loads(row['payload'], {})
@@ -470,11 +482,12 @@ def save_project_record(pid: str, data: dict) -> None:
     _ensure_db()
     meta = data.get('_meta', {})
     project = data.get('project', {})
+    folder = meta.get('folder', '') or ''
     with _connect() as conn:
         conn.execute(
             """
-            INSERT INTO projects(pid, name, customer, location, duration, proposal_date, saved_at, saved_by, payload)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO projects(pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(pid) DO UPDATE SET
                 name=excluded.name,
                 customer=excluded.customer,
@@ -483,6 +496,7 @@ def save_project_record(pid: str, data: dict) -> None:
                 proposal_date=excluded.proposal_date,
                 saved_at=excluded.saved_at,
                 saved_by=excluded.saved_by,
+                folder=excluded.folder,
                 payload=excluded.payload
             """,
             (
@@ -494,6 +508,7 @@ def save_project_record(pid: str, data: dict) -> None:
                 project.get('proposal_date', ''),
                 meta.get('saved_at', ''),
                 meta.get('saved_by', ''),
+                folder,
                 _json_dumps(data),
             ),
         )
@@ -528,17 +543,18 @@ def rename_project_record(pid: str, new_name: str, new_customer: str = '') -> bo
     return True
 
 
-def save_project_version(pid: str, vid: str, data: dict) -> None:
+def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> None:
     _ensure_db()
     meta = data.get('_meta', {})
     with _connect() as conn:
         conn.execute(
             """
-            INSERT INTO project_versions(pid, vid, saved_at, saved_by, payload)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO project_versions(pid, vid, saved_at, saved_by, label, payload)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(pid, vid) DO UPDATE SET
                 saved_at=excluded.saved_at,
                 saved_by=excluded.saved_by,
+                label=CASE WHEN excluded.label != '' THEN excluded.label ELSE label END,
                 payload=excluded.payload
             """,
             (
@@ -546,9 +562,28 @@ def save_project_version(pid: str, vid: str, data: dict) -> None:
                 vid,
                 meta.get('saved_at', ''),
                 meta.get('saved_by', ''),
+                label,
                 _json_dumps(data),
             ),
         )
+        conn.commit()
+
+
+def label_project_version(pid: str, vid: str, label: str) -> bool:
+    _ensure_db()
+    with _connect() as conn:
+        cur = conn.execute(
+            "UPDATE project_versions SET label = ? WHERE pid = ? AND vid = ?",
+            (label, pid, vid),
+        )
+        conn.commit()
+    return cur.rowcount > 0
+
+
+def delete_project_version(pid: str, vid: str) -> None:
+    _ensure_db()
+    with _connect() as conn:
+        conn.execute("DELETE FROM project_versions WHERE pid = ? AND vid = ?", (pid, vid))
         conn.commit()
 
 
@@ -557,10 +592,10 @@ def list_project_versions(pid: str) -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(
             """
-            SELECT vid, saved_at, saved_by
+            SELECT vid, saved_at, saved_by, label
             FROM project_versions
             WHERE pid = ?
-            ORDER BY vid
+            ORDER BY vid DESC
             """,
             (pid,),
         ).fetchall()
@@ -569,6 +604,7 @@ def list_project_versions(pid: str) -> list[dict]:
             'vid': row['vid'],
             'saved_at': row['saved_at'] or '',
             'saved_by': row['saved_by'] or '',
+            'label': row['label'] or '',
         }
         for row in rows
     ]

@@ -158,6 +158,9 @@
           <button class="btn btn-outline-success btn-sm" onclick="exportExcel()">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
           </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="showVersionHistory()" title="View version history">
+            <i class="bi bi-clock-history me-1"></i>History
+          </button>
           <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saveAsModal">
             <i class="bi bi-floppy2 me-1"></i>Save As New Project…
           </button>
@@ -195,9 +198,14 @@
                 <label class="form-label">Opportunity ID</label>
                 <input type="text" class="form-control" id="proj_opportunity_id"/>
               </div>
-              <div class="mb-0">
+              <div class="mb-3">
                 <label class="form-label">Partner</label>
                 <input type="text" class="form-control" id="proj_partner"/>
+              </div>
+              <div class="mb-0">
+                <label class="form-label"><i class="bi bi-folder2 me-1"></i>Folder</label>
+                <input type="text" class="form-control" id="proj_folder" list="folder-suggestions" placeholder="e.g. Q1-2026, BFSI Deals…"/>
+                <datalist id="folder-suggestions"></datalist>
               </div>
             </div>
           </div>
@@ -536,7 +544,7 @@
           <!-- INR rate — always visible, editable -->
           <div class="input-group input-group-sm ratecard-fx-group">
             <span class="input-group-text"><i class="bi bi-currency-exchange me-1"></i>1 USD =</span>
-            <input type="number" class="form-control" id="fx_rate_inline" min="1" step="0.01" placeholder="Loading…" title="USD to INR rate"/>
+            <input type="number" class="form-control" id="fx_rate_inline" min="1" step="0.01" placeholder="Loading…" title="USD to INR rate" oninput="updateFxRateLive()"/>
             <span class="input-group-text">₹</span>
             <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="applyFxRateInline()" title="Apply">
               <i class="bi bi-check-lg"></i>
@@ -1215,6 +1223,36 @@
   </div>
 </div>
 
+<!-- ===== VERSION HISTORY MODAL ===== -->
+<div class="modal fade" id="versionHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Version History</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:180px">Saved At</th>
+              <th style="width:120px">Saved By</th>
+              <th>Label</th>
+              <th style="width:140px"></th>
+            </tr>
+          </thead>
+          <tbody id="version-history-tbody">
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <small class="text-muted me-auto">Versions are saved automatically on every Save. Click Restore to reload a snapshot.</small>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer class="app-footer">
   <div class="container-fluid px-4">
     <div class="app-footer-inner">
@@ -1226,6 +1264,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script src="/static/js/app.js?v=20260407"></script>
+<script src="/static/js/app.js?v=20260424"></script>
 </body>
 </html>

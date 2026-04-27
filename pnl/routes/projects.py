@@ -4,6 +4,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from pnl.utils.storage import (
     delete_project_record,
+    delete_project_version,
+    label_project_version,
     list_project_versions,
     load_project_record,
     load_project_version,
@@ -32,6 +34,17 @@ def list_projects():
     return jsonify(list_project_rows(summary=summary))
 
 
+# ── Folders ─────────────────────────────────────────────────
+# Must be registered BEFORE the <pid> route to avoid being matched as a pid
+@bp.route('/api/projects/folders', methods=['GET'])
+@login_required
+def list_folders():
+    from pnl.utils.storage import list_projects as _list
+    projects = _list(summary=False)
+    folders = sorted({p['folder'] for p in projects if p.get('folder')})
+    return jsonify(folders)
+
+
 @bp.route('/api/projects', methods=['POST'])
 @login_required
 def save_project():
@@ -41,7 +54,8 @@ def save_project():
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
 
-    name = data.get('_meta', {}).get('name') or \
+    incoming_meta = data.get('_meta', {})
+    name = incoming_meta.get('name') or \
            data.get('project', {}).get('customer') or 'Untitled'
     pid  = safe_filename(name) + '_' + datetime.now().strftime('%Y%m%d_%H%M%S')
     data['_meta'] = {
@@ -49,6 +63,7 @@ def save_project():
         'id':       pid,
         'saved_at': datetime.now().isoformat(timespec='seconds'),
         'saved_by': session.get('user', ''),
+        'folder':   incoming_meta.get('folder', ''),
     }
 
     save_project_record(pid, data)
@@ -86,6 +101,10 @@ def update_project(pid):
     meta = existing.get('_meta', {})
     meta['saved_at'] = datetime.now().isoformat(timespec='seconds')
     meta['saved_by'] = session.get('user', '')
+    # Allow folder to be updated from incoming data
+    incoming_folder = (data.get('_meta') or {}).get('folder', '')
+    if incoming_folder or 'folder' in (data.get('_meta') or {}):
+        meta['folder'] = incoming_folder
     data['_meta'] = meta
 
     save_project_record(pid, data)
@@ -122,6 +141,32 @@ def rename_project(pid):
 @login_required
 def list_versions(pid):
     return jsonify(list_project_versions(pid))
+
+
+@bp.route('/api/projects/<pid>/versions/<vid>', methods=['GET'])
+@login_required
+def get_version(pid, vid):
+    data = load_project_version(pid, vid)
+    if data is None:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(data)
+
+
+@bp.route('/api/projects/<pid>/versions/<vid>/label', methods=['POST'])
+@login_required
+def set_version_label(pid, vid):
+    body = request.json or {}
+    lbl = body.get('label', '').strip()
+    if not label_project_version(pid, vid, lbl):
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify({'status': 'ok'})
+
+
+@bp.route('/api/projects/<pid>/versions/<vid>', methods=['DELETE'])
+@login_required
+def remove_version(pid, vid):
+    delete_project_version(pid, vid)
+    return jsonify({'status': 'ok'})
 
 
 @bp.route('/api/compare', methods=['POST'])

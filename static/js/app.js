@@ -282,6 +282,10 @@ function populateAll() {
 // ============================================================
 function populateProject() {
   const p = appData.project || {};
+  // Populate folder from _meta (stored at top-level _meta, not in project)
+  const folder = (appData._meta || {}).folder || '';
+  setVal('proj_folder', folder);
+  _loadFolderSuggestions();
   setVal('proj_company', p.company);
   setVal('proj_customer', p.customer);
   setVal('proj_reference', p.reference);
@@ -327,7 +331,7 @@ function populateProject() {
     'proj_end_date','proj_opportunity_id','proj_type','proj_industry','proj_delivery_model',
     'proj_billing_type','proj_currency','proj_discount_pct','proj_travel_cost',
     'proj_infra_cost','proj_third_party_cost','proj_internal_notes','proj_risks',
-    'proj_dependencies','proj_next_action','proj_follow_up_date'
+    'proj_dependencies','proj_next_action','proj_follow_up_date','proj_folder'
   ]);
 }
 
@@ -751,6 +755,17 @@ async function loadExchangeRate() {
   } catch (e) {
     if (inlineEl) inlineEl.placeholder = 'Unavailable — enter manually';
     showToast('Could not refresh INR rate right now. You can still enter it manually.', 'danger');
+  }
+}
+
+function updateFxRateLive() {
+  // Silently update INR column as the user types — no toast, no validation error
+  const val = parseFloat(document.getElementById('fx_rate_inline')?.value);
+  if (!isNaN(val) && val > 0) {
+    _usdToInr = val;
+    appData.fx_rate = val;
+    renderRateCard();
+    updateSummary();
   }
 }
 
@@ -1557,7 +1572,7 @@ const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'saved_by',
 ];
 const ALL_PROJECTS_COLUMN_GROUPS = [
-  { label: 'Basics',     keys: ['customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date', 'project_description', 'customer_first_touch_point'] },
+  { label: 'Basics',     keys: ['folder', 'customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date', 'project_description', 'customer_first_touch_point'] },
   { label: 'Pipeline',   keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'technical_lead', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id', 'next_action'] },
   { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency', 'payment_terms'] },
   { label: 'Financial',  keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'travel_cost', 'infra_cost', 'third_party_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
@@ -1577,6 +1592,7 @@ let _allProjectsOpenFilter = null;
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
   return [
+    { key: 'folder', label: 'Folder', headerClass: '', sortValue: p => p.folder || '', cell: p => p.folder ? `<td><span class="badge text-bg-light border small"><i class="bi bi-folder2 me-1"></i>${esc(p.folder)}</span></td>` : '<td></td>' },
     { key: 'customer', label: 'Customer', headerClass: '', sortValue: p => p.customer || '', cell: p => `<td class="ap-col-customer">${esc(p.customer || '')}</td>` },
     { key: 'project', label: 'Project', headerClass: '', sortValue: p => p.name || '', cell: p => `<td>${esc(p.name)}</td>` },
     { key: 'reference', label: 'Reference', headerClass: '', sortValue: p => p.reference || '', cell: p => `<td class="small">${esc(p.reference || '')}</td>` },
@@ -2455,7 +2471,8 @@ async function saveAsProject() {
   }
   const nameInput = document.getElementById('save_project_name').value.trim();
   const name = nameInput || customer || 'Untitled';
-  const payload = { ...appData, _meta: { name } };
+  const folderVal = getVal('proj_folder').trim();
+  const payload = { ...appData, _meta: { name, folder: folderVal } };
   const res  = await fetch('/api/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2693,6 +2710,10 @@ function collectAll() {
   collectExportSettings();
   appData.target_margin = _targetMargin;
   appData.fx_rate = _usdToInr;
+  // Persist folder in _meta so backend stores it
+  const folderVal = getVal('proj_folder').trim();
+  if (!appData._meta) appData._meta = {};
+  appData._meta.folder = folderVal;
 }
 
 async function saveAll() {
@@ -2790,6 +2811,93 @@ function fmtMoney(n) {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+
+// ============================================================
+// FOLDERS
+// ============================================================
+async function _loadFolderSuggestions() {
+  try {
+    const res = await fetch('/api/projects/folders');
+    if (!res.ok) return;
+    const folders = await res.json();
+    const dl = document.getElementById('folder-suggestions');
+    if (dl) {
+      dl.innerHTML = folders.map(f => `<option value="${esc(f)}"></option>`).join('');
+    }
+  } catch (_) {}
+}
+
+// ============================================================
+// VERSION HISTORY
+// ============================================================
+async function showVersionHistory() {
+  if (!_currentPid) {
+    showToast('Save the project first to view version history.', 'warning');
+    return;
+  }
+  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('versionHistoryModal'));
+  const tbody = document.getElementById('version-history-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>';
+  modal.show();
+  try {
+    const res = await fetch(`/api/projects/${_currentPid}/versions`);
+    const versions = await res.json();
+    if (!versions.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No versions saved yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = versions.map((v, idx) => `
+      <tr>
+        <td class="small text-muted">${esc(v.saved_at.replace('T',' '))}</td>
+        <td class="small">${esc(v.saved_by || '—')}</td>
+        <td>
+          <input type="text" class="form-control form-control-sm" value="${esc(v.label)}"
+            placeholder="Add label…"
+            onblur="saveVersionLabel('${esc(_currentPid)}','${esc(v.vid)}',this.value)"
+            style="min-width:140px"/>
+        </td>
+        <td class="text-end text-nowrap">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="restoreVersion('${esc(_currentPid)}','${esc(v.vid)}')">
+            <i class="bi bi-clock-history me-1"></i>Restore
+          </button>
+          ${idx > 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteVersion('${esc(_currentPid)}','${esc(v.vid)}',this)">
+            <i class="bi bi-trash3"></i>
+          </button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-danger small">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function saveVersionLabel(pid, vid, label) {
+  await fetch(`/api/projects/${pid}/versions/${vid}/label`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({label})
+  });
+}
+
+async function restoreVersion(pid, vid) {
+  if (!confirm('Restore this version? Unsaved changes will be lost.')) return;
+  const res = await fetch(`/api/projects/${pid}/versions/${vid}`);
+  if (!res.ok) { showToast('Could not load version', 'danger'); return; }
+  appData = await res.json();
+  populateAll();
+  bootstrap.Modal.getInstance(document.getElementById('versionHistoryModal'))?.hide();
+  showToast('Version restored — click Save to keep it.', 'success');
+}
+
+async function deleteVersion(pid, vid, btn) {
+  if (!confirm('Delete this snapshot?')) return;
+  const res = await fetch(`/api/projects/${pid}/versions/${vid}`, {method:'DELETE'});
+  if (res.ok) {
+    btn.closest('tr').remove();
+  } else {
+    showToast('Delete failed', 'danger');
+  }
+}
 
 // ============================================================
 // VERSION COMPARISON
