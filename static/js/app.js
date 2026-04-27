@@ -1559,6 +1559,7 @@ function renderAnalyticsTimeline(items) {
 
 const ALL_PROJECTS_COLUMNS_STORAGE_KEY = 'pnl.allProjects.visibleColumns';
 const ALL_PROJECTS_DEFAULT_COLUMNS = [
+  'folder',
   'customer',
   'project',
   'location',
@@ -1586,7 +1587,7 @@ let _allProjectsSearch = null;
 let _allProjectsSearchTimer = null;
 let _allProjectsDraftDraggedColumn = null;
 let _allProjectsListCache = null;
-let _allProjectsFilters = { business_unit: [], location: [], partner: [], sales_spoc: [] };
+let _allProjectsFilters = { folder: [], business_unit: [], location: [], partner: [], sales_spoc: [] };
 let _allProjectsOpenFilter = null;
 
 function getAllProjectsColumnDefs(formatters) {
@@ -2113,6 +2114,7 @@ function filterAllProjectsList(list, query) {
   const f = _allProjectsFilters;
   return list.filter(p => {
     if (!_matchesSearch(p, term)) return false;
+    if (f.folder.length       && !f.folder.includes(p.folder || ''))           return false;
     if (f.business_unit.length && !f.business_unit.includes(p.business_unit || '')) return false;
     if (f.location.length   && !f.location.includes(p.location || ''))         return false;
     if (f.partner.length    && !f.partner.includes(p.partner || ''))            return false;
@@ -2129,6 +2131,7 @@ function _filterExcluding(list, query, excludeField) {
   const f = _allProjectsFilters;
   return list.filter(p => {
     if (!_matchesSearch(p, term)) return false;
+    if (excludeField !== 'folder'        && f.folder.length        && !f.folder.includes(p.folder || ''))               return false;
     if (excludeField !== 'business_unit' && f.business_unit.length && !f.business_unit.includes(p.business_unit || '')) return false;
     if (excludeField !== 'location'      && f.location.length      && !f.location.includes(p.location || ''))           return false;
     if (excludeField !== 'partner'       && f.partner.length       && !f.partner.includes(p.partner || ''))             return false;
@@ -2183,14 +2186,14 @@ function _syncFilterBadge(field) {
 }
 
 function clearAllProjectsFilters() {
-  _allProjectsFilters = { business_unit: [], location: [], partner: [], sales_spoc: [] };
+  _allProjectsFilters = { folder: [], business_unit: [], location: [], partner: [], sales_spoc: [] };
   saveAllProjectsSearch('');
   _closeAllProjectsFilterDropdowns();
   const input = document.querySelector('.all-projects-search input');
   if (input) input.value = '';
   // Uncheck all checkboxes in filter dropdowns
   document.querySelectorAll('.ap-filter-option input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-  ['business_unit','location','partner','sales_spoc'].forEach(f => _syncFilterBadge(f));
+  ['folder','business_unit','location','partner','sales_spoc'].forEach(f => _syncFilterBadge(f));
   refilterAllProjects();
 }
 
@@ -2311,6 +2314,7 @@ async function loadAllProjects() {
             oninput="queueAllProjectsSearch(this.value)"
           />
         </div>
+        ${_renderFilterDropdown('folder',        'Folder',        _filterExcluding(list, searchQuery, 'folder'))}
         ${_renderFilterDropdown('business_unit', 'Business Unit', _filterExcluding(list, searchQuery, 'business_unit'))}
         ${_renderFilterDropdown('location',      'Location',      _filterExcluding(list, searchQuery, 'location'))}
         ${_renderFilterDropdown('partner',       'Partner',       _filterExcluding(list, searchQuery, 'partner'))}
