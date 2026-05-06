@@ -1593,7 +1593,12 @@ let _allProjectsOpenFilter = null;
 function getAllProjectsColumnDefs(formatters) {
   const { fmt, pct, pctNumber, num, shortDateTime, daysAgo } = formatters;
   return [
-    { key: 'folder', label: 'Folder', headerClass: '', sortValue: p => p.folder || '', cell: p => p.folder ? `<td><span class="badge text-bg-light border small"><i class="bi bi-folder2 me-1"></i>${esc(p.folder)}</span></td>` : '<td></td>' },
+    { key: 'folder', label: 'Folder', headerClass: '', sortValue: p => p.folder || '',
+      cell: p => `<td class="ap-folder-cell" onclick="editProjectFolder(event,'${esc(p.id)}')" title="Click to assign folder">
+        ${p.folder
+          ? `<span class="badge text-bg-light border small"><i class="bi bi-folder2 me-1"></i>${esc(p.folder)}</span>`
+          : `<span class="text-muted small ap-folder-placeholder"><i class="bi bi-folder-plus"></i></span>`}
+      </td>` },
     { key: 'customer', label: 'Customer', headerClass: '', sortValue: p => p.customer || '', cell: p => `<td class="ap-col-customer">${esc(p.customer || '')}</td>` },
     { key: 'project', label: 'Project', headerClass: '', sortValue: p => p.name || '', cell: p => `<td>${esc(p.name)}</td>` },
     { key: 'reference', label: 'Reference', headerClass: '', sortValue: p => p.reference || '', cell: p => `<td class="small">${esc(p.reference || '')}</td>` },
@@ -2819,6 +2824,59 @@ function fmtMoney(n) {
 // ============================================================
 // FOLDERS
 // ============================================================
+function editProjectFolder(evt, pid) {
+  evt.stopPropagation();
+  const td = evt.currentTarget;
+  if (td.querySelector('input')) return; // already editing
+
+  const currentBadge = td.querySelector('.badge');
+  const currentVal = currentBadge ? currentBadge.textContent.trim() : '';
+
+  // Build all known folder names for datalist
+  const dlId = 'ap-folder-dl-' + pid;
+  const knownFolders = [...new Set(
+    (_allProjectsListCache || []).map(p => p.folder).filter(Boolean)
+  )].sort();
+
+  td.innerHTML = `
+    <input type="text" class="form-control form-control-sm ap-folder-input"
+      list="${dlId}" value="${esc(currentVal)}" placeholder="Folder name…"
+      style="min-width:130px" autocomplete="off"/>
+    <datalist id="${dlId}">${knownFolders.map(f => `<option value="${esc(f)}">`).join('')}</datalist>`;
+
+  const input = td.querySelector('input');
+  input.focus();
+  input.select();
+
+  async function commit() {
+    const newFolder = input.value.trim();
+    if (newFolder === currentVal) { refilterAllProjects(); return; }
+    try {
+      const res = await fetch(`/api/projects/${pid}/folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: newFolder })
+      });
+      if (!res.ok) { showToast('Could not update folder', 'danger'); return; }
+      // Update cache so filter options refresh without full reload
+      const cached = (_allProjectsListCache || []).find(p => p.id === pid);
+      if (cached) cached.folder = newFolder;
+      // Also update folder suggestions datalist if proj_folder is visible
+      _loadFolderSuggestions();
+      showToast(newFolder ? `Moved to "${newFolder}"` : 'Removed from folder', 'success');
+    } catch (e) {
+      showToast('Error: ' + e.message, 'danger');
+    }
+    refilterAllProjects();
+  }
+
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.removeEventListener('blur', commit); refilterAllProjects(); }
+  });
+}
+
 async function _loadFolderSuggestions() {
   try {
     const res = await fetch('/api/projects/folders');

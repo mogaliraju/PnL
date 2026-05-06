@@ -122,6 +122,22 @@ def delete_project(pid):
     return jsonify({'status': 'ok'})
 
 
+@bp.route('/api/projects/<pid>/folder', methods=['POST'])
+@login_required
+def set_project_folder(pid):
+    body = request.json or {}
+    folder = body.get('folder', '').strip()
+    data = load_project_record(pid)
+    if data is None:
+        return jsonify({'error': 'Not found'}), 404
+    meta = data.get('_meta', {})
+    meta['folder'] = folder
+    data['_meta'] = meta
+    save_project_record(pid, data)
+    log.info(f"Project '{pid}' folder set to '{folder}' by '{session.get('user')}'")
+    return jsonify({'status': 'ok'})
+
+
 @bp.route('/api/projects/<pid>/rename', methods=['POST'])
 @login_required
 def rename_project(pid):

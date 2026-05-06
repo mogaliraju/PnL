@@ -1064,6 +1064,13 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 .ap-status-onhold     { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
 .ap-status-default    { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
 
+.ap-folder-cell { cursor: pointer; white-space: nowrap; }
+.ap-folder-cell:hover .badge { background: #ede9fe !important; color: #5b21b6 !important; border-color: #c4b5fd !important; }
+.ap-folder-cell:hover .ap-folder-placeholder { color: #6d28d9; }
+.ap-folder-placeholder { font-size: 0.85rem; opacity: 0.35; transition: opacity 0.15s; }
+.ap-folder-cell:hover .ap-folder-placeholder { opacity: 0.7; }
+.ap-folder-input { font-size: 0.8rem; padding: 2px 6px; }
+
 .all-projects-empty-state {
   max-width: 440px;
   margin: 0 auto;
