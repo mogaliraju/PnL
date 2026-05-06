@@ -618,7 +618,7 @@ def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> Non
             ON CONFLICT(pid, vid) DO UPDATE SET
                 saved_at=excluded.saved_at,
                 saved_by=excluded.saved_by,
-                label=CASE WHEN excluded.label != '' THEN excluded.label ELSE label END,
+                label=CASE WHEN excluded.label != '' THEN excluded.label ELSE project_versions.label END,
                 payload=excluded.payload
             """,
             (
