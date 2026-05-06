@@ -2745,12 +2745,15 @@ async function saveAll() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appData)
       });
-      const json = await res.json();
+      const text = await res.text();
+      let json = {};
+      try { json = text ? JSON.parse(text) : {}; } catch (_) { json = {}; }
       if (res.ok) {
         showToast('Project updated!', 'success');
         _refreshAllProjectsIfVisible();
       } else {
-        showToast('Save failed: ' + (json.error || ''), 'danger');
+        const msg = json.error || `HTTP ${res.status}`;
+        showToast('Save failed: ' + msg, 'danger');
       }
     } catch (e) {
       showToast('Error: ' + e.message, 'danger');

@@ -1,5 +1,6 @@
 """PnL application factory."""
-from flask import Flask
+from flask import Flask, request
+from werkzeug.exceptions import HTTPException
 from pnl.config import SECRET_KEY
 from pnl.utils.logger import get_logger
 
@@ -18,6 +19,21 @@ def create_app() -> Flask:
     app.register_blueprint(import_excel.bp)
     app.register_blueprint(funnel.bp)
     app.register_blueprint(bookings.bp)
+
+    @app.errorhandler(Exception)
+    def handle_api_error(err):
+        """Ensure API callers always get JSON, not HTML error pages."""
+        if not (request.path or '').startswith('/api/'):
+            if isinstance(err, HTTPException):
+                return err
+            log.exception("Unhandled page error")
+            return "Internal Server Error", 500
+
+        if isinstance(err, HTTPException):
+            return {'error': err.description or 'Request failed'}, err.code
+
+        log.exception("Unhandled API error")
+        return {'error': str(err) or 'Internal server error'}, 500
 
     log.info("PnL application created")
     return app
