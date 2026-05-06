@@ -1,13 +1,10 @@
 services:
   - type: web
     name: pnl-automatonsx
+    plan: free
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: DATA_DIR
-        value: /data
-    disk:
-      name: pnl-data
-      mountPath: /data
-      sizeGB: 1
+        value: /tmp
