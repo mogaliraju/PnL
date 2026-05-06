@@ -7,6 +7,7 @@ import sys
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 
 MODULES_TO_RELOAD = [
@@ -190,6 +191,32 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(summary[0]['discount_pct'], 7.5)
         self.assertEqual(summary[0]['fx_rate'], 83.25)
         self.assertEqual(summary[0]['costs']['input_cost'], 2500.0)
+
+    def test_save_project_version_postgres_sql_qualifies_label_column(self):
+        class FakeConn:
+            def __init__(self):
+                self.sql = []
+            def execute(self, sql, params=()):
+                self.sql.append((sql, params))
+                class _Cur:
+                    rowcount = 1
+                return _Cur()
+            def commit(self):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        fake_conn = FakeConn()
+        payload = {'_meta': {'saved_at': '2026-05-06T00:00:00', 'saved_by': 'admin'}, 'project': {'customer': 'X'}}
+
+        with patch.object(self.storage, '_connect', return_value=fake_conn), \
+             patch.object(self.storage, '_DB_READY', True):
+            self.storage.save_project_version('pid1', 'vid1', payload, label='')
+
+        statements = [sql for sql, _ in fake_conn.sql]
+        self.assertTrue(any('project_versions.label' in sql for sql in statements))
 
 
 if __name__ == '__main__':
