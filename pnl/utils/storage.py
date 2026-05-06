@@ -9,9 +9,18 @@ from werkzeug.security import generate_password_hash
 from pnl.config import DATA_FILE, DB_FILE, PROJECTS_DIR, SETTINGS_FILE, USERS_FILE, VERSIONS_DIR
 from pnl.utils.logger import get_logger
 
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+except Exception:  # pragma: no cover - optional dependency in local dev
+    psycopg = None
+    dict_row = None
+
 log = get_logger(__name__)
 
 _DB_READY = False
+_DATABASE_URL = (os.environ.get('DATABASE_URL') or '').strip()
+_USE_POSTGRES = _DATABASE_URL.startswith('postgres://') or _DATABASE_URL.startswith('postgresql://')
 
 
 def safe_filename(name: str) -> str:
@@ -42,15 +51,37 @@ def _to_float(value, default=0.0):
         return default
 
 
-def _connect() -> sqlite3.Connection:
+def _as_db_url(url: str) -> str:
+    if url.startswith('postgres://'):
+        return 'postgresql://' + url[len('postgres://'):]
+    return url
+
+
+def _sql(sql: str) -> str:
+    if not _USE_POSTGRES:
+        return sql
+    return sql.replace('?', '%s')
+
+
+def _connect():
+    if _USE_POSTGRES:
+        if psycopg is None:
+            raise RuntimeError("Postgres mode requested but psycopg is not installed")
+        return psycopg.connect(_as_db_url(_DATABASE_URL), row_factory=dict_row)
+
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+def _execute(conn, sql: str, params=()):
+    return conn.execute(_sql(sql), params)
+
+
 def _set_state(conn: sqlite3.Connection, key: str, payload) -> None:
-    conn.execute(
+    _execute(
+        conn,
         """
         INSERT INTO app_state(key, json_value, updated_at)
         VALUES (?, ?, ?)
@@ -63,7 +94,7 @@ def _set_state(conn: sqlite3.Connection, key: str, payload) -> None:
 
 
 def _get_state(conn: sqlite3.Connection, key: str, default):
-    row = conn.execute("SELECT json_value FROM app_state WHERE key = ?", (key,)).fetchone()
+    row = _execute(conn, "SELECT json_value FROM app_state WHERE key = ?", (key,)).fetchone()
     return _json_loads(row['json_value'], default) if row else default
 
 
@@ -79,22 +110,24 @@ def _merge_global_settings(data: dict, settings: dict) -> dict:
 
 
 def _create_schema(conn: sqlite3.Connection) -> None:
-    conn.executescript(
+    statements = [
         """
         CREATE TABLE IF NOT EXISTS app_state (
             key TEXT PRIMARY KEY,
             json_value TEXT NOT NULL,
             updated_at TEXT NOT NULL
-        );
-
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
             password TEXT NOT NULL,
             role TEXT NOT NULL,
             name TEXT NOT NULL,
             created_at TEXT NOT NULL
-        );
-
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS projects (
             pid TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -106,8 +139,9 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             saved_by TEXT,
             folder TEXT DEFAULT '',
             payload TEXT NOT NULL
-        );
-
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS project_versions (
             pid TEXT NOT NULL,
             vid TEXT NOT NULL,
@@ -116,8 +150,9 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             label TEXT DEFAULT '',
             payload TEXT NOT NULL,
             PRIMARY KEY (pid, vid)
-        );
-
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS funnel_entries (
             id TEXT PRIMARY KEY,
             record_id TEXT,
@@ -142,8 +177,9 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             extra_fields TEXT,
             saved_at TEXT,
             saved_by TEXT
-        );
-
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS order_bookings (
             id TEXT PRIMARY KEY,
             booking_type TEXT NOT NULL,
@@ -168,31 +204,35 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             extra_fields TEXT,
             saved_at TEXT,
             saved_by TEXT
-        );
-        """
-    )
-    # Add new columns to existing databases that predate this schema
-    existing_ob = {row['name'] for row in conn.execute("PRAGMA table_info(order_bookings)").fetchall()}
-    for col, col_type in [('billing_team_comments', 'TEXT'), ('pmo', 'TEXT')]:
-        if col not in existing_ob:
-            conn.execute(f"ALTER TABLE order_bookings ADD COLUMN {col} {col_type}")
+        )
+        """,
+    ]
+    for statement in statements:
+        _execute(conn, statement)
 
-    existing_proj = {row['name'] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
-    if 'folder' not in existing_proj:
-        conn.execute("ALTER TABLE projects ADD COLUMN folder TEXT DEFAULT ''")
+    if not _USE_POSTGRES:
+        # Add new columns to existing SQLite databases that predate this schema
+        existing_ob = {row['name'] for row in conn.execute("PRAGMA table_info(order_bookings)").fetchall()}
+        for col, col_type in [('billing_team_comments', 'TEXT'), ('pmo', 'TEXT')]:
+            if col not in existing_ob:
+                conn.execute(f"ALTER TABLE order_bookings ADD COLUMN {col} {col_type}")
 
-    existing_ver = {row['name'] for row in conn.execute("PRAGMA table_info(project_versions)").fetchall()}
-    if 'label' not in existing_ver:
-        conn.execute("ALTER TABLE project_versions ADD COLUMN label TEXT DEFAULT ''")
+        existing_proj = {row['name'] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
+        if 'folder' not in existing_proj:
+            conn.execute("ALTER TABLE projects ADD COLUMN folder TEXT DEFAULT ''")
+
+        existing_ver = {row['name'] for row in conn.execute("PRAGMA table_info(project_versions)").fetchall()}
+        if 'label' not in existing_ver:
+            conn.execute("ALTER TABLE project_versions ADD COLUMN label TEXT DEFAULT ''")
 
     conn.commit()
 
 
 def _migrate_json_files(conn: sqlite3.Connection) -> None:
-    has_state = conn.execute("SELECT COUNT(*) AS c FROM app_state").fetchone()['c'] > 0
-    has_users = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()['c'] > 0
-    has_projects = conn.execute("SELECT COUNT(*) AS c FROM projects").fetchone()['c'] > 0
-    has_versions = conn.execute("SELECT COUNT(*) AS c FROM project_versions").fetchone()['c'] > 0
+    has_state = _execute(conn, "SELECT COUNT(*) AS c FROM app_state").fetchone()['c'] > 0
+    has_users = _execute(conn, "SELECT COUNT(*) AS c FROM users").fetchone()['c'] > 0
+    has_projects = _execute(conn, "SELECT COUNT(*) AS c FROM projects").fetchone()['c'] > 0
+    has_versions = _execute(conn, "SELECT COUNT(*) AS c FROM project_versions").fetchone()['c'] > 0
 
     if not has_state:
         settings = _read_json_file(SETTINGS_FILE, {})
@@ -209,10 +249,16 @@ def _migrate_json_files(conn: sqlite3.Connection) -> None:
     if not has_users:
         users = _read_json_file(USERS_FILE, {})
         for username, user in users.items():
-            conn.execute(
+            _execute(
+                conn,
                 """
-                INSERT OR REPLACE INTO users(username, password, role, name, created_at)
+                INSERT INTO users(username, password, role, name, created_at)
                 VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET
+                    password=excluded.password,
+                    role=excluded.role,
+                    name=excluded.name,
+                    created_at=excluded.created_at
                 """,
                 (
                     username,
@@ -231,12 +277,22 @@ def _migrate_json_files(conn: sqlite3.Connection) -> None:
             meta = payload.get('_meta', {})
             project = payload.get('project', {})
             pid = meta.get('id') or fname[:-5]
-            conn.execute(
+            _execute(
+                conn,
                 """
-                INSERT OR REPLACE INTO projects(
+                INSERT INTO projects(
                     pid, name, customer, location, duration, proposal_date, saved_at, saved_by, payload
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(pid) DO UPDATE SET
+                    name=excluded.name,
+                    customer=excluded.customer,
+                    location=excluded.location,
+                    duration=excluded.duration,
+                    proposal_date=excluded.proposal_date,
+                    saved_at=excluded.saved_at,
+                    saved_by=excluded.saved_by,
+                    payload=excluded.payload
                 """,
                 (
                     pid,
@@ -262,10 +318,15 @@ def _migrate_json_files(conn: sqlite3.Connection) -> None:
                 payload = _read_json_file(os.path.join(vdir, fname), {})
                 meta = payload.get('_meta', {})
                 vid = fname[:-5]
-                conn.execute(
+                _execute(
+                    conn,
                     """
-                    INSERT OR REPLACE INTO project_versions(pid, vid, saved_at, saved_by, payload)
+                    INSERT INTO project_versions(pid, vid, saved_at, saved_by, payload)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(pid, vid) DO UPDATE SET
+                        saved_at=excluded.saved_at,
+                        saved_by=excluded.saved_by,
+                        payload=excluded.payload
                     """,
                     (
                         pid,
@@ -336,7 +397,7 @@ def load_users() -> dict:
     _ensure_db()
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT username, password, role, name, created_at FROM users ORDER BY username"
+            _sql("SELECT username, password, role, name, created_at FROM users ORDER BY username")
         ).fetchall()
         if rows:
             return {
@@ -373,9 +434,10 @@ def load_users() -> dict:
 def save_users(users: dict):
     _ensure_db()
     with _connect() as conn:
-        conn.execute("DELETE FROM users")
+        _execute(conn, "DELETE FROM users")
         for username, user in users.items():
-            conn.execute(
+            _execute(
+                conn,
                 """
                 INSERT INTO users(username, password, role, name, created_at)
                 VALUES (?, ?, ?, ?, ?)
@@ -395,11 +457,11 @@ def list_projects(summary: bool = False) -> list[dict]:
     _ensure_db()
     with _connect() as conn:
         rows = conn.execute(
-            """
+            _sql("""
             SELECT pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload
             FROM projects
             ORDER BY saved_at DESC, pid DESC
-            """
+            """)
         ).fetchall()
 
     projects = []
@@ -484,7 +546,8 @@ def save_project_record(pid: str, data: dict) -> None:
     project = data.get('project', {})
     folder = meta.get('folder', '') or ''
     with _connect() as conn:
-        conn.execute(
+        _execute(
+            conn,
             """
             INSERT INTO projects(pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -518,7 +581,7 @@ def save_project_record(pid: str, data: dict) -> None:
 def load_project_record(pid: str) -> dict | None:
     _ensure_db()
     with _connect() as conn:
-        row = conn.execute("SELECT payload FROM projects WHERE pid = ?", (pid,)).fetchone()
+        row = _execute(conn, "SELECT payload FROM projects WHERE pid = ?", (pid,)).fetchone()
     if not row:
         return None
     return _json_loads(row['payload'], {})
@@ -527,8 +590,8 @@ def load_project_record(pid: str) -> dict | None:
 def delete_project_record(pid: str) -> None:
     _ensure_db()
     with _connect() as conn:
-        conn.execute("DELETE FROM projects WHERE pid = ?", (pid,))
-        conn.execute("DELETE FROM project_versions WHERE pid = ?", (pid,))
+        _execute(conn, "DELETE FROM projects WHERE pid = ?", (pid,))
+        _execute(conn, "DELETE FROM project_versions WHERE pid = ?", (pid,))
         conn.commit()
 
 
@@ -547,7 +610,8 @@ def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> Non
     _ensure_db()
     meta = data.get('_meta', {})
     with _connect() as conn:
-        conn.execute(
+        _execute(
+            conn,
             """
             INSERT INTO project_versions(pid, vid, saved_at, saved_by, label, payload)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -572,7 +636,8 @@ def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> Non
 def label_project_version(pid: str, vid: str, label: str) -> bool:
     _ensure_db()
     with _connect() as conn:
-        cur = conn.execute(
+        cur = _execute(
+            conn,
             "UPDATE project_versions SET label = ? WHERE pid = ? AND vid = ?",
             (label, pid, vid),
         )
@@ -583,7 +648,7 @@ def label_project_version(pid: str, vid: str, label: str) -> bool:
 def delete_project_version(pid: str, vid: str) -> None:
     _ensure_db()
     with _connect() as conn:
-        conn.execute("DELETE FROM project_versions WHERE pid = ? AND vid = ?", (pid, vid))
+        _execute(conn, "DELETE FROM project_versions WHERE pid = ? AND vid = ?", (pid, vid))
         conn.commit()
 
 
@@ -591,12 +656,12 @@ def list_project_versions(pid: str) -> list[dict]:
     _ensure_db()
     with _connect() as conn:
         rows = conn.execute(
-            """
+            _sql("""
             SELECT vid, saved_at, saved_by, label
             FROM project_versions
             WHERE pid = ?
             ORDER BY vid DESC
-            """,
+            """),
             (pid,),
         ).fetchall()
     return [
@@ -613,7 +678,8 @@ def list_project_versions(pid: str) -> list[dict]:
 def load_project_version(pid: str, vid: str) -> dict | None:
     _ensure_db()
     with _connect() as conn:
-        row = conn.execute(
+        row = _execute(
+            conn,
             "SELECT payload FROM project_versions WHERE pid = ? AND vid = ?",
             (pid, vid),
         ).fetchone()
@@ -626,11 +692,11 @@ def load_all_project_records() -> list[dict]:
     _ensure_db()
     with _connect() as conn:
         rows = conn.execute(
-            """
+            _sql("""
             SELECT payload
             FROM projects
             ORDER BY saved_at DESC, pid DESC
-            """
+            """)
         ).fetchall()
     return [_json_loads(row['payload'], {}) for row in rows]
 
@@ -648,7 +714,7 @@ def list_funnel_entries() -> list[dict]:
     _ensure_db()
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT * FROM funnel_entries ORDER BY saved_at DESC, id DESC"
+            _sql("SELECT * FROM funnel_entries ORDER BY saved_at DESC, id DESC")
         ).fetchall()
     result = []
     for r in rows:
@@ -662,7 +728,8 @@ def save_funnel_entry(entry_id: str, data: dict) -> None:
     _ensure_db()
     extra = data.get('extra_fields') or {}
     with _connect() as conn:
-        conn.execute(
+        _execute(
+            conn,
             """
             INSERT INTO funnel_entries(
                 id, record_id, reporting_manager, opportunity_owner, region,
@@ -727,7 +794,8 @@ def save_funnel_entry(entry_id: str, data: dict) -> None:
 def load_funnel_entry(entry_id: str) -> dict | None:
     _ensure_db()
     with _connect() as conn:
-        row = conn.execute(
+        row = _execute(
+            conn,
             "SELECT * FROM funnel_entries WHERE id = ?", (entry_id,)
         ).fetchone()
     if not row:
@@ -740,7 +808,7 @@ def load_funnel_entry(entry_id: str) -> dict | None:
 def delete_funnel_entry(entry_id: str) -> None:
     _ensure_db()
     with _connect() as conn:
-        conn.execute("DELETE FROM funnel_entries WHERE id = ?", (entry_id,))
+        _execute(conn, "DELETE FROM funnel_entries WHERE id = ?", (entry_id,))
         conn.commit()
 
 
@@ -751,12 +819,12 @@ def list_order_bookings(booking_type: str | None = None) -> list[dict]:
     with _connect() as conn:
         if booking_type:
             rows = conn.execute(
-                "SELECT * FROM order_bookings WHERE booking_type = ? ORDER BY saved_at DESC, id DESC",
+                _sql("SELECT * FROM order_bookings WHERE booking_type = ? ORDER BY saved_at DESC, id DESC"),
                 (booking_type,),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM order_bookings ORDER BY saved_at DESC, id DESC"
+                _sql("SELECT * FROM order_bookings ORDER BY saved_at DESC, id DESC")
             ).fetchall()
     result = []
     for r in rows:
@@ -770,7 +838,8 @@ def save_order_booking(booking_id: str, data: dict) -> None:
     _ensure_db()
     extra = data.get('extra_fields') or {}
     with _connect() as conn:
-        conn.execute(
+        _execute(
+            conn,
             """
             INSERT INTO order_bookings(
                 id, booking_type, opf_number, opf_date, cdd, bu, customer_name,
@@ -836,7 +905,8 @@ def save_order_booking(booking_id: str, data: dict) -> None:
 def load_order_booking(booking_id: str) -> dict | None:
     _ensure_db()
     with _connect() as conn:
-        row = conn.execute(
+        row = _execute(
+            conn,
             "SELECT * FROM order_bookings WHERE id = ?", (booking_id,)
         ).fetchone()
     if not row:
@@ -849,7 +919,7 @@ def load_order_booking(booking_id: str) -> dict | None:
 def delete_order_booking(booking_id: str) -> None:
     _ensure_db()
     with _connect() as conn:
-        conn.execute("DELETE FROM order_bookings WHERE id = ?", (booking_id,))
+        _execute(conn, "DELETE FROM order_bookings WHERE id = ?", (booking_id,))
         conn.commit()
 
 
