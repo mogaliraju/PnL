@@ -1368,13 +1368,13 @@ async function loadDashboard() {
 }
 
 const STATUS_COLORS = {
-  'Won':        '#16a34a',
+  'Won':        '#15803d',
   'Active':     '#2563eb',
-  'Submitted':  '#7c3aed',
-  'Proposal':   '#0891b2',
-  'Draft':      '#6b7280',
-  'On Hold':    '#d97706',
-  'Lost':       '#dc2626',
+  'Submitted':  '#475569',
+  'Proposal':   '#0f766e',
+  'Draft':      '#94a3b8',
+  'On Hold':    '#b45309',
+  'Lost':       '#b91c1c',
 };
 
 function getDashboardValue(items, label) {
@@ -1489,16 +1489,16 @@ function renderCompositionGrid(data) {
     </div>`;
 }
 const PRIORITY_COLORS = {
-  'Critical': '#dc2626',
-  'High':     '#ea580c',
-  'Medium':   '#d97706',
-  'Low':      '#16a34a',
+  'Critical': '#b91c1c',
+  'High':     '#c2410c',
+  'Medium':   '#b45309',
+  'Low':      '#15803d',
 };
 const MARGIN_COLORS = {
-  'Below 20%': '#dc2626',
+  'Below 20%': '#b91c1c',
   '20–35%':    '#d97706',
   '35–50%':    '#2563eb',
-  '50%+':      '#16a34a',
+  '50%+':      '#15803d',
 };
 
 function renderStatusBars(items) {
@@ -1528,7 +1528,7 @@ function renderStagePipeline(items) {
   if (!Array.isArray(items) || !items.length)
     return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
   const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  const palette = ['#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#0891b2','#2563eb','#16a34a','#dc2626','#6b7280'];
+  const palette = ['#2563eb','#0f766e','#475569','#15803d','#b45309','#64748b','#334155','#b91c1c','#94a3b8'];
   return items.map((item, idx) => {
     const v = Number(item.value || 0);
     const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
