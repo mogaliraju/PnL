@@ -1266,143 +1266,105 @@ async function loadDashboard() {
     return p >= 35 ? '#16a34a' : p >= 20 ? '#d97706' : '#dc2626';
   };
 
+  const grossProfit = Math.max(Number(k.revenue || 0) - Number(k.input_cost || 0), 0);
+  const costRatio = Number(k.revenue || 0) ? Number(k.input_cost || 0) / Number(k.revenue || 0) : 0;
+  const avgDeal = Number(k.projects || 0) ? Number(k.revenue || 0) / Number(k.projects || 0) : 0;
+
   container.innerHTML = `
-    <!-- KPI Cards -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
-        <div class="db-kpi">
-          <div class="db-kpi-icon" style="background:#ede9fe;color:#6d28d9"><i class="bi bi-folder2-open"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Total Projects</div>
-            <div class="db-kpi-value">${fmtNum(k.projects)}</div>
-          </div>
+    <section class="db-shell">
+      <div class="db-exec-hero">
+        <div>
+          <div class="db-eyebrow">Executive portfolio view</div>
+          <h2 class="db-title">Commercial health and delivery exposure</h2>
+          <div class="db-summary">A concise readout of portfolio value, margin quality, pipeline maturity, and where leadership attention is needed.</div>
+        </div>
+        <div class="db-hero-metrics">
+          ${renderExecMetric('Revenue', fmtMoney(k.revenue), 'Booked and proposed value', 'bi-cash-stack')}
+          ${renderExecMetric('Gross Profit', fmtMoney(grossProfit), 'Revenue less input cost', 'bi-graph-up-arrow')}
+          ${renderExecMetric('Avg Margin', fmtPct(k.avg_margin), `${fmtPct(costRatio)} cost ratio`, 'bi-percent', marginColor(k.avg_margin))}
         </div>
       </div>
-      <div class="col-6 col-md-3">
-        <div class="db-kpi">
-          <div class="db-kpi-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-cash-stack"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Portfolio Revenue</div>
-            <div class="db-kpi-value">${fmtMoney(k.revenue)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="db-kpi">
-          <div class="db-kpi-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-coin"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Input Cost</div>
-            <div class="db-kpi-value">${fmtMoney(k.input_cost)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="db-kpi">
-          <div class="db-kpi-icon" style="background:#fce7f3;color:#db2777"><i class="bi bi-speedometer2"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Avg Gross Margin</div>
-            <div class="db-kpi-value" style="color:${marginColor(k.avg_margin)}">${fmtPct(k.avg_margin)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4">
-        <div class="db-kpi db-kpi-subtle">
-          <div class="db-kpi-icon" style="background:#e0f2fe;color:#0284c7"><i class="bi bi-people"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Total Resources</div>
-            <div class="db-kpi-value">${fmtNum(k.resources)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-4">
-        <div class="db-kpi db-kpi-subtle">
-          <div class="db-kpi-icon" style="background:#f0fdf4;color:#15803d"><i class="bi bi-clock-history"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Total Hours</div>
-            <div class="db-kpi-value">${fmtNum(k.hours)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="db-kpi db-kpi-subtle">
-          <div class="db-kpi-icon" style="background:#f5f3ff;color:#7c3aed"><i class="bi bi-person-badge"></i></div>
-          <div class="db-kpi-body">
-            <div class="db-kpi-label">Avg Resources / Project</div>
-            <div class="db-kpi-value">${fmtNum(k.avg_resources_per_project)}</div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Status + Stage -->
-    <div class="row g-3 mb-4">
-      <div class="col-lg-5">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-circle-half me-2"></i>Project Status</div>
-          <div class="db-card-body">${renderStatusBars(data.status_breakdown)}</div>
-        </div>
+      <div class="db-score-strip">
+        ${renderScoreTile('Projects', fmtNum(k.projects), 'Total saved opportunities')}
+        ${renderScoreTile('Avg Deal Size', fmtMoney(avgDeal), 'Portfolio revenue per project')}
+        ${renderScoreTile('Input Cost', fmtMoney(k.input_cost), 'Delivery cost baseline')}
+        ${renderScoreTile('Total Hours', fmtNum(k.hours), 'Planned delivery effort')}
+        ${renderScoreTile('Resources', fmtNum(k.resources), `${fmtNum(k.avg_resources_per_project)} avg / project`)}
       </div>
-      <div class="col-lg-7">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-funnel me-2"></i>Pipeline Stages</div>
-          <div class="db-card-body">${renderStagePipeline(data.stage_breakdown)}</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Margin + Priority + BU -->
-    <div class="row g-3 mb-4">
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-bar-chart me-2"></i>Margin Distribution</div>
-          <div class="db-card-body">${renderMarginBars(data.margin_buckets)}</div>
+      <div class="row g-3 mb-3">
+        <div class="col-xl-4">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-compass me-2"></i>Decision Signals</div>
+              <span>action lens</span>
+            </div>
+            <div class="db-panel-body">${renderDecisionSignals(data, k)}</div>
+          </div>
+        </div>
+        <div class="col-xl-8">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-kanban me-2"></i>Pipeline Readiness</div>
+              <span>status and stage</span>
+            </div>
+            <div class="db-panel-body">${renderPipelineMatrix(data.status_breakdown, data.stage_breakdown)}</div>
+          </div>
         </div>
       </div>
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-flag me-2"></i>Priority Breakdown</div>
-          <div class="db-card-body">${renderPriorityBars(data.priority_breakdown)}</div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-grid me-2"></i>Business Units</div>
-          <div class="db-card-body">${renderAnalyticsBars(data.bu_breakdown, 'projects')}</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Customers + Groups + Owner -->
-    <div class="row g-3 mb-4">
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-building me-2"></i>Top Customers <span class="db-card-sub">by revenue</span></div>
-          <div class="db-card-body">${renderAnalyticsBars(data.top_customers, 'revenue')}</div>
+      <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-shield-check me-2"></i>Margin Quality</div>
+              <span>risk bands</span>
+            </div>
+            <div class="db-panel-body">${renderMarginBars(data.margin_buckets)}</div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-building me-2"></i>Customer Concentration</div>
+              <span>by revenue</span>
+            </div>
+            <div class="db-panel-body">${renderAnalyticsBars(data.top_customers, 'revenue')}</div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-diagram-3 me-2"></i>Capacity Load</div>
+              <span>hours by group</span>
+            </div>
+            <div class="db-panel-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div>
+          </div>
         </div>
       </div>
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-diagram-3 me-2"></i>Resource Groups</div>
-          <div class="db-card-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div>
-        </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="db-card h-100">
-          <div class="db-card-header"><i class="bi bi-geo-alt me-2"></i>Top Locations</div>
-          <div class="db-card-body">${renderAnalyticsBars(data.top_locations, 'projects')}</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Timeline -->
-    <div class="row g-3">
-      <div class="col-12">
-        <div class="db-card">
-          <div class="db-card-header"><i class="bi bi-calendar3 me-2"></i>Projects Saved Over Time</div>
-          <div class="db-card-body">${renderAnalyticsTimeline(data.projects_by_month)}</div>
+      <div class="row g-3">
+        <div class="col-xl-8">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-grid-3x3-gap me-2"></i>Portfolio Mix</div>
+              <span>priority, business unit, location</span>
+            </div>
+            <div class="db-panel-body">${renderCompositionGrid(data)}</div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="db-panel h-100">
+            <div class="db-panel-head">
+              <div><i class="bi bi-calendar3 me-2"></i>Save Trend</div>
+              <span>monthly projects</span>
+            </div>
+            <div class="db-panel-body">${renderAnalyticsTimeline(data.projects_by_month)}</div>
+          </div>
         </div>
       </div>
-    </div>`;
+    </section>`;
 }
 
 const STATUS_COLORS = {
@@ -1414,6 +1376,118 @@ const STATUS_COLORS = {
   'On Hold':    '#d97706',
   'Lost':       '#dc2626',
 };
+
+function getDashboardValue(items, label) {
+  return Number((items || []).find(i => i.label === label)?.value || 0);
+}
+
+function renderExecMetric(label, value, hint, icon, color = '#1e40af') {
+  return `
+    <div class="db-exec-metric">
+      <div class="db-exec-icon" style="color:${color}"><i class="bi ${icon}"></i></div>
+      <div>
+        <div class="db-exec-label">${esc(label)}</div>
+        <div class="db-exec-value" style="color:${color}">${esc(value)}</div>
+        <div class="db-exec-hint">${esc(hint)}</div>
+      </div>
+    </div>`;
+}
+
+function renderScoreTile(label, value, hint) {
+  return `
+    <div class="db-score-tile">
+      <div class="db-score-label">${esc(label)}</div>
+      <div class="db-score-value">${esc(value)}</div>
+      <div class="db-score-hint">${esc(hint)}</div>
+    </div>`;
+}
+
+function renderDecisionSignals(data, k) {
+  const projects = Number(k.projects || 0);
+  const lowMargin = (data.margin_buckets || [])
+    .filter(i => String(i.label || '').includes('Below') || String(i.label || '').includes('20'))
+    .reduce((sum, i) => sum + Number(i.value || 0), 0);
+  const draft = getDashboardValue(data.status_breakdown, 'Draft');
+  const submitted = getDashboardValue(data.status_breakdown, 'Submitted');
+  const highPriority = getDashboardValue(data.priority_breakdown, 'Critical') + getDashboardValue(data.priority_breakdown, 'High');
+  const topCustomer = Array.isArray(data.top_customers) && data.top_customers.length ? data.top_customers[0] : null;
+  const concentration = topCustomer && Number(k.revenue || 0) ? Number(topCustomer.value || 0) / Number(k.revenue || 0) : 0;
+  const margin = Number(k.avg_margin || 0);
+
+  const signals = [
+    {
+      label: margin >= 0.35 ? 'Margin is leadership-ready' : margin >= 0.20 ? 'Margin needs pricing review' : 'Margin is below guardrail',
+      value: ((margin || 0) * 100).toFixed(1) + '%',
+      tone: margin >= 0.35 ? 'good' : margin >= 0.20 ? 'watch' : 'risk',
+      detail: 'Average gross margin across the saved portfolio.'
+    },
+    {
+      label: lowMargin ? 'Low-margin exposure' : 'No low-margin exposure',
+      value: `${lowMargin}/${projects}`,
+      tone: lowMargin ? 'watch' : 'good',
+      detail: 'Projects below 35% gross margin.'
+    },
+    {
+      label: draft ? 'Draft backlog to convert' : 'No draft backlog',
+      value: `${draft}`,
+      tone: draft ? 'watch' : 'good',
+      detail: `${submitted} submitted project${submitted === 1 ? '' : 's'} currently visible.`
+    },
+    {
+      label: concentration >= 0.5 ? 'Customer concentration risk' : 'Customer concentration acceptable',
+      value: concentration ? `${Math.round(concentration * 100)}%` : 'n/a',
+      tone: concentration >= 0.5 ? 'risk' : concentration >= 0.3 ? 'watch' : 'good',
+      detail: topCustomer ? `${topCustomer.label} share of portfolio revenue.` : 'No customer revenue data yet.'
+    },
+    {
+      label: highPriority ? 'Priority deals require attention' : 'No high-priority pressure',
+      value: `${highPriority}`,
+      tone: highPriority ? 'watch' : 'good',
+      detail: 'Critical and high priority projects.'
+    }
+  ];
+
+  return signals.map(s => `
+    <div class="db-signal db-signal-${s.tone}">
+      <div class="db-signal-main">
+        <span>${esc(s.label)}</span>
+        <strong>${esc(s.value)}</strong>
+      </div>
+      <div class="db-signal-detail">${esc(s.detail)}</div>
+    </div>`).join('');
+}
+
+function renderPipelineMatrix(statusItems, stageItems) {
+  return `
+    <div class="db-pipeline-grid">
+      <div>
+        <div class="db-mini-title">Commercial Status</div>
+        ${renderStatusBars(statusItems)}
+      </div>
+      <div>
+        <div class="db-mini-title">Stage Progression</div>
+        ${renderStagePipeline(stageItems)}
+      </div>
+    </div>`;
+}
+
+function renderCompositionGrid(data) {
+  return `
+    <div class="db-composition-grid">
+      <div>
+        <div class="db-mini-title">Priority</div>
+        ${renderPriorityBars(data.priority_breakdown)}
+      </div>
+      <div>
+        <div class="db-mini-title">Business Unit</div>
+        ${renderAnalyticsBars(data.bu_breakdown, 'projects')}
+      </div>
+      <div>
+        <div class="db-mini-title">Location</div>
+        ${renderAnalyticsBars(data.top_locations, 'projects')}
+      </div>
+    </div>`;
+}
 const PRIORITY_COLORS = {
   'Critical': '#dc2626',
   'High':     '#ea580c',
