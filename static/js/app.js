@@ -468,12 +468,9 @@ function updateSummary() {
   oneTimeCosts.forEach(item => {
     inputCost += parseFloat(item.amount) || 0;
   });
-  const cloud4cDivisor = 1 - _cloud4cMargin;
-  const axDivisor = 1 - _axMargin;
-  const cloud4cSellCost = inputCost > 0 ? inputCost / cloud4cDivisor : 0;
-  const sellCost = cloud4cSellCost > 0 ? cloud4cSellCost / axDivisor : 0;
+  const combinedMargin = _cloud4cMargin + _axMargin;
+  const sellCost = (inputCost > 0 && combinedMargin < 1) ? inputCost / (1 - combinedMargin) : 0;
   const markup   = sellCost - inputCost;
-  const margin   = sellCost > 0 ? markup / sellCost : _combinedMargin();
 
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
   document.getElementById('sum_sell_cost').textContent  = fmtMoney(sellCost);
@@ -829,7 +826,7 @@ let _cloud4cMargin = 0.40; // preserves legacy default behavior
 let _axMargin = 0.0;
 
 function _combinedMargin() {
-  return 1 - ((1 - _cloud4cMargin) * (1 - _axMargin));
+  return _cloud4cMargin + _axMargin;
 }
 
 async function fetchExchangeRate() {

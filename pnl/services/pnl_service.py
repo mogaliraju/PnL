@@ -49,7 +49,7 @@ def resolve_margin_inputs(payload: dict | None) -> tuple[float, float]:
 
 
 def effective_margin(cloud4c_margin: float, ax_margin: float) -> float:
-    return 1.0 - ((1.0 - _clamp_margin(cloud4c_margin)) * (1.0 - _clamp_margin(ax_margin)))
+    return _clamp_margin(cloud4c_margin) + _clamp_margin(ax_margin)
 
 
 def compute_costs(
@@ -76,26 +76,24 @@ def compute_costs(
         cloud4c_margin = _clamp_margin(cloud4c_margin, _clamp_margin(target_margin, 0.40))
         ax_margin = _clamp_margin(ax_margin, 0.0)
 
-    cloud4c_divisor = 1.0 - cloud4c_margin
-    ax_divisor = 1.0 - ax_margin
-    cloud4c_sell_cost = input_cost / cloud4c_divisor if input_cost > 0 else 0
-    sell_cost = cloud4c_sell_cost / ax_divisor if cloud4c_sell_cost > 0 else 0
+    combined_margin = cloud4c_margin + ax_margin
+    combined_divisor = 1.0 - combined_margin
+    sell_cost    = input_cost / combined_divisor if (input_cost > 0 and combined_divisor > 0) else 0
     markup       = sell_cost - input_cost
     markup_pct   = markup / input_cost if input_cost > 0 else 0
-    gross_margin = markup / sell_cost  if sell_cost  > 0 else 0
+    gross_margin = combined_margin  # markup / sell_cost == combined_margin by definition
 
     return {
-        'input_cost':        round(input_cost, 2),
+        'input_cost':          round(input_cost, 2),
         'resource_input_cost': round(resource_input_cost, 2),
         'one_time_input_cost': round(one_time_input_cost, 2),
-        'cloud4c_sell_cost': round(cloud4c_sell_cost, 2),
-        'sell_cost':         round(sell_cost, 2),
-        'markup':            round(markup, 2),
-        'markup_pct':        round(markup_pct, 4),
-        'gross_margin':      round(gross_margin, 4),
-        'effective_margin':  round(gross_margin, 4),
-        'cloud4c_margin':    round(cloud4c_margin, 4),
-        'ax_margin':         round(ax_margin, 4),
+        'sell_cost':           round(sell_cost, 2),
+        'markup':              round(markup, 2),
+        'markup_pct':          round(markup_pct, 4),
+        'gross_margin':        round(gross_margin, 4),
+        'effective_margin':    round(gross_margin, 4),
+        'cloud4c_margin':      round(cloud4c_margin, 4),
+        'ax_margin':           round(ax_margin, 4),
     }
 
 
