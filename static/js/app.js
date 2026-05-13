@@ -1769,7 +1769,7 @@ const ALL_PROJECTS_COLUMN_GROUPS = [
   { label: 'Basics',     keys: ['folder', 'customer', 'project', 'reference', 'business_unit', 'location', 'duration', 'proposal_date', 'project_description', 'customer_first_touch_point'] },
   { label: 'Pipeline',   keys: ['status', 'stage', 'priority', 'project_owner', 'account_manager', 'sales_spoc', 'delivery_manager', 'technical_lead', 'expected_start_date', 'expected_end_date', 'next_follow_up_date', 'opportunity_id', 'next_action'] },
   { label: 'Commercial', keys: ['partner', 'project_type', 'industry', 'delivery_model', 'billing_type', 'currency', 'payment_terms'] },
-  { label: 'Financial',  keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'travel_cost', 'infra_cost', 'third_party_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'gross_margin'] },
+  { label: 'Financial',  keys: ['resource_count', 'total_hours', 'avg_rate', 'input_cost', 'add_on_cost', 'travel_cost', 'infra_cost', 'third_party_cost', 'discount_pct', 'markup', 'revenue', 'profit_amount', 'cloud4c_margin', 'ax_margin', 'gross_margin'] },
   { label: 'Notes',      keys: ['internal_notes', 'risks', 'dependencies'] },
   { label: 'Audit',      keys: ['since_save', 'saved_at', 'saved_by'] },
 ];
@@ -1836,6 +1836,30 @@ function getAllProjectsColumnDefs(formatters) {
     { key: 'markup', label: 'MarkUp', headerClass: 'text-end', sortValue: p => Number(p.costs?.markup || 0), cell: p => `<td class="text-end ap-col-number" style="color:#6d28d9;font-weight:700">${p.costs?.markup ? fmt(p.costs.markup) : ''}</td>` },
     { key: 'revenue', label: 'Revenue', headerClass: 'text-end', sortValue: p => Number(p.costs?.sell_cost || 0), cell: p => `<td class="text-end ap-col-number" style="color:#15803d;font-weight:700">${p.costs?.sell_cost ? fmt(p.costs.sell_cost) : ''}</td>` },
     { key: 'profit_amount', label: 'Profit', headerClass: 'text-end', sortValue: p => Number(p.profit_amount || 0), cell: p => `<td class="text-end small">${p.profit_amount ? fmt(p.profit_amount) : ''}</td>` },
+    {
+      key: 'cloud4c_margin',
+      label: 'Cloud4C Margin',
+      headerClass: 'text-end',
+      sortValue: p => Number(p.costs?.cloud4c_margin || 0),
+      cell: p => {
+        const m = (p.costs?.cloud4c_margin || 0) * 100;
+        return p.costs?.cloud4c_margin != null
+          ? `<td class="text-end small" style="color:#6d28d9;font-weight:600">${m.toFixed(1)}%</td>`
+          : '<td></td>';
+      }
+    },
+    {
+      key: 'ax_margin',
+      label: 'AX Margin',
+      headerClass: 'text-end',
+      sortValue: p => Number(p.costs?.ax_margin || 0),
+      cell: p => {
+        const m = (p.costs?.ax_margin || 0) * 100;
+        return p.costs?.ax_margin != null
+          ? `<td class="text-end small" style="color:#7c3aed;font-weight:600">${m.toFixed(1)}%</td>`
+          : '<td></td>';
+      }
+    },
     {
       key: 'gross_margin',
       label: 'Gross Margin',
