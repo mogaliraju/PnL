@@ -7,6 +7,9 @@ let currentUser = {};
 const DEFAULT_BUSINESS_UNITS = ['EDM', 'AI', 'SAP', 'RPA'];
 const ALL_PROJECTS_SORT_STORAGE_KEY = 'pnl.allProjects.sort';
 const ALL_PROJECTS_SEARCH_STORAGE_KEY = 'pnl.allProjects.search';
+const EDITOR_MODE = document.body?.dataset.editorMode === 'true';
+const EDITOR_PID = document.body?.dataset.editorPid || '';
+const LAUNCH_NEW_EDITOR = document.body?.dataset.launchNew === 'true';
 
 function buildDefaultProject(overrides = {}) {
   return {
@@ -232,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const serverData = await res.json();
   appData = {
     project: buildDefaultProject(),
-    resources: [], pnl_roles: [], releases: [],
+    resources: [], one_time_costs: [], pnl_roles: [], releases: [],
     rate_card:    serverData.rate_card    || [],
     role_catalog: serverData.role_catalog || [],
     business_units: normalizeBusinessUnits(serverData.business_units || []),
@@ -258,9 +261,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function populateAll() {
   appData.project = normalizeProject(appData.project || {});
   appData.business_units = normalizeBusinessUnits(appData.business_units || []);
-  if (typeof appData.target_margin === 'number') {
-    _targetMargin = appData.target_margin;
-  }
+  appData.one_time_costs = Array.isArray(appData.one_time_costs) ? appData.one_time_costs : [];
+  const legacyMargin = typeof appData.target_margin === 'number' ? appData.target_margin : 0.40;
+  _cloud4cMargin = typeof appData.cloud4c_margin === 'number' ? appData.cloud4c_margin : legacyMargin;
+  _axMargin = typeof appData.ax_margin === 'number' ? appData.ax_margin : 0.0;
   if (typeof appData.fx_rate === 'number' && appData.fx_rate > 0) {
     _usdToInr = appData.fx_rate;
     const inlineEl = document.getElementById('fx_rate_inline');
@@ -445,20 +449,28 @@ function collectProject() {
 // ============================================================
 function updateSummary() {
   const resources = appData.resources || [];
+  const oneTimeCosts = appData.one_time_costs || [];
 
   let inputCost = 0;
   resources.forEach(r => {
     inputCost += (r.hours || 0) * _getRateForResource(r);
   });
-  const divisor  = 1 - _targetMargin;
-  const sellCost = inputCost > 0 ? inputCost / divisor : 0;
+  oneTimeCosts.forEach(item => {
+    inputCost += parseFloat(item.amount) || 0;
+  });
+  const cloud4cDivisor = 1 - _cloud4cMargin;
+  const axDivisor = 1 - _axMargin;
+  const cloud4cSellCost = inputCost > 0 ? inputCost / cloud4cDivisor : 0;
+  const sellCost = cloud4cSellCost > 0 ? cloud4cSellCost / axDivisor : 0;
   const markup   = sellCost - inputCost;
-  const margin   = sellCost > 0 ? markup / sellCost : _targetMargin;
+  const margin   = sellCost > 0 ? markup / sellCost : _combinedMargin();
 
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
   document.getElementById('sum_sell_cost').textContent  = fmtMoney(sellCost);
   document.getElementById('sum_markup').textContent     = fmtMoney(markup);
   document.getElementById('sum_margin').textContent     = (margin * 100).toFixed(1) + '%';
+  const breakupEl = document.getElementById('sum_margin_breakup');
+  if (breakupEl) breakupEl.textContent = `Cloud4C ${(_cloud4cMargin * 100).toFixed(1)}% | AX ${(_axMargin * 100).toFixed(1)}%`;
 
   // INR display
   const inrEl = document.getElementById('sum_inr_rate');
@@ -470,19 +482,26 @@ function toggleMarginEdit() {
   const isHidden = row.classList.contains('d-none');
   row.classList.toggle('d-none');
   if (isHidden) {
-    const inp = document.getElementById('target_margin_input');
-    inp.value = (_targetMargin * 100).toFixed(0);
-    inp.focus();
+    const c4cInp = document.getElementById('cloud4c_margin_input');
+    const axInp = document.getElementById('ax_margin_input');
+    c4cInp.value = (_cloud4cMargin * 100).toFixed(0);
+    axInp.value = (_axMargin * 100).toFixed(0);
+    c4cInp.focus();
   }
 }
 
 function applyMargin() {
-  const val = parseFloat(document.getElementById('target_margin_input').value);
-  if (isNaN(val) || val <= 0 || val >= 100) { showToast('Enter a valid % between 1 and 99', 'danger'); return; }
-  _targetMargin = val / 100;
+  const c4cVal = parseFloat(document.getElementById('cloud4c_margin_input').value);
+  const axVal = parseFloat(document.getElementById('ax_margin_input').value);
+  if (isNaN(c4cVal) || c4cVal < 0 || c4cVal >= 100 || isNaN(axVal) || axVal < 0 || axVal >= 100) {
+    showToast('Enter valid Cloud4C and AX margins between 0 and 99', 'danger');
+    return;
+  }
+  _cloud4cMargin = c4cVal / 100;
+  _axMargin = axVal / 100;
   document.getElementById('margin-edit-row').classList.add('d-none');
   updateSummary();
-  showToast(`Gross margin target set to ${val.toFixed(1)}%`, 'success');
+  showToast(`Margins updated: Cloud4C ${c4cVal.toFixed(1)}%, AX ${axVal.toFixed(1)}%`, 'success');
 }
 
 function toggleFxEdit() {
@@ -514,6 +533,7 @@ function applyFxRate() {
 // ============================================================
 function renderResources() {
   const resources = appData.resources || [];
+  const oneTimeCosts = appData.one_time_costs || [];
   const levels    = (appData.rate_card || []).map(r => r.level);
   const catalog   = appData.role_catalog || [];
 
@@ -581,6 +601,30 @@ function renderResources() {
     tbody.appendChild(tr);
   });
 
+  oneTimeCosts.forEach((item, i) => {
+    const amount = parseFloat(item.amount) || 0;
+    totalCost += amount;
+    const rowNumber = resources.length + i + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="text-center text-muted small">${rowNumber}</td>
+      <td><span class="badge text-bg-secondary">One-Time</span></td>
+      <td><input type="text" class="form-control form-control-sm" value="${esc(item.label || '')}" placeholder="e.g. Knowledge Transfer"
+          oninput="updateOneTimeCostLabel(${i}, this.value)"/></td>
+      <td class="text-center text-muted">—</td>
+      <td class="text-center text-muted">—</td>
+      <td class="text-end text-muted">Flat</td>
+      <td><input type="number" class="form-control form-control-sm text-end" value="${item.amount ?? ''}" min="0" step="0.01"
+          oninput="updateOneTimeCostAmount(${i}, this.value)"/></td>
+      <td class="text-end text-muted small" id="one_time_cost_inr_${i}">${_usdToInr ? '₹' + Math.round(amount * _usdToInr).toLocaleString('en-IN') : ''}</td>
+      <td class="text-center">
+        <button class="btn btn-outline-danger btn-icon" onclick="removeOneTimeCost(${i})" title="Remove">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
   const totInrEl = document.getElementById('tot_cost_inr');
@@ -603,6 +647,9 @@ function updateResourceCost(i, hoursVal) {
   (appData.resources || []).forEach(r => {
     totalHours += (r.hours || 0);
     totalCost  += (r.hours || 0) * _getRateForResource(r);
+  });
+  (appData.one_time_costs || []).forEach(item => {
+    totalCost += parseFloat(item.amount) || 0;
   });
   document.getElementById('tot_hours').textContent = totalHours;
   document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
@@ -648,6 +695,35 @@ function addResource() {
     level: defaultLevel,
     hours: 0
   });
+  renderResources();
+  updateSummary();
+}
+
+function addOneTimeCost() {
+  if (!appData.one_time_costs) appData.one_time_costs = [];
+  appData.one_time_costs.push({
+    id: Date.now(),
+    label: '',
+    amount: 0
+  });
+  renderResources();
+  updateSummary();
+}
+
+function updateOneTimeCostLabel(i, value) {
+  if (!appData.one_time_costs?.[i]) return;
+  appData.one_time_costs[i].label = value;
+}
+
+function updateOneTimeCostAmount(i, value) {
+  if (!appData.one_time_costs?.[i]) return;
+  appData.one_time_costs[i].amount = parseFloat(value) || 0;
+  renderResources();
+  updateSummary();
+}
+
+function removeOneTimeCost(i) {
+  appData.one_time_costs.splice(i, 1);
   renderResources();
   updateSummary();
 }
@@ -708,7 +784,12 @@ function setRate(levelIdx, value, category) {
 
 let _usdToInr = null;
 let _currentPid = null;   // PID of the project currently loaded in the editor
-let _targetMargin = 0.40; // default 40%
+let _cloud4cMargin = 0.40; // preserves legacy default behavior
+let _axMargin = 0.0;
+
+function _combinedMargin() {
+  return 1 - ((1 - _cloud4cMargin) * (1 - _axMargin));
+}
 
 async function fetchExchangeRate() {
   const attempts = [
@@ -2481,16 +2562,25 @@ async function deleteProjectFromAllProjects(id, name, btn) {
   loadAllProjects();
 }
 
+function goToProjectEditor(pid = '') {
+  const url = pid ? `/project-editor/${encodeURIComponent(pid)}` : '/project-editor';
+  window.location.href = url;
+}
+
 async function loadProjectAndSwitch(id, name) {
+  goToProjectEditor(id);
+}
+
+async function openEditorProject(id, name = '') {
   const res = await fetch(`/api/projects/${id}`);
   if (!res.ok) { showToast('Could not load project', 'danger'); return; }
   appData = await res.json();
   appData.project = normalizeProject(appData.project || {});
   _currentPid = id;
   populateAll();
-  updateProjectBadge(name);
+  updateProjectBadge(name || appData?._meta?.name || appData?.project?.customer || '');
   document.querySelector('[href="#tab-project"]')?.click();
-  showToast(`Loaded: ${name}`, 'success');
+  if (name) showToast(`Loaded: ${name}`, 'success');
 }
 
 async function loadProjectsList() {
@@ -2576,15 +2666,9 @@ async function saveAsProject() {
 }
 
 async function loadProject(id, name) {
-  const res  = await fetch(`/api/projects/${id}`);
-  if (!res.ok) { showToast('Could not load project', 'danger'); return; }
-  appData = await res.json();
-  _currentPid = id;
-  populateAll();
-  updateProjectBadge(name);
   bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
   bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
-  showToast(`Loaded: ${name}`, 'success');
+  goToProjectEditor(id);
 }
 
 async function deleteProject(id) {
@@ -2622,27 +2706,41 @@ async function confirmRename(id) {
   }
 }
 
-function newProject() {
-  if (!confirm('Start a new blank project? Unsaved changes will be lost.')) return;
+function initializeNewProjectEditor(confirmReset = true) {
+  if (confirmReset && !confirm('Start a new blank project? Unsaved changes will be lost.')) return false;
   const catalog  = appData.role_catalog;
   const rateCard = appData.rate_card;
   _currentPid    = null;
-  _targetMargin  = 0.40;
+  _cloud4cMargin = 0.40;
+  _axMargin = 0.0;
   appData = {
     project: buildDefaultProject(),
-    resources: [], pnl_roles: [], releases: [],
+    resources: [], one_time_costs: [], pnl_roles: [], releases: [],
     rate_card: rateCard, role_catalog: catalog,
     business_units: normalizeBusinessUnits(appData.business_units || []),
     attachments: { customer_po: false, cloud4c_quote: false, partner_proposal: false },
     funding: { marketing: {currency:'USD',value:null}, management: {currency:'USD',value:null}, discount: {currency:'USD',value:null} },
     approvals: { prepared_by: '', reviewed_by: '', approved_by: '' },
-    export_filename: '', target_margin: 0.40, fx_rate: _usdToInr
+    export_filename: '',
+    target_margin: _combinedMargin(),
+    cloud4c_margin: _cloud4cMargin,
+    ax_margin: _axMargin,
+    fx_rate: _usdToInr
   };
   populateAll();
   updateProjectBadge(null);
   bootstrap.Modal.getInstance(document.getElementById('saveAsModal'))?.hide();
   bootstrap.Modal.getInstance(document.getElementById('projectsModal'))?.hide();
-  showToast('New project ready', 'primary');
+  if (confirmReset) showToast('New project ready', 'primary');
+  return true;
+}
+
+function newProject() {
+  if (!EDITOR_MODE) {
+    goToProjectEditor();
+    return;
+  }
+  initializeNewProjectEditor(true);
 }
 
 function updateProjectBadge(name) {
@@ -2675,6 +2773,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Refresh + hide project badge when switching to All Projects tab
   document.querySelector('[href="#tab-all-projects"]')
     ?.addEventListener('click', () => { updateProjectBadge(null); loadAllProjects(); });
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!EDITOR_MODE) return;
+  if (EDITOR_PID) {
+    await openEditorProject(EDITOR_PID);
+  } else if (LAUNCH_NEW_EDITOR) {
+    initializeNewProjectEditor(false);
+  }
 });
 
 // ============================================================
@@ -2759,7 +2866,9 @@ function collectExportSettings() {
 
 async function saveExportSettings() {
   collectExportSettings();
-  appData.target_margin = _targetMargin;
+  appData.target_margin = _combinedMargin();
+  appData.cloud4c_margin = _cloud4cMargin;
+  appData.ax_margin = _axMargin;
   await fetch('/api/data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2791,7 +2900,9 @@ function collectAll() {
   collectRateCard();
   collectFundingApprovals();
   collectExportSettings();
-  appData.target_margin = _targetMargin;
+  appData.target_margin = _combinedMargin();
+  appData.cloud4c_margin = _cloud4cMargin;
+  appData.ax_margin = _axMargin;
   appData.fx_rate = _usdToInr;
   // Persist folder in _meta so backend stores it
   const folderVal = getVal('proj_folder').trim();

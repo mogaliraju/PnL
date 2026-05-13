@@ -11,7 +11,7 @@ from pnl.utils.storage import (
 )
 from pnl.utils.auth import login_required
 from pnl.utils.logger import get_logger
-from pnl.services.pnl_service import compute_costs
+from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
 
 bp = Blueprint('main', __name__)
 log = get_logger(__name__)
@@ -53,6 +53,43 @@ def index():
     refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
     return render_template(
         'index.html',
+        editor_mode=False,
+        editor_pid='',
+        editor_project_name='',
+        launch_new=False,
+        home_href='/',
+        app_refreshed_at_iso=refreshed_at_ist.isoformat(),
+        app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
+    )
+
+
+@bp.route('/project-editor')
+@login_required
+def project_editor_new():
+    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
+    return render_template(
+        'index.html',
+        editor_mode=True,
+        editor_pid='',
+        editor_project_name='',
+        launch_new=True,
+        home_href='/',
+        app_refreshed_at_iso=refreshed_at_ist.isoformat(),
+        app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
+    )
+
+
+@bp.route('/project-editor/<pid>')
+@login_required
+def project_editor_existing(pid):
+    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
+    return render_template(
+        'index.html',
+        editor_mode=True,
+        editor_pid=pid,
+        editor_project_name='',
+        launch_new=False,
+        home_href='/',
         app_refreshed_at_iso=refreshed_at_ist.isoformat(),
         app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
     )
@@ -123,8 +160,14 @@ def dashboard_data():
         meta = payload.get('_meta', {})
         project = payload.get('project', {})
         resources = payload.get('resources', [])
-        target_margin = float(payload.get('target_margin', 0.40))
-        costs = compute_costs(resources, payload.get('rate_card', []), target_margin)
+        cloud4c_margin, ax_margin = resolve_margin_inputs(payload)
+        costs = compute_costs(
+            resources,
+            payload.get('rate_card', []),
+            cloud4c_margin=cloud4c_margin,
+            ax_margin=ax_margin,
+            one_time_costs=payload.get('one_time_costs', []),
+        )
 
         total_resources += len(resources)
         total_hours += sum(float(r.get('hours') or 0) for r in resources)

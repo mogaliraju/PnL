@@ -352,6 +352,7 @@ def _build_project_payload(project, settings, pid, name):
         },
         'project': project,
         'resources': [],
+        'one_time_costs': [],
         'pnl_roles': [],
         'releases': [],
         'rate_card': settings.get('rate_card', []),
@@ -366,6 +367,8 @@ def _build_project_payload(project, settings, pid, name):
         'approvals': {'prepared_by': '', 'reviewed_by': '', 'approved_by': ''},
         'export_filename': '',
         'target_margin': 0.40,
+        'cloud4c_margin': 0.40,
+        'ax_margin': 0.0,
         'fx_rate': None,
     }
 

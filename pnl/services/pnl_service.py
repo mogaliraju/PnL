@@ -14,34 +14,109 @@ def _get_rate(rc_item: dict, group: str) -> float:
     return float(rc_item.get('rate', 0) or 0)
 
 
+def _sum_one_time_costs(items: list | None) -> float:
+    total = 0.0
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            total += float(item.get('amount') or 0)
+        except (TypeError, ValueError):
+            continue
+    return total
 
-def compute_costs(resources: list, rate_card: list, target_margin: float = 0.40) -> dict:
-    input_cost = sum(
+
+def _clamp_margin(value, default=0.0) -> float:
+    try:
+        margin = float(value)
+    except (TypeError, ValueError):
+        margin = default
+    return max(0.0, min(margin, 0.99))
+
+
+def resolve_margin_inputs(payload: dict | None) -> tuple[float, float]:
+    payload = payload or {}
+    legacy_margin = _clamp_margin(payload.get('target_margin', 0.40), 0.40)
+    cloud4c_margin = payload.get('cloud4c_margin')
+    ax_margin = payload.get('ax_margin')
+
+    if cloud4c_margin is None and ax_margin is None:
+        # Legacy projects stored one margin only. Preserve old behavior by
+        # treating it as the Cloud4C margin with no AX uplift.
+        return legacy_margin, 0.0
+
+    return _clamp_margin(cloud4c_margin, legacy_margin), _clamp_margin(ax_margin, 0.0)
+
+
+def effective_margin(cloud4c_margin: float, ax_margin: float) -> float:
+    return 1.0 - ((1.0 - _clamp_margin(cloud4c_margin)) * (1.0 - _clamp_margin(ax_margin)))
+
+
+def compute_costs(
+    resources: list,
+    rate_card: list,
+    target_margin: float = 0.40,
+    cloud4c_margin: float | None = None,
+    ax_margin: float | None = None,
+    one_time_costs: list | None = None,
+) -> dict:
+    resource_input_cost = sum(
         (r.get('hours') or 0) * _get_rate(
             next((rc for rc in rate_card if rc.get('level') == r.get('level')), {}),
             r.get('group', '')
         )
         for r in resources
     )
-    divisor      = 1.0 - max(0.0, min(target_margin, 0.99))
-    sell_cost    = input_cost / divisor if input_cost > 0 else 0
+    one_time_input_cost = _sum_one_time_costs(one_time_costs)
+    input_cost = resource_input_cost + one_time_input_cost
+    if cloud4c_margin is None and ax_margin is None:
+        cloud4c_margin = _clamp_margin(target_margin, 0.40)
+        ax_margin = 0.0
+    else:
+        cloud4c_margin = _clamp_margin(cloud4c_margin, _clamp_margin(target_margin, 0.40))
+        ax_margin = _clamp_margin(ax_margin, 0.0)
+
+    cloud4c_divisor = 1.0 - cloud4c_margin
+    ax_divisor = 1.0 - ax_margin
+    cloud4c_sell_cost = input_cost / cloud4c_divisor if input_cost > 0 else 0
+    sell_cost = cloud4c_sell_cost / ax_divisor if cloud4c_sell_cost > 0 else 0
     markup       = sell_cost - input_cost
     markup_pct   = markup / input_cost if input_cost > 0 else 0
     gross_margin = markup / sell_cost  if sell_cost  > 0 else 0
 
     return {
-        'input_cost':   round(input_cost,   2),
-        'sell_cost':    round(sell_cost,    2),
-        'markup':       round(markup,       2),
-        'markup_pct':   round(markup_pct,   4),
-        'gross_margin': round(gross_margin, 4),
+        'input_cost':        round(input_cost, 2),
+        'resource_input_cost': round(resource_input_cost, 2),
+        'one_time_input_cost': round(one_time_input_cost, 2),
+        'cloud4c_sell_cost': round(cloud4c_sell_cost, 2),
+        'sell_cost':         round(sell_cost, 2),
+        'markup':            round(markup, 2),
+        'markup_pct':        round(markup_pct, 4),
+        'gross_margin':      round(gross_margin, 4),
+        'effective_margin':  round(gross_margin, 4),
+        'cloud4c_margin':    round(cloud4c_margin, 4),
+        'ax_margin':         round(ax_margin, 4),
     }
 
 
 def compare_versions(v1: dict, v2: dict) -> dict:
     """Return a structured diff between two project snapshots."""
-    c1 = compute_costs(v1.get('resources', []), v1.get('rate_card', []))
-    c2 = compute_costs(v2.get('resources', []), v2.get('rate_card', []))
+    c4c_1, ax_1 = resolve_margin_inputs(v1)
+    c4c_2, ax_2 = resolve_margin_inputs(v2)
+    c1 = compute_costs(
+        v1.get('resources', []),
+        v1.get('rate_card', []),
+        cloud4c_margin=c4c_1,
+        ax_margin=ax_1,
+        one_time_costs=v1.get('one_time_costs', []),
+    )
+    c2 = compute_costs(
+        v2.get('resources', []),
+        v2.get('rate_card', []),
+        cloud4c_margin=c4c_2,
+        ax_margin=ax_2,
+        one_time_costs=v2.get('one_time_costs', []),
+    )
 
     def delta(a, b):
         return round(b - a, 2)

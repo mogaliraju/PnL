@@ -9,7 +9,11 @@
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="/static/css/style.css"/>
 </head>
-<body>
+<body
+  data-editor-mode="{{ 'true' if editor_mode else 'false' }}"
+  data-editor-pid="{{ editor_pid or '' }}"
+  data-launch-new="{{ 'true' if launch_new else 'false' }}"
+>
 
 <!-- Navbar -->
 <nav class="navbar ax-navbar navbar-dark">
@@ -33,6 +37,12 @@
       <button class="btn btn-outline-light btn-sm" onclick="newProject()" title="New blank project">
         <i class="bi bi-plus-lg me-1"></i>New
       </button>
+
+      {% if editor_mode %}
+      <a class="btn btn-outline-light btn-sm" href="{{ home_href }}" title="Back to portfolio">
+        <i class="bi bi-house-door me-1"></i>Home
+      </a>
+      {% endif %}
 
       <!-- Import Excel -->
       <label class="btn btn-outline-light btn-sm mb-0" title="Import from Excel" style="cursor:pointer">
@@ -112,18 +122,23 @@
 
   <!-- Tabs -->
   <ul class="nav nav-tabs mb-3" id="mainTabs">
+    {% if not editor_mode %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-dashboard" onclick="loadDashboard()"><i class="bi bi-graph-up-arrow me-1"></i>Dashboard</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
+    {% endif %}
+    <li class="nav-item"><a class="nav-link {% if editor_mode %}active{% endif %}" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-export"><i class="bi bi-gear me-1"></i>Export Settings</a></li>
+    {% if not editor_mode %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bookings" onclick="loadBookingsOverview()"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funnel" onclick="loadFunnelOverview()"><i class="bi bi-funnel me-1"></i>Funnel Report</a></li>
+    {% endif %}
   </ul>
 
   <div class="tab-content">
 
+    {% if not editor_mode %}
     <!-- ===== DASHBOARD ===== -->
     <div class="tab-pane fade" id="tab-dashboard">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -142,14 +157,15 @@
     </div>
 
     <!-- ===== ALL PROJECTS ===== -->
-    <div class="tab-pane fade" id="tab-all-projects">
+    <div class="tab-pane fade show active" id="tab-all-projects">
       <div id="all-projects-container">
         <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
       </div>
     </div>
+    {% endif %}
 
     <!-- ===== PROJECT ===== -->
-    <div class="tab-pane fade show active" id="tab-project">
+    <div class="tab-pane fade {% if editor_mode %}show active{% endif %}" id="tab-project">
 
       <!-- Sticky Save bar -->
       <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
@@ -433,9 +449,14 @@
       <div class="card mb-3">
         <div class="card-header fw-bold d-flex justify-content-between align-items-center">
           <span><i class="bi bi-table me-1"></i>Resources &amp; Costing</span>
-          <button class="btn btn-primary btn-sm" onclick="addResource()">
-            <i class="bi bi-plus-circle me-1"></i>Add Resource
-          </button>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="addOneTimeCost()">
+              <i class="bi bi-cash-stack me-1"></i>Add One-Time Cost
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="addResource()">
+              <i class="bi bi-plus-circle me-1"></i>Add Resource
+            </button>
+          </div>
         </div>
         <div class="card-body p-2">
           <div class="table-responsive">
@@ -496,16 +517,29 @@
               <div class="summary-box bg-primary-subtle text-center h-100">
                 <div class="d-flex justify-content-center align-items-center gap-2">
                   <div class="summary-label mb-0">Gross Margin %</div>
-                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit target margin"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit Cloud4C and AX margins"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
                 </div>
                 <div class="summary-value" id="sum_margin">—</div>
+                <div class="small text-muted mt-1" id="sum_margin_breakup">Cloud4C — | AX —</div>
                 <div id="margin-edit-row" class="d-none mt-2">
-                  <div class="input-group input-group-sm">
-                    <input type="number" class="form-control" id="target_margin_input" min="1" max="99" step="1" value="40" placeholder="40"/>
-                    <span class="input-group-text">%</span>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" id="cloud4c_margin_input" min="0" max="99" step="1" value="40" placeholder="40"/>
+                        <span class="input-group-text">C4C %</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" id="ax_margin_input" min="0" max="99" step="1" value="0" placeholder="0"/>
+                        <span class="input-group-text">AX %</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-grid mt-2">
                     <button class="btn btn-primary btn-sm" onclick="applyMargin()">Apply</button>
                   </div>
-                  <div class="form-text">Target gross margin (default 40%)</div>
+                  <div class="form-text">Cloud4C and AX margins are applied sequentially to produce the combined gross margin.</div>
                 </div>
               </div>
             </div>
@@ -651,6 +685,7 @@
       </div>
     </div>
 
+    {% if not editor_mode %}
     <!-- ===== ORDER BOOKINGS & COMMITS ===== -->
     <div class="tab-pane fade" id="tab-bookings">
       <div id="bookings-sub-overview" class="">
@@ -1040,6 +1075,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
   </div><!-- /tab-content -->
 </div><!-- /container -->

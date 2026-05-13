@@ -94,6 +94,7 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
         item = next((rc for rc in rate_card if rc.get('level') == res.get('level')), {})
         return _svc_get_rate(item, res.get('group', ''))
     resources = data.get('resources', [])
+    one_time_costs = data.get('one_time_costs', [])
     proj      = data.get('project', {})
     appr      = data.get('approvals', {})
 
@@ -255,8 +256,21 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
         _cell(wc, row, 5, rate,              size=10, bg=row_bg, num_fmt='#,##0.00', h_align='right')
         _cell(wc, row, 6, round(cost, 2),    size=10, bg=row_bg, num_fmt='#,##0.00', h_align='right')
 
+    for oi, item in enumerate(one_time_costs):
+        amount = float(item.get('amount') or 0)
+        total_c += amount
+        row = 2 + len(resources) + oi
+        row_bg = AX_ACCENT if row % 2 == 0 else AX_WHITE
+        wc.row_dimensions[row].height = 18
+        _cell(wc, row, 1, len(resources) + oi + 1, size=10, bg=row_bg, h_align='center')
+        _cell(wc, row, 2, item.get('label', ''), size=10, bg=row_bg)
+        _cell(wc, row, 3, 'ONE-TIME', size=10, bg=row_bg, h_align='center')
+        _cell(wc, row, 4, '', size=10, bg=row_bg, h_align='center')
+        _cell(wc, row, 5, '', size=10, bg=row_bg, h_align='right')
+        _cell(wc, row, 6, round(amount, 2), size=10, bg=row_bg, num_fmt='#,##0.00', h_align='right')
+
     # ── Totals row ─────────────────────────────────────────────
-    tr = 2 + len(resources)
+    tr = 2 + len(resources) + len(one_time_costs)
     wc.row_dimensions[tr].height = 20
     _cell(wc, tr, 1, '',             bold=True, size=10, bg=AX_PALE)
     _cell(wc, tr, 2, 'TOTAL',        bold=True, size=10, bg=AX_PALE, h_align='right')

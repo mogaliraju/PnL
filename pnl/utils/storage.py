@@ -481,13 +481,15 @@ def list_projects(summary: bool = False) -> list[dict]:
             payload = _json_loads(row['payload'], {})
             project = payload.get('project', {})
             resources = payload.get('resources', [])
-            target_margin = float(payload.get('target_margin', 0.40))
-            from pnl.services.pnl_service import compute_costs
+            from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
+            cloud4c_margin, ax_margin = resolve_margin_inputs(payload)
 
             costs = compute_costs(
                 resources,
                 payload.get('rate_card', []),
-                target_margin,
+                cloud4c_margin=cloud4c_margin,
+                ax_margin=ax_margin,
+                one_time_costs=payload.get('one_time_costs', []),
             )
             total_hours = sum(_to_float(r.get('hours')) for r in resources)
             input_cost = _to_float(costs.get('input_cost'))

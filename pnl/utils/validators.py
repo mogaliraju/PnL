@@ -51,6 +51,19 @@ def validate_rate_card(rc: Any):
                 raise ValidationError(f"Rate card row #{i+1}: rate must be >= 0")
 
 
+def validate_one_time_costs(items: Any):
+    if items is None:
+        return
+    if not isinstance(items, list):
+        raise ValidationError("'one_time_costs' must be a list")
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValidationError(f"One-time cost row #{i+1} is malformed")
+        amount = item.get('amount', 0)
+        if not isinstance(amount, (int, float)) or amount < 0:
+            raise ValidationError(f"One-time cost row #{i+1}: amount must be a non-negative number")
+
+
 def validate_payload(data: Any) -> None:
     """Full payload validation before save/export."""
     if not isinstance(data, dict):
@@ -60,6 +73,8 @@ def validate_payload(data: Any) -> None:
 
     for i, r in enumerate(data.get('resources', [])):
         validate_resource(r, i)
+
+    validate_one_time_costs(data.get('one_time_costs'))
 
     if data.get('rate_card') is not None:
         validate_rate_card(data['rate_card'])

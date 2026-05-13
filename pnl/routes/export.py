@@ -6,7 +6,7 @@ from io import BytesIO
 from flask import Blueprint, request, jsonify, send_file, session
 from pnl.utils.auth import login_required
 from pnl.utils.validators import validate_payload, ValidationError
-from pnl.services.pnl_service import compute_costs
+from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
 from pnl.services.excel_service import build_workbook
 from pnl.utils.logger import get_logger
 
@@ -27,8 +27,14 @@ def export_excel():
         except ValidationError as e:
             return jsonify({'error': str(e)}), 400
 
-        target_margin = float(data.get('target_margin', 0.40))
-        costs         = compute_costs(data.get('resources', []), data.get('rate_card', []), target_margin)
+        cloud4c_margin, ax_margin = resolve_margin_inputs(data)
+        costs = compute_costs(
+            data.get('resources', []),
+            data.get('rate_card', []),
+            cloud4c_margin=cloud4c_margin,
+            ax_margin=ax_margin,
+            one_time_costs=data.get('one_time_costs', []),
+        )
 
         wb  = build_workbook(data, costs)
         buf = BytesIO()
