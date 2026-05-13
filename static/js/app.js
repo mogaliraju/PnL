@@ -744,8 +744,22 @@ function updateOneTimeCostLabel(i, value) {
 
 function updateOneTimeCostAmount(i, value) {
   if (!appData.one_time_costs?.[i]) return;
-  appData.one_time_costs[i].amount = parseFloat(value) || 0;
-  renderResources();
+  const amount = parseFloat(value) || 0;
+  appData.one_time_costs[i].amount = amount;
+  // Update INR cell in-place to avoid re-rendering and losing cursor focus
+  const inrEl = document.getElementById(`one_time_cost_inr_${i}`);
+  if (inrEl) inrEl.textContent = _usdToInr ? '₹' + Math.round(amount * _usdToInr).toLocaleString('en-IN') : '';
+  // Recompute totals row without rebuilding the table
+  let totalHours = 0, totalCost = 0;
+  (appData.resources || []).forEach(r => {
+    totalHours += (r.hours || 0);
+    totalCost  += (r.hours || 0) * _getRateForResource(r);
+  });
+  (appData.one_time_costs || []).forEach(item => { totalCost += parseFloat(item.amount) || 0; });
+  document.getElementById('tot_hours').textContent = totalHours;
+  document.getElementById('tot_cost').textContent  = fmtMoney(totalCost);
+  const totInrEl = document.getElementById('tot_cost_inr');
+  if (totInrEl) totInrEl.textContent = _usdToInr ? '₹' + Math.round(totalCost * _usdToInr).toLocaleString('en-IN') : '';
   updateSummary();
 }
 
