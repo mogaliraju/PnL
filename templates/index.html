@@ -518,31 +518,39 @@
             <div class="col-6 col-md">
               <div class="summary-box bg-primary-subtle text-center h-100">
                 <div class="d-flex justify-content-center align-items-center gap-2">
-                  <div class="summary-label mb-0">Gross Margin %</div>
-                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleMarginEdit()" title="Edit Cloud4C and AX margins"><i class="bi bi-pencil" id="margin-edit-icon"></i></button>
+                  <div class="summary-label mb-0">Cloud4C Margin</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleCloud4CEdit()" title="Edit Cloud4C margin"><i class="bi bi-pencil" id="c4c-edit-icon"></i></button>
                 </div>
+                <div class="summary-value" id="sum_c4c_margin">—</div>
+                <div id="c4c-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="cloud4c_margin_input" min="0" max="99" step="1" value="40" placeholder="40"/>
+                    <span class="input-group-text">%</span>
+                    <button class="btn btn-primary btn-sm" onclick="applyCloud4CMargin()">Apply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box text-center h-100" style="background:#EDE9FE">
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                  <div class="summary-label mb-0">AX Margin</div>
+                  <button class="btn btn-link btn-sm p-0 text-primary" onclick="toggleAxEdit()" title="Edit AX margin"><i class="bi bi-pencil" id="ax-edit-icon"></i></button>
+                </div>
+                <div class="summary-value" id="sum_ax_margin">—</div>
+                <div id="ax-edit-row" class="d-none mt-2">
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="ax_margin_input" min="0" max="99" step="1" value="0" placeholder="0"/>
+                    <span class="input-group-text">%</span>
+                    <button class="btn btn-primary btn-sm" onclick="applyAxMargin()">Apply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box bg-success-subtle text-center h-100">
+                <div class="summary-label">Gross Margin %</div>
                 <div class="summary-value" id="sum_margin">—</div>
-                <div class="small text-muted mt-1" id="sum_margin_breakup">Cloud4C — | AX —</div>
-                <div id="margin-edit-row" class="d-none mt-2">
-                  <div class="row g-2">
-                    <div class="col-6">
-                      <div class="input-group input-group-sm">
-                        <input type="number" class="form-control" id="cloud4c_margin_input" min="0" max="99" step="1" value="40" placeholder="40"/>
-                        <span class="input-group-text">C4C %</span>
-                      </div>
-                    </div>
-                    <div class="col-6">
-                      <div class="input-group input-group-sm">
-                        <input type="number" class="form-control" id="ax_margin_input" min="0" max="99" step="1" value="0" placeholder="0"/>
-                        <span class="input-group-text">AX %</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="d-grid mt-2">
-                    <button class="btn btn-primary btn-sm" onclick="applyMargin()">Apply</button>
-                  </div>
-                  <div class="form-text">Cloud4C and AX margins are applied sequentially to produce the combined gross margin.</div>
-                </div>
               </div>
             </div>
             <div class="col-6 col-md">

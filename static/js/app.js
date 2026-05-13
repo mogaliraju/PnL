@@ -478,40 +478,57 @@ function updateSummary() {
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
   document.getElementById('sum_sell_cost').textContent  = fmtMoney(sellCost);
   document.getElementById('sum_markup').textContent     = fmtMoney(markup);
-  document.getElementById('sum_margin').textContent     = (margin * 100).toFixed(1) + '%';
-  const breakupEl = document.getElementById('sum_margin_breakup');
-  if (breakupEl) breakupEl.textContent = `Cloud4C ${(_cloud4cMargin * 100).toFixed(1)}% | AX ${(_axMargin * 100).toFixed(1)}%`;
+  document.getElementById('sum_c4c_margin').textContent = (_cloud4cMargin * 100).toFixed(1) + '%';
+  document.getElementById('sum_ax_margin').textContent  = (_axMargin * 100).toFixed(1) + '%';
+  document.getElementById('sum_margin').textContent     = ((_cloud4cMargin + _axMargin) * 100).toFixed(1) + '%';
 
   // INR display
   const inrEl = document.getElementById('sum_inr_rate');
   if (inrEl) inrEl.textContent = _usdToInr ? `₹${_usdToInr.toFixed(2)}` : '—';
 }
 
-function toggleMarginEdit() {
-  const row = document.getElementById('margin-edit-row');
-  const isHidden = row.classList.contains('d-none');
+function toggleCloud4CEdit() {
+  const row = document.getElementById('c4c-edit-row');
   row.classList.toggle('d-none');
-  if (isHidden) {
-    const c4cInp = document.getElementById('cloud4c_margin_input');
-    const axInp = document.getElementById('ax_margin_input');
-    c4cInp.value = (_cloud4cMargin * 100).toFixed(0);
-    axInp.value = (_axMargin * 100).toFixed(0);
-    c4cInp.focus();
+  if (!row.classList.contains('d-none')) {
+    const inp = document.getElementById('cloud4c_margin_input');
+    inp.value = (_cloud4cMargin * 100).toFixed(0);
+    inp.focus();
   }
 }
 
-function applyMargin() {
-  const c4cVal = parseFloat(document.getElementById('cloud4c_margin_input').value);
-  const axVal = parseFloat(document.getElementById('ax_margin_input').value);
-  if (isNaN(c4cVal) || c4cVal < 0 || c4cVal >= 100 || isNaN(axVal) || axVal < 0 || axVal >= 100) {
-    showToast('Enter valid Cloud4C and AX margins between 0 and 99', 'danger');
+function applyCloud4CMargin() {
+  const val = parseFloat(document.getElementById('cloud4c_margin_input').value);
+  if (isNaN(val) || val < 0 || val >= 100) {
+    showToast('Enter a valid Cloud4C margin between 0 and 99', 'danger');
     return;
   }
-  _cloud4cMargin = c4cVal / 100;
-  _axMargin = axVal / 100;
-  document.getElementById('margin-edit-row').classList.add('d-none');
+  _cloud4cMargin = val / 100;
+  document.getElementById('c4c-edit-row').classList.add('d-none');
   updateSummary();
-  showToast(`Margins updated: Cloud4C ${c4cVal.toFixed(1)}%, AX ${axVal.toFixed(1)}%`, 'success');
+  showToast(`Cloud4C margin updated: ${val.toFixed(1)}%`, 'success');
+}
+
+function toggleAxEdit() {
+  const row = document.getElementById('ax-edit-row');
+  row.classList.toggle('d-none');
+  if (!row.classList.contains('d-none')) {
+    const inp = document.getElementById('ax_margin_input');
+    inp.value = (_axMargin * 100).toFixed(0);
+    inp.focus();
+  }
+}
+
+function applyAxMargin() {
+  const val = parseFloat(document.getElementById('ax_margin_input').value);
+  if (isNaN(val) || val < 0 || val >= 100) {
+    showToast('Enter a valid AX margin between 0 and 99', 'danger');
+    return;
+  }
+  _axMargin = val / 100;
+  document.getElementById('ax-edit-row').classList.add('d-none');
+  updateSummary();
+  showToast(`AX margin updated: ${val.toFixed(1)}%`, 'success');
 }
 
 function toggleFxEdit() {

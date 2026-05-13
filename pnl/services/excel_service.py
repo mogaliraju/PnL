@@ -82,11 +82,13 @@ def _cell(ws, row, col, value='', bold=False, size=11, color=AX_TEXT,
 
 
 def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
-    input_cost   = costs['input_cost']
-    sell_cost    = costs['sell_cost']
-    markup       = costs['markup']
-    markup_pct   = costs['markup_pct']
-    gross_margin = costs['gross_margin']
+    input_cost      = costs['input_cost']
+    sell_cost       = costs['sell_cost']
+    markup          = costs['markup']
+    markup_pct      = costs['markup_pct']
+    cloud4c_margin  = costs['cloud4c_margin']
+    ax_margin       = costs['ax_margin']
+    gross_margin    = round(cloud4c_margin + ax_margin, 4)
 
     from pnl.services.pnl_service import _get_rate as _svc_get_rate
     rate_card = data.get('rate_card', [])
@@ -281,17 +283,22 @@ def build_workbook(data: dict, costs: dict) -> openpyxl.Workbook:
 
     # ── Summary block ──────────────────────────────────────────
     sr = tr + 2
-    wc.row_dimensions[sr].height = 20
-    wc.row_dimensions[sr + 1].height = 20
-    wc.row_dimensions[sr + 2].height = 20
+    for i in range(5):
+        wc.row_dimensions[sr + i].height = 20
 
-    _merge(wc, f'A{sr}:E{sr}',   'Input Cost (USD)',  bold=True, size=10, bg=AX_PALE, h_align='right')
-    _cell (wc,  sr, 6, input_cost, bold=True, size=10, bg=AX_AMBER, num_fmt='#,##0.00', h_align='right')
+    _merge(wc, f'A{sr}:E{sr}',   'Input Cost (USD)',   bold=True, size=10, bg=AX_PALE, h_align='right')
+    _cell (wc,  sr, 6, input_cost,     bold=True, size=10, bg=AX_AMBER, num_fmt='#,##0.00', h_align='right')
 
-    _merge(wc, f'A{sr+1}:E{sr+1}', 'Sell Cost (USD)',   bold=True, size=10, bg=AX_PALE, h_align='right')
-    _cell (wc,  sr+1, 6, sell_cost, bold=True, size=10, bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
+    _merge(wc, f'A{sr+1}:E{sr+1}', 'Sell Cost (USD)',  bold=True, size=10, bg=AX_PALE, h_align='right')
+    _cell (wc,  sr+1, 6, sell_cost,   bold=True, size=10, bg=AX_GREEN, num_fmt='#,##0.00', h_align='right')
 
-    _merge(wc, f'A{sr+2}:E{sr+2}', 'Gross Margin',      bold=True, size=10, bg=AX_PALE, h_align='right')
-    _cell (wc,  sr+2, 6, gross_margin, bold=True, size=10, bg=AX_PALE, num_fmt='0.0%', h_align='right')
+    _merge(wc, f'A{sr+2}:E{sr+2}', 'Cloud4C Margin',   bold=True, size=10, bg=AX_PALE, h_align='right')
+    _cell (wc,  sr+2, 6, cloud4c_margin, bold=True, size=10, bg=AX_PALE, num_fmt='0.0%', h_align='right')
+
+    _merge(wc, f'A{sr+3}:E{sr+3}', 'AX Margin',        bold=True, size=10, bg=AX_PALE, h_align='right')
+    _cell (wc,  sr+3, 6, ax_margin,   bold=True, size=10, bg=AX_PALE, num_fmt='0.0%', h_align='right')
+
+    _merge(wc, f'A{sr+4}:E{sr+4}', 'Gross Margin',     bold=True, size=10, bg=AX_PALE, h_align='right')
+    _cell (wc,  sr+4, 6, gross_margin, bold=True, size=10, bg=AX_GREEN, num_fmt='0.0%', h_align='right')
 
     return wb
