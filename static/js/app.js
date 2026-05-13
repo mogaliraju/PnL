@@ -245,12 +245,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     export_filename: '',
     fx_rate: null,
   };
-  populateAll();
-  loadExchangeRate();
+  if (EDITOR_MODE) {
+    if (EDITOR_PID) {
+      await openEditorProject(EDITOR_PID);
+    } else {
+      initializeNewProjectEditor(false);
+    }
+    loadExchangeRate();
+    document.querySelector('[href="#tab-project"]')?.click();
+  } else {
+    populateAll();
+    loadExchangeRate();
   // Open All Projects tab on first load — no active project yet
   updateProjectBadge(null);
   document.querySelector('[href="#tab-all-projects"]')?.click();
   loadAllProjects();
+  }
 
   // Clear validation state when user types in customer field
   document.getElementById('proj_customer')?.addEventListener('input', function() {
@@ -2773,15 +2783,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Refresh + hide project badge when switching to All Projects tab
   document.querySelector('[href="#tab-all-projects"]')
     ?.addEventListener('click', () => { updateProjectBadge(null); loadAllProjects(); });
-});
-
-document.addEventListener('DOMContentLoaded', async () => {
-  if (!EDITOR_MODE) return;
-  if (EDITOR_PID) {
-    await openEditorProject(EDITOR_PID);
-  } else if (LAUNCH_NEW_EDITOR) {
-    initializeNewProjectEditor(false);
-  }
 });
 
 // ============================================================
