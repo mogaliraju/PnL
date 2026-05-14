@@ -60,37 +60,35 @@ body {
 
 /* ── Tabs ── */
 .nav-tabs {
-  background: #1e1b4b;
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
-  padding: 0 8px;
+  background: #fff;
+  border-bottom: 1px solid #e8e3f4;
+  padding: 0 4px;
   gap: 2px;
 }
 .nav-tabs .nav-link {
-  color: #a89ec9;
+  color: #6b7280;
   font-weight: 500;
   font-size: 12.5px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0em;
   border: none;
   border-radius: 0;
-  padding: 11px 14px;
-  border-bottom: 3px solid transparent;
+  padding: 10px 14px;
+  border-bottom: 2px solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
-.nav-tabs .nav-link i { opacity: 0.75; }
+.nav-tabs .nav-link i { opacity: 0.8; }
 .nav-tabs .nav-link:hover {
-  color: #e2d9f3;
-  background: rgba(255,255,255,0.06);
-  border-radius: 8px 8px 0 0;
+  color: #4c1d95;
+  background: #f5f3ff;
+  border-radius: 6px 6px 0 0;
   border-bottom-color: transparent;
 }
 .nav-tabs .nav-link.active {
-  color: #fff;
+  color: #4c1d95;
   font-weight: 600;
-  background: rgba(255,255,255,0.08);
-  border-radius: 8px 8px 0 0;
+  background: transparent;
   border: none;
-  border-bottom: 3px solid #a78bfa;
+  border-bottom: 2px solid #6d28d9;
 }
 
 /* ── Cards ── */
