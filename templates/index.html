@@ -60,6 +60,11 @@
               <i class="bi bi-people me-1"></i>Manage Users
             </a>
           </li>
+          <li>
+            <a class="dropdown-item" href="#" onclick="document.querySelector('[href=\'#tab-export\']').click(); bootstrap.Dropdown.getOrCreateInstance(this.closest('.dropdown').querySelector('[data-bs-toggle=dropdown]')).hide(); return false;">
+              <i class="bi bi-gear me-1"></i>Export Settings
+            </a>
+          </li>
           <li><a class="dropdown-item text-danger" href="/logout">
             <i class="bi bi-box-arrow-right me-1"></i>Logout
           </a></li>
@@ -120,7 +125,7 @@
     {% endif %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-export"><i class="bi bi-gear me-1"></i>Export Settings</a></li>
+
     {% if not editor_mode %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bookings" onclick="loadBookingsOverview()"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funnel" onclick="loadFunnelOverview()"><i class="bi bi-funnel me-1"></i>Funnel Report</a></li>
