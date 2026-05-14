@@ -59,17 +59,38 @@ body {
 .ax-navbar .text-muted-nav { color: rgba(255,255,255,0.50) !important; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
 
 /* ── Tabs ── */
-.nav-tabs { border-bottom: 2px solid var(--ax-tint); }
-.nav-tabs .nav-link { color: #64748b; font-weight: 500; font-size: 13px; letter-spacing: -0.01em; border: none; padding: 10px 14px; }
-.nav-tabs .nav-link:hover { color: var(--ax-mid); background: var(--ax-tint2); border-radius: 6px 6px 0 0; }
-.nav-tabs .nav-link.active {
-  color: var(--ax-mid);
-  font-weight: 600;
-  font-size: 13px;
+.nav-tabs {
+  background: #1e1b4b;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 0 8px;
+  gap: 2px;
+}
+.nav-tabs .nav-link {
+  color: #a89ec9;
+  font-weight: 500;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
   border: none;
-  border-bottom: 3px solid var(--ax-mid);
-  background: transparent;
-  letter-spacing: -0.01em;
+  border-radius: 0;
+  padding: 11px 14px;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-tabs .nav-link i { opacity: 0.75; }
+.nav-tabs .nav-link:hover {
+  color: #e2d9f3;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px 8px 0 0;
+  border-bottom-color: transparent;
+}
+.nav-tabs .nav-link.active {
+  color: #fff;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px 8px 0 0;
+  border: none;
+  border-bottom: 3px solid #a78bfa;
 }
 
 /* ── Cards ── */
