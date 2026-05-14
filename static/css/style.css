@@ -1177,6 +1177,150 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   flex-shrink: 0;
 }
 
+/* ── Role Catalog ──────────────────────────────────────── */
+.catalog-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.catalog-sidebar {
+  background: #fff;
+  border: 1px solid rgba(109,40,217,0.10);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(30,11,75,0.05);
+  position: sticky;
+  top: 12px;
+}
+
+.catalog-sidebar-header { margin-bottom: 20px; }
+.catalog-sidebar-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1b4b;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.catalog-sidebar-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.catalog-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c6fb0;
+  margin-bottom: 6px;
+}
+
+.catalog-main { min-width: 0; }
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.catalog-card {
+  background: #fff;
+  border: 1px solid rgba(109,40,217,0.10);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(30,11,75,0.05);
+  transition: box-shadow 0.15s;
+}
+.catalog-card:hover { box-shadow: 0 4px 16px rgba(30,11,75,0.10); }
+
+.catalog-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1e1b4b;
+  border-bottom: 1px solid rgba(109,40,217,0.10);
+}
+.catalog-card-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #e2d9f3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.catalog-card-meta {
+  font-size: 10px;
+  color: #a89ec9;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.catalog-card-del {
+  border: none;
+  background: transparent;
+  color: #f87171;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.7;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.catalog-card-del:hover { opacity: 1; }
+
+.catalog-card-roles { padding: 8px 0; }
+
+.catalog-role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  transition: background 0.12s;
+}
+.catalog-role-row:hover { background: #f5f3ff; }
+
+.catalog-role-name {
+  font-size: 12.5px;
+  color: #1e293b;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.catalog-role-del {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.catalog-role-del:hover { color: #dc2626; opacity: 1; }
+
+.catalog-role-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.catalog-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 /* ── Project tab sticky save bar ───────────────────────── */
 .proj-savebar {
   background: #fff;

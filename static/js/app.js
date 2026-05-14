@@ -1223,27 +1223,32 @@ function renderCatalogList() {
   const el = document.getElementById('catalog-list');
   if (!el) return;
   refreshGroupDropdown();
-  renderRateCard(); // keep category filter in sync
+  renderRateCard();
   const catalog = appData.role_catalog || [];
-  el.innerHTML = catalog.map(g => `
-    <div class="mb-3">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <span class="fw-semibold text-uppercase small" style="color:var(--ax-mid);letter-spacing:.5px">${esc(g.group)}</span>
-        <button class="btn btn-link btn-sm p-0 text-danger" style="font-size:11px"
-          onclick="removeCatalogCategory('${esc(g.group)}')" title="Delete category">
+  if (!catalog.length) {
+    el.innerHTML = `<div class="catalog-empty"><i class="bi bi-journals fs-2 d-block mb-2 opacity-25"></i>No categories yet. Add one on the left.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="catalog-grid">${catalog.map(g => `
+    <div class="catalog-card">
+      <div class="catalog-card-header">
+        <div class="catalog-card-title">${esc(g.group)}</div>
+        <div class="catalog-card-meta">${g.roles.length} role${g.roles.length !== 1 ? 's' : ''}</div>
+        <button class="catalog-card-del" onclick="removeCatalogCategory('${esc(g.group)}')" title="Delete category">
           <i class="bi bi-trash3"></i>
         </button>
       </div>
-      ${g.roles.map(r => `
-        <div class="d-flex justify-content-between align-items-center px-2 py-1 rounded mb-1"
-             style="background:var(--ax-tint2);">
-          <span>${esc(r)}</span>
-          <button class="btn btn-link btn-sm p-0 text-danger" style="font-size:12px"
-            onclick="removeFromCatalog('${esc(g.group)}','${esc(r)}')">
-            <i class="bi bi-x-circle"></i>
-          </button>
-        </div>`).join('')}
-    </div>`).join('');
+      <div class="catalog-card-roles">
+        ${g.roles.length ? g.roles.map(r => `
+          <div class="catalog-role-row">
+            <span class="catalog-role-name">${esc(r)}</span>
+            <button class="catalog-role-del" onclick="removeFromCatalog('${esc(g.group)}','${esc(r)}')" title="Remove role">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>`).join('') : `<div class="catalog-role-empty">No roles yet</div>`}
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 function removeCatalogCategory(groupName) {

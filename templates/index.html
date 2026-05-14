@@ -626,35 +626,41 @@
     <!-- ===== RELEASES ===== -->
     <!-- ===== PNL ROLES ===== -->
     <div class="tab-pane fade" id="tab-pnl-roles">
-      <div class="row g-3">
-        <div class="col-lg-6">
-          <div class="card">
-            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
-              <span><i class="bi bi-journals me-1"></i>Role Catalog</span>
-              <button class="btn btn-success btn-sm" onclick="saveSettings(); showToast('Role catalog saved!', 'success')">
-                <i class="bi bi-floppy me-1"></i>Save
-              </button>
-            </div>
-            <div class="card-body">
-              <!-- Add new category -->
-              <div class="input-group input-group-sm mb-2">
-                <span class="input-group-text"><i class="bi bi-folder-plus"></i></span>
-                <input type="text" class="form-control" id="new_catalog_category" placeholder="New category name…"/>
-                <button class="btn btn-outline-primary" onclick="addCatalogCategory()">Add Category</button>
-              </div>
-              <hr class="my-2"/>
-              <!-- Add new role -->
-              <div class="input-group input-group-sm mb-3">
-                <input type="text" class="form-control" id="new_catalog_role" placeholder="New role name…"/>
-                <select class="form-select" id="new_catalog_group" style="max-width:200px"></select>
-                <button class="btn btn-primary" onclick="addToCatalog()">
-                  <i class="bi bi-plus-lg"></i> Add Role
-                </button>
-              </div>
-              <div id="catalog-list" style="max-height:600px;overflow-y:auto;font-size:13px;"></div>
-            </div>
+      <div class="catalog-shell">
+
+        <!-- Left sidebar: controls -->
+        <div class="catalog-sidebar">
+          <div class="catalog-sidebar-header">
+            <div class="catalog-sidebar-title"><i class="bi bi-journals me-2"></i>Role Catalog</div>
+            <div class="catalog-sidebar-sub">Manage role categories and role names used across all projects.</div>
           </div>
+
+          <div class="catalog-section-label">New Category</div>
+          <div class="input-group input-group-sm mb-3">
+            <input type="text" class="form-control" id="new_catalog_category" placeholder="e.g. Data Engineering"/>
+            <button class="btn btn-outline-primary" onclick="addCatalogCategory()"><i class="bi bi-plus-lg"></i></button>
+          </div>
+
+          <div class="catalog-section-label">New Role</div>
+          <div class="mb-2">
+            <input type="text" class="form-control form-control-sm mb-2" id="new_catalog_role" placeholder="Role name…"/>
+            <select class="form-select form-select-sm mb-2" id="new_catalog_group"></select>
+            <button class="btn btn-primary btn-sm w-100" onclick="addToCatalog()">
+              <i class="bi bi-plus-lg me-1"></i>Add Role
+            </button>
+          </div>
+
+          <hr class="my-3"/>
+          <button class="btn btn-success btn-sm w-100" onclick="saveSettings(); showToast('Role catalog saved!', 'success')">
+            <i class="bi bi-floppy me-1"></i>Save Catalog
+          </button>
         </div>
+
+        <!-- Right main area: catalog grid -->
+        <div class="catalog-main">
+          <div id="catalog-list"></div>
+        </div>
+
       </div>
     </div>
 
