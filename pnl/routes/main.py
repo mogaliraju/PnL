@@ -143,6 +143,7 @@ def dashboard_data():
     location_counter = Counter()
     customer_counter = Counter()
     customer_revenue = defaultdict(float)
+    customer_ax_margins = defaultdict(list)
     role_counter = Counter()
     group_counter = Counter()
     saved_by_counter = Counter()
@@ -153,6 +154,9 @@ def dashboard_data():
     monthly_projects = defaultdict(int)
     margin_buckets = {'Below 20%': 0, '20–35%': 0, '35–50%': 0, '50%+': 0}
     ax_margin_buckets = {'Below 10%': 0, '10–15%': 0, '15–20%': 0, '20%+': 0}
+    status_revenue = defaultdict(float)
+    stage_revenue = defaultdict(float)
+    projects_summary = []
 
     STATUS_ORDER  = ['Won', 'Active', 'Submitted', 'Proposal', 'Draft', 'On Hold', 'Lost']
     STAGE_ORDER   = ['Qualification', 'Discovery', 'Solutioning', 'Proposal',
@@ -182,16 +186,22 @@ def dashboard_data():
 
         loc = (project.get('location') or '').strip()
         cust = (project.get('customer') or '').strip()
+        status = (project.get('status') or 'Draft').strip()
+        stage = (project.get('stage') or 'Qualification').strip()
+
         if loc:
             location_counter[loc] += 1
         if cust:
             customer_counter[cust] += 1
             customer_revenue[cust] += costs['sell_cost']
+            customer_ax_margins[cust].append(costs['ax_margin'])
         if meta.get('saved_by'):
             saved_by_counter[meta['saved_by']] += 1
 
-        status_counter[(project.get('status') or 'Draft').strip()] += 1
-        stage_counter[(project.get('stage') or 'Qualification').strip()] += 1
+        status_counter[status] += 1
+        stage_counter[stage] += 1
+        status_revenue[status] += costs['sell_cost']
+        stage_revenue[stage] += costs['sell_cost']
         priority_counter[(project.get('priority') or 'Medium').strip()] += 1
         bu = (project.get('business_unit') or '').strip()
         if bu:
@@ -200,6 +210,19 @@ def dashboard_data():
         saved_at = meta.get('saved_at', '')
         if saved_at:
             monthly_projects[saved_at[:7]] += 1
+
+        projects_summary.append({
+            'name': meta.get('name') or cust or 'Unnamed',
+            'customer': cust,
+            'status': status,
+            'stage': stage,
+            'priority': (project.get('priority') or 'Medium').strip(),
+            'revenue': round(costs['sell_cost'], 0),
+            'input_cost': round(costs['input_cost'], 0),
+            'ax_margin': round(costs['ax_margin'] * 100, 1),
+            'cloud4c_margin': round(costs['cloud4c_margin'] * 100, 1),
+            'gross_margin': round(costs['gross_margin'] * 100, 1),
+        })
 
         margin_pct = costs['gross_margin'] * 100
         if margin_pct < 20:
@@ -242,9 +265,19 @@ def dashboard_data():
         return result[:limit] if limit else result
 
     top_customers_by_rev = sorted(
-        [{'label': k, 'value': round(v, 0)} for k, v in customer_revenue.items()],
+        [{
+            'label': k,
+            'value': round(v, 0),
+            'ax_margin': round(sum(customer_ax_margins[k]) / len(customer_ax_margins[k]) * 100, 1) if customer_ax_margins[k] else 0,
+        } for k, v in customer_revenue.items()],
         key=lambda x: x['value'], reverse=True
-    )[:6]
+    )[:8]
+
+    won_submitted_revenue = sum(
+        v for s, v in status_revenue.items()
+        if s.lower() in ('won', 'active', 'submitted')
+    )
+    at_risk = [p for p in projects_summary if p['ax_margin'] < 20]
 
     return jsonify({
         'kpis': {
@@ -253,10 +286,13 @@ def dashboard_data():
             'hours': round(total_hours, 1),
             'input_cost': round(total_input_cost, 2),
             'revenue': round(total_revenue, 2),
+            'gross_profit': round(total_revenue - total_input_cost, 2),
             'avg_margin': round(avg_margin, 4),
             'avg_ax_margin': round(avg_ax_margin, 4),
             'avg_cloud4c_margin': round(avg_cloud4c_margin, 4),
             'avg_resources_per_project': round(avg_resources, 1),
+            'active_pipeline': round(won_submitted_revenue, 2),
+            'at_risk_count': len(at_risk),
         },
         'status_breakdown':   ordered_list(status_counter, STATUS_ORDER),
         'stage_breakdown':    ordered_list(stage_counter, STAGE_ORDER),
@@ -271,6 +307,16 @@ def dashboard_data():
             {'label': m, 'value': monthly_projects[m]}
             for m in sorted(monthly_projects.keys())
         ],
-        'margin_buckets': [{'label': k, 'value': v} for k, v in margin_buckets.items()],
+        'margin_buckets':  [{'label': k, 'value': v} for k, v in margin_buckets.items()],
         'ax_margin_buckets': [{'label': k, 'value': v} for k, v in ax_margin_buckets.items()],
+        'status_revenue':  [
+            {'label': k, 'count': status_counter[k], 'value': round(status_revenue[k], 0)}
+            for k in STATUS_ORDER if k in status_revenue
+        ],
+        'stage_revenue':   [
+            {'label': k, 'count': stage_counter[k], 'value': round(stage_revenue[k], 0)}
+            for k in STAGE_ORDER if k in stage_revenue
+        ],
+        'projects_summary': sorted(projects_summary, key=lambda p: p['ax_margin']),
+        'at_risk': sorted(at_risk, key=lambda p: p['ax_margin']),
     })

@@ -1366,398 +1366,163 @@ async function loadDashboard() {
   const container = document.getElementById('dashboard-container');
   if (!container) return;
   container.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>`;
-
   let data;
   try {
     const res = await fetch('/api/dashboard', { cache: 'no-store' });
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     data = await res.json();
   } catch (e) {
-    container.innerHTML = `<div class="text-center text-danger py-5"><i class="bi bi-exclamation-triangle me-1"></i>Could not load analytics: ${e.message}</div>`;
+    container.innerHTML = `<div class="text-center text-danger py-5"><i class="bi bi-exclamation-triangle me-1"></i>Could not load: ${e.message}</div>`;
     return;
   }
-
   const k = data.kpis || {};
-  const fmtMoney = v => {
-    const n = Number(v || 0);
-    if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return '$' + (n / 1_000).toFixed(1) + 'K';
-    return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtM = v => { const n=Number(v||0); if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'K'; return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0}); };
+  const fmtPctRaw = v => Number(v||0).toFixed(1)+'%';
+  const axColor = p => p>=20?'#15803d':p>=10?'#d97706':'#dc2626';
+  const axBg    = p => p>=20?'#dcfce7':p>=10?'#fef9c3':'#fee2e2';
+  const axPct   = Number(k.avg_ax_margin||0)*100;
+  const c4cPct  = Number(k.avg_cloud4c_margin||0)*100;
+  const STATUS_STYLE = {
+    'Won':      {bg:'#dcfce7',color:'#15803d'}, 'Active':   {bg:'#dbeafe',color:'#1d4ed8'},
+    'Submitted':{bg:'#fef9c3',color:'#92400e'}, 'Proposal': {bg:'#ccfbf1',color:'#0f766e'},
+    'Draft':    {bg:'#f3f4f6',color:'#374151'}, 'On Hold':  {bg:'#ffedd5',color:'#9a3412'},
+    'Lost':     {bg:'#fee2e2',color:'#b91c1c'},
   };
-  const fmtNum = v => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
-  const fmtPct = v => ((Number(v || 0)) * 100).toFixed(1) + '%';
-  const marginColor = m => {
-    const p = Number(m || 0) * 100;
-    return p >= 35 ? '#16a34a' : p >= 20 ? '#d97706' : '#dc2626';
-  };
-
-  const grossProfit = Math.max(Number(k.revenue || 0) - Number(k.input_cost || 0), 0);
-  const costRatio = Number(k.revenue || 0) ? Number(k.input_cost || 0) / Number(k.revenue || 0) : 0;
-  const avgDeal = Number(k.projects || 0) ? Number(k.revenue || 0) / Number(k.projects || 0) : 0;
-  const axMarginColor = m => {
-    const p = Number(m || 0) * 100;
-    return p >= 20 ? '#16a34a' : p >= 10 ? '#d97706' : '#dc2626';
-  };
-
-  container.innerHTML = `
-    <section class="db-shell">
-      <div class="db-exec-hero">
-        <div>
-          <div class="db-eyebrow">Executive portfolio view</div>
-          <h2 class="db-title">Commercial health and delivery exposure</h2>
-          <div class="db-summary">A concise readout of portfolio value, AX margin performance, pipeline maturity, and where leadership attention is needed.</div>
-        </div>
-        <div class="db-hero-metrics">
-          ${renderExecMetric('Revenue', fmtMoney(k.revenue), 'Booked and proposed value', 'bi-cash-stack')}
-          ${renderExecMetric('AX Margin', fmtPct(k.avg_ax_margin), `C4C: ${fmtPct(k.avg_cloud4c_margin)} · Gross: ${fmtPct(k.avg_margin)}`, 'bi-percent', axMarginColor(k.avg_ax_margin))}
-          ${renderExecMetric('Gross Profit', fmtMoney(grossProfit), `${fmtPct(costRatio)} cost ratio`, 'bi-graph-up-arrow')}
-        </div>
+  container.innerHTML = `<div class="exdb">
+    <div class="exdb-kpi-strip">
+      ${dbKpi('Portfolio Revenue',fmtM(k.revenue),'Total across all projects','bi-cash-stack','#6d28d9','#f5f3ff')}
+      ${dbKpi('AX Margin',fmtPctRaw(axPct),'Avg AX margin — target ≥20%','bi-percent',axColor(axPct),axBg(axPct))}
+      ${dbKpi('C4C Margin',fmtPctRaw(c4cPct),'Avg Cloud4C margin','bi-building','#0f766e','#ccfbf1')}
+      ${dbKpi('Gross Profit',fmtM(k.gross_profit),'Revenue minus input cost','bi-graph-up-arrow','#1d4ed8','#dbeafe')}
+      ${dbKpi('Active Pipeline',fmtM(k.active_pipeline),'Won + Submitted + Active','bi-lightning-charge','#7c3aed','#ede9fe')}
+      ${dbKpi('At Risk',String(k.at_risk_count||0),'Projects with AX margin < 20%','bi-exclamation-triangle',k.at_risk_count>0?'#dc2626':'#15803d',k.at_risk_count>0?'#fee2e2':'#dcfce7')}
+    </div>
+    <div class="exdb-row3">
+      <div class="exdb-panel">
+        <div class="exdb-panel-hd"><i class="bi bi-bar-chart-steps me-2"></i>Revenue by Status</div>
+        <div class="exdb-panel-bd">${dbRevenueByStatus(data.status_revenue,STATUS_STYLE)}</div>
       </div>
-
-      <div class="db-score-strip">
-        ${renderScoreTile('Projects', fmtNum(k.projects), 'Total saved opportunities')}
-        ${renderScoreTile('Avg Deal Size', fmtMoney(avgDeal), 'Portfolio revenue per project')}
-        ${renderScoreTile('AX Margin', fmtPct(k.avg_ax_margin), 'Avg AX margin across portfolio')}
-        ${renderScoreTile('C4C Margin', fmtPct(k.avg_cloud4c_margin), 'Avg Cloud4C margin')}
-        ${renderScoreTile('Total Hours', fmtNum(k.hours), 'Planned delivery effort')}
+      <div class="exdb-panel">
+        <div class="exdb-panel-hd"><i class="bi bi-percent me-2"></i>AX Margin by Project</div>
+        <div class="exdb-panel-bd">${dbProjectMargins(data.projects_summary)}</div>
       </div>
-
-      <div class="row g-3 mb-3">
-        <div class="col-xl-4">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-compass me-2"></i>Decision Signals</div>
-              <span>action lens</span>
-            </div>
-            <div class="db-panel-body">${renderDecisionSignals(data, k)}</div>
-          </div>
-        </div>
-        <div class="col-xl-8">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-kanban me-2"></i>Pipeline Readiness</div>
-              <span>status and stage</span>
-            </div>
-            <div class="db-panel-body">${renderPipelineMatrix(data.status_breakdown, data.stage_breakdown)}</div>
-          </div>
-        </div>
+      <div class="exdb-panel">
+        <div class="exdb-panel-hd"><i class="bi bi-people me-2"></i>Customer Revenue + Margin</div>
+        <div class="exdb-panel-bd">${dbCustomerPanel(data.top_customers)}</div>
       </div>
-
-      <div class="row g-3 mb-3">
-        <div class="col-lg-4">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-shield-check me-2"></i>AX Margin Quality</div>
-              <span>risk bands</span>
-            </div>
-            <div class="db-panel-body">${renderMarginBars(data.ax_margin_buckets)}</div>
-          </div>
-        </div>
-        <div class="col-lg-4">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-building me-2"></i>Customer Concentration</div>
-              <span>by revenue</span>
-            </div>
-            <div class="db-panel-body">${renderAnalyticsBars(data.top_customers, 'revenue')}</div>
-          </div>
-        </div>
-        <div class="col-lg-4">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-diagram-3 me-2"></i>Capacity Load</div>
-              <span>hours by group</span>
-            </div>
-            <div class="db-panel-body">${renderAnalyticsBars(data.top_groups_by_hours, 'hours')}</div>
-          </div>
-        </div>
+    </div>
+    <div class="exdb-row2">
+      <div class="exdb-panel">
+        <div class="exdb-panel-hd"><i class="bi bi-funnel me-2"></i>Stage Pipeline — Revenue &amp; Count</div>
+        <div class="exdb-panel-bd">${dbStagePipeline(data.stage_revenue)}</div>
       </div>
-
-      <div class="row g-3">
-        <div class="col-xl-8">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-grid-3x3-gap me-2"></i>Portfolio Mix</div>
-              <span>priority, business unit, location</span>
-            </div>
-            <div class="db-panel-body">${renderCompositionGrid(data)}</div>
-          </div>
-        </div>
-        <div class="col-xl-4">
-          <div class="db-panel h-100">
-            <div class="db-panel-head">
-              <div><i class="bi bi-calendar3 me-2"></i>Save Trend</div>
-              <span>monthly projects</span>
-            </div>
-            <div class="db-panel-body">${renderAnalyticsTimeline(data.projects_by_month)}</div>
-          </div>
-        </div>
+      <div class="exdb-panel">
+        <div class="exdb-panel-hd exdb-panel-hd--risk"><i class="bi bi-exclamation-triangle me-2"></i>Attention Required</div>
+        <div class="exdb-panel-bd">${dbAttentionPanel(data.at_risk,data.priority_breakdown,k)}</div>
       </div>
-    </section>`;
+    </div>
+  </div>`;
 }
 
-const STATUS_COLORS = {
-  'Won':        '#15803d',
-  'Active':     '#2563eb',
-  'Submitted':  '#475569',
-  'Proposal':   '#0f766e',
-  'Draft':      '#94a3b8',
-  'On Hold':    '#b45309',
-  'Lost':       '#b91c1c',
-};
-
-function getDashboardValue(items, label) {
-  return Number((items || []).find(i => i.label === label)?.value || 0);
+function dbKpi(label, value, hint, icon, color, bg) {
+  return `<div class="exdb-kpi" style="--kpi-color:${color};--kpi-bg:${bg}">
+    <div class="exdb-kpi-icon"><i class="bi ${icon}"></i></div>
+    <div class="exdb-kpi-body">
+      <div class="exdb-kpi-value">${esc(value)}</div>
+      <div class="exdb-kpi-label">${esc(label)}</div>
+      <div class="exdb-kpi-hint">${esc(hint)}</div>
+    </div></div>`;
 }
 
-function renderExecMetric(label, value, hint, icon, color = '#1e40af') {
-  return `
-    <div class="db-exec-metric">
-      <div class="db-exec-icon" style="color:${color}"><i class="bi ${icon}"></i></div>
-      <div>
-        <div class="db-exec-label">${esc(label)}</div>
-        <div class="db-exec-value" style="color:${color}">${esc(value)}</div>
-        <div class="db-exec-hint">${esc(hint)}</div>
-      </div>
-    </div>`;
-}
-
-function renderScoreTile(label, value, hint) {
-  return `
-    <div class="db-score-tile">
-      <div class="db-score-label">${esc(label)}</div>
-      <div class="db-score-value">${esc(value)}</div>
-      <div class="db-score-hint">${esc(hint)}</div>
-    </div>`;
-}
-
-function renderDecisionSignals(data, k) {
-  const projects = Number(k.projects || 0);
-  const lowAxMargin = (data.ax_margin_buckets || [])
-    .filter(i => String(i.label || '').includes('Below'))
-    .reduce((sum, i) => sum + Number(i.value || 0), 0);
-  const draft = getDashboardValue(data.status_breakdown, 'Draft');
-  const submitted = getDashboardValue(data.status_breakdown, 'Submitted');
-  const highPriority = getDashboardValue(data.priority_breakdown, 'Critical') + getDashboardValue(data.priority_breakdown, 'High');
-  const topCustomer = Array.isArray(data.top_customers) && data.top_customers.length ? data.top_customers[0] : null;
-  const concentration = topCustomer && Number(k.revenue || 0) ? Number(topCustomer.value || 0) / Number(k.revenue || 0) : 0;
-  const axMargin = Number(k.avg_ax_margin || 0);
-
-  const signals = [
-    {
-      label: axMargin >= 0.20 ? 'AX Margin is leadership-ready' : axMargin >= 0.10 ? 'AX Margin needs pricing review' : 'AX Margin is below guardrail',
-      value: ((axMargin || 0) * 100).toFixed(1) + '%',
-      tone: axMargin >= 0.20 ? 'good' : axMargin >= 0.10 ? 'watch' : 'risk',
-      detail: `Avg AX margin across portfolio. C4C: ${((Number(k.avg_cloud4c_margin||0))*100).toFixed(1)}% · Gross: ${((Number(k.avg_margin||0))*100).toFixed(1)}%`
-    },
-    {
-      label: lowAxMargin ? 'Low AX-margin exposure' : 'No low AX-margin exposure',
-      value: `${lowAxMargin}/${projects}`,
-      tone: lowAxMargin ? 'watch' : 'good',
-      detail: 'Projects with AX margin below 10%.'
-    },
-    {
-      label: draft ? 'Draft backlog to convert' : 'No draft backlog',
-      value: `${draft}`,
-      tone: draft ? 'watch' : 'good',
-      detail: `${submitted} submitted project${submitted === 1 ? '' : 's'} currently visible.`
-    },
-    {
-      label: concentration >= 0.5 ? 'Customer concentration risk' : 'Customer concentration acceptable',
-      value: concentration ? `${Math.round(concentration * 100)}%` : 'n/a',
-      tone: concentration >= 0.5 ? 'risk' : concentration >= 0.3 ? 'watch' : 'good',
-      detail: topCustomer ? `${topCustomer.label} share of portfolio revenue.` : 'No customer revenue data yet.'
-    },
-    {
-      label: highPriority ? 'Priority deals require attention' : 'No high-priority pressure',
-      value: `${highPriority}`,
-      tone: highPriority ? 'watch' : 'good',
-      detail: 'Critical and high priority projects.'
-    }
-  ];
-
-  return signals.map(s => `
-    <div class="db-signal db-signal-${s.tone}">
-      <div class="db-signal-main">
-        <span>${esc(s.label)}</span>
-        <strong>${esc(s.value)}</strong>
-      </div>
-      <div class="db-signal-detail">${esc(s.detail)}</div>
-    </div>`).join('');
-}
-
-function renderPipelineMatrix(statusItems, stageItems) {
-  return `
-    <div class="db-pipeline-grid">
-      <div>
-        <div class="db-mini-title">Commercial Status</div>
-        ${renderStatusBars(statusItems)}
-      </div>
-      <div>
-        <div class="db-mini-title">Stage Progression</div>
-        ${renderStagePipeline(stageItems)}
-      </div>
-    </div>`;
-}
-
-function renderCompositionGrid(data) {
-  return `
-    <div class="db-composition-grid">
-      <div>
-        <div class="db-mini-title">Priority</div>
-        ${renderPriorityBars(data.priority_breakdown)}
-      </div>
-      <div>
-        <div class="db-mini-title">Business Unit</div>
-        ${renderAnalyticsBars(data.bu_breakdown, 'projects')}
-      </div>
-      <div>
-        <div class="db-mini-title">Location</div>
-        ${renderAnalyticsBars(data.top_locations, 'projects')}
-      </div>
-    </div>`;
-}
-const PRIORITY_COLORS = {
-  'Critical': '#b91c1c',
-  'High':     '#c2410c',
-  'Medium':   '#b45309',
-  'Low':      '#15803d',
-};
-const MARGIN_COLORS = {
-  'Below 20%': '#b91c1c',
-  '20–35%':    '#d97706',
-  '35–50%':    '#2563eb',
-  '50%+':      '#15803d',
-};
-
-function renderStatusBars(items) {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
-  const total = items.reduce((s, i) => s + Number(i.value || 0), 0) || 1;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
+function dbRevenueByStatus(items, styles) {
+  if (!Array.isArray(items) || !items.length) return `<div class="exdb-empty">No pipeline data</div>`;
+  const maxRev = Math.max(...items.map(i => Number(i.value||0)), 1);
+  const fmtM = v => { const n=Number(v||0); if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return '$'+n.toLocaleString(); };
   return items.map(item => {
-    const v = Number(item.value || 0);
-    const color = STATUS_COLORS[item.label] || '#8b5cf6';
-    const pct = Math.round((v / total) * 100);
-    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
-    return `
-      <div class="db-status-row">
-        <div class="db-status-dot" style="background:${color}"></div>
-        <span class="db-status-label">${esc(item.label)}</span>
-        <div class="db-status-track">
-          <div class="db-status-fill" style="width:${width}%;background:${color}"></div>
-        </div>
-        <span class="db-status-count">${v}</span>
-        <span class="db-status-pct">${pct}%</span>
-      </div>`;
+    const rev=Number(item.value||0), cnt=Number(item.count||0);
+    const w=Math.max((rev/maxRev)*100, rev>0?3:0);
+    const s=styles[item.label]||{bg:'#ede9fe',color:'#6d28d9'};
+    return `<div class="exdb-bar-row">
+      <div class="exdb-bar-status" style="background:${s.bg};color:${s.color}">${esc(item.label)}</div>
+      <div class="exdb-bar-track"><div class="exdb-bar-fill" style="width:${w}%;background:${s.color}"></div></div>
+      <div class="exdb-bar-meta"><span class="exdb-bar-val">${fmtM(rev)}</span><span class="exdb-bar-cnt">${cnt} proj</span></div>
+    </div>`;
   }).join('');
 }
 
-function renderStagePipeline(items) {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  const palette = ['#2563eb','#0f766e','#475569','#15803d','#b45309','#64748b','#334155','#b91c1c','#94a3b8'];
+function dbProjectMargins(projects) {
+  if (!Array.isArray(projects) || !projects.length) return `<div class="exdb-empty">No project data</div>`;
+  return projects.map(p => {
+    const m = Number(p.ax_margin||0);
+    const color = m>=20?'#15803d':m>=10?'#d97706':'#dc2626';
+    const bg    = m>=20?'#dcfce7':m>=10?'#fef9c3':'#fee2e2';
+    const w     = Math.min(Math.max(m,0),60)/60*100;
+    return `<div class="exdb-proj-row">
+      <div class="exdb-proj-name" title="${esc(p.name)}">${esc(p.name)}</div>
+      <div class="exdb-proj-bar-wrap"><div class="exdb-proj-bar" style="width:${w}%;background:${color}22;border-left:3px solid ${color}"></div></div>
+      <div class="exdb-proj-badge" style="background:${bg};color:${color}">${m.toFixed(1)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function dbCustomerPanel(customers) {
+  if (!Array.isArray(customers) || !customers.length) return `<div class="exdb-empty">No customer data</div>`;
+  const maxRev = Math.max(...customers.map(c => Number(c.value||0)), 1);
+  const fmtM = v => { const n=Number(v||0); if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; return '$'+(n/1e3).toFixed(0)+'K'; };
+  return customers.map(c => {
+    const rev=Number(c.value||0), ax=Number(c.ax_margin||0);
+    const w=Math.max((rev/maxRev)*100, rev>0?4:0);
+    const col=ax>=20?'#15803d':ax>=10?'#d97706':'#dc2626';
+    const bg =ax>=20?'#dcfce7':ax>=10?'#fef9c3':'#fee2e2';
+    return `<div class="exdb-cust-row">
+      <div class="exdb-cust-name" title="${esc(c.label)}">${esc(c.label)}</div>
+      <div class="exdb-cust-bar-wrap"><div class="exdb-cust-bar" style="width:${w}%;background:#6d28d922"></div></div>
+      <div class="exdb-cust-rev">${fmtM(rev)}</div>
+      <div class="exdb-proj-badge" style="background:${bg};color:${col}">${ax.toFixed(1)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function dbStagePipeline(items) {
+  if (!Array.isArray(items) || !items.length) return `<div class="exdb-empty">No stage data</div>`;
+  const maxRev = Math.max(...items.map(i => Number(i.value||0)), 1);
+  const fmtM = v => { const n=Number(v||0); if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return '$'+n.toLocaleString(); };
+  const COLS = ['#1e1b4b','#3730a3','#4f46e5','#6d28d9','#7c3aed','#9333ea','#a21caf','#c026d3','#db2777'];
   return items.map((item, idx) => {
-    const v = Number(item.value || 0);
-    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
-    const color = palette[idx % palette.length];
-    return `
-      <div class="db-stage-row">
-        <span class="db-stage-label">${esc(item.label)}</span>
-        <div class="db-stage-track">
-          <div class="db-stage-fill" style="width:${width}%;background:${color}">
-            ${v > 0 ? `<span class="db-stage-val">${v}</span>` : ''}
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function renderMarginBars(items) {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  return items.map(item => {
-    const v = Number(item.value || 0);
-    const color = MARGIN_COLORS[item.label] || '#8b5cf6';
-    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
-    return `
-      <div class="db-bar-row">
-        <div class="db-bar-head">
-          <span class="db-bar-label" style="color:${color}">${esc(item.label)}</span>
-          <span class="db-bar-val">${v} projects</span>
-        </div>
-        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%;background:${color}"></div></div>
-      </div>`;
-  }).join('');
-}
-
-function renderPriorityBars(items) {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  return items.map(item => {
-    const v = Number(item.value || 0);
-    const color = PRIORITY_COLORS[item.label] || '#8b5cf6';
-    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
-    return `
-      <div class="db-bar-row">
-        <div class="db-bar-head">
-          <span class="db-bar-label" style="color:${color}">${esc(item.label)}</span>
-          <span class="db-bar-val">${v} projects</span>
-        </div>
-        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%;background:${color}"></div></div>
-      </div>`;
-  }).join('');
-}
-
-function renderAnalyticsBars(items, unit = 'count') {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No data yet</div>`;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  const fmt = v => {
-    const n = Number(v || 0);
-    if (unit === 'hours') return n.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' hrs';
-    if (unit === 'revenue') {
-      if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
-      if (n >= 1_000) return '$' + (n / 1_000).toFixed(0) + 'K';
-      return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    }
-    return n.toLocaleString('en-US');
-  };
-  return items.map(item => {
-    const v = Number(item.value || 0);
-    const width = Math.max((v / maxVal) * 100, v > 0 ? 6 : 0);
-    return `
-      <div class="db-bar-row">
-        <div class="db-bar-head">
-          <span class="db-bar-label" title="${esc(item.label)}">${esc(item.label)}</span>
-          <span class="db-bar-val">${fmt(v)}</span>
-        </div>
-        <div class="db-bar-track"><div class="db-bar-fill" style="width:${width}%"></div></div>
-      </div>`;
-  }).join('');
-}
-
-function renderAnalyticsTimeline(items) {
-  if (!Array.isArray(items) || !items.length)
-    return `<div class="db-empty"><i class="bi bi-inbox"></i>No saved project history yet</div>`;
-  const maxVal = Math.max(...items.map(i => Number(i.value || 0)), 1);
-  return `
-    <div class="db-timeline">
-      ${items.map(item => {
-        const v = Number(item.value || 0);
-        const h = Math.max((v / maxVal) * 100, v > 0 ? 8 : 0);
-        const label = item.label.length === 7 ? item.label.slice(0, 4) + '\'' + item.label.slice(5) : esc(item.label);
-        return `
-          <div class="db-timeline-col">
-            <div class="db-timeline-count">${v || ''}</div>
-            <div class="db-timeline-wrap"><div class="db-timeline-bar" style="height:${h}%"></div></div>
-            <div class="db-timeline-label">${label}</div>
-          </div>`;
-      }).join('')}
+    const rev=Number(item.value||0), cnt=Number(item.count||0);
+    const w=Math.max((rev/maxRev)*100, rev>0?2:0);
+    return `<div class="exdb-stage-row">
+      <div class="exdb-stage-label">${esc(item.label)}</div>
+      <div class="exdb-stage-track"><div class="exdb-stage-fill" style="width:${w}%;background:${COLS[idx%COLS.length]}"></div></div>
+      <div class="exdb-stage-meta"><span class="exdb-bar-val">${fmtM(rev)}</span><span class="exdb-bar-cnt">${cnt}</span></div>
     </div>`;
+  }).join('');
+}
+
+function dbAttentionPanel(atRisk, priority, k) {
+  const lines = [];
+  const axPct = Number(k.avg_ax_margin||0)*100;
+  if (axPct < 20) lines.push({tone:'risk', icon:'bi-percent', text:`Avg AX margin ${axPct.toFixed(1)}% is below 20% target`});
+  if (Array.isArray(atRisk) && atRisk.length) {
+    lines.push({tone:'warn', icon:'bi-list-ul', text:`${atRisk.length} project${atRisk.length>1?'s':''} below 20% AX margin:`});
+    atRisk.slice(0,5).forEach(p => {
+      const col = p.ax_margin<10?'#dc2626':'#d97706';
+      lines.push({tone:'item', icon:'bi-dot', text:`${p.name} — <strong style="color:${col}">${p.ax_margin.toFixed(1)}%</strong> AX (${p.status})`});
+    });
+  } else {
+    lines.push({tone:'good', icon:'bi-check-circle', text:'All projects meet the AX margin target'});
+  }
+  const crit = (priority||[]).find(p => p.label==='Critical');
+  if (crit && Number(crit.value)>0) lines.push({tone:'warn', icon:'bi-flag', text:`${crit.value} Critical priority project${crit.value>1?'s':''} need immediate attention`});
+  if (Number(k.active_pipeline||0)>0) lines.push({tone:'good', icon:'bi-lightning', text:`${fmtMoneySmall(k.active_pipeline)} in active/won/submitted pipeline`});
+  return lines.map(l => `<div class="exdb-alert exdb-alert-${l.tone}"><i class="bi ${l.icon}"></i><span>${l.text}</span></div>`).join('');
+}
+
+function fmtMoneySmall(v) {
+  const n = Number(v||0);
+  if (n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if (n>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toLocaleString();
 }
 
 const ALL_PROJECTS_COLUMNS_STORAGE_KEY = 'pnl.allProjects.visibleColumns.v2';
