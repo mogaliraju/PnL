@@ -1754,7 +1754,7 @@ function renderAnalyticsTimeline(items) {
     </div>`;
 }
 
-const ALL_PROJECTS_COLUMNS_STORAGE_KEY = 'pnl.allProjects.visibleColumns';
+const ALL_PROJECTS_COLUMNS_STORAGE_KEY = 'pnl.allProjects.visibleColumns.v2';
 const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'folder',
   'customer',
@@ -1765,6 +1765,8 @@ const ALL_PROJECTS_DEFAULT_COLUMNS = [
   'input_cost',
   'markup',
   'revenue',
+  'cloud4c_margin',
+  'ax_margin',
   'gross_margin',
   'saved_at',
   'saved_by',
