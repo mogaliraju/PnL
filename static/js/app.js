@@ -1390,12 +1390,12 @@ async function loadDashboard() {
   };
   container.innerHTML = `<div class="exdb">
     <div class="exdb-kpi-strip">
-      ${dbKpi('Portfolio Revenue',fmtM(k.revenue),'Total across all projects','bi-cash-stack','#6d28d9','#f5f3ff')}
-      ${dbKpi('AX Margin',fmtPctRaw(axPct),'Avg AX margin — target ≥20%','bi-percent',axColor(axPct),axBg(axPct))}
-      ${dbKpi('C4C Margin',fmtPctRaw(c4cPct),'Avg Cloud4C margin','bi-building','#0f766e','#ccfbf1')}
-      ${dbKpi('Gross Profit',fmtM(k.gross_profit),'Revenue minus input cost','bi-graph-up-arrow','#1d4ed8','#dbeafe')}
-      ${dbKpi('Active Pipeline',fmtM(k.active_pipeline),'Won + Submitted + Active','bi-lightning-charge','#7c3aed','#ede9fe')}
-      ${dbKpi('At Risk',String(k.at_risk_count||0),'Projects with AX margin < 20%','bi-exclamation-triangle',k.at_risk_count>0?'#dc2626':'#15803d',k.at_risk_count>0?'#fee2e2':'#dcfce7')}
+      ${dbKpi('Portfolio Revenue',fmtM(k.revenue),'Total across all projects','bi-cash-stack','#6d28d9')}
+      ${dbKpi('AX Margin',fmtPctRaw(axPct),'Avg AX margin — target ≥20%','bi-percent',axColor(axPct))}
+      ${dbKpi('C4C Margin',fmtPctRaw(c4cPct),'Avg Cloud4C margin','bi-building','#0f766e')}
+      ${dbKpi('Gross Profit',fmtM(k.gross_profit),'Revenue minus input cost','bi-graph-up-arrow','#1d4ed8')}
+      ${dbKpi('Active Pipeline',fmtM(k.active_pipeline),'Won + Submitted + Active','bi-lightning-charge','#7c3aed')}
+      ${dbKpi('At Risk',String(k.at_risk_count||0),'Projects with AX margin < 20%','bi-exclamation-triangle',k.at_risk_count>0?'#dc2626':'#15803d')}
     </div>
     <div class="exdb-row3">
       <div class="exdb-panel">
@@ -1424,14 +1424,15 @@ async function loadDashboard() {
   </div>`;
 }
 
-function dbKpi(label, value, hint, icon, color, bg) {
-  return `<div class="exdb-kpi" style="--kpi-color:${color};--kpi-bg:${bg}">
-    <div class="exdb-kpi-icon"><i class="bi ${icon}"></i></div>
-    <div class="exdb-kpi-body">
+function dbKpi(label, value, hint, icon, color) {
+  return `<div class="exdb-kpi" style="--kpi-color:${color}">
+    <div class="exdb-kpi-top">
       <div class="exdb-kpi-value">${esc(value)}</div>
-      <div class="exdb-kpi-label">${esc(label)}</div>
-      <div class="exdb-kpi-hint">${esc(hint)}</div>
-    </div></div>`;
+      <div class="exdb-kpi-icon"><i class="bi ${icon}"></i></div>
+    </div>
+    <div class="exdb-kpi-label">${esc(label)}</div>
+    <div class="exdb-kpi-hint">${esc(hint)}</div>
+  </div>`;
 }
 
 function dbRevenueByStatus(items, styles) {
