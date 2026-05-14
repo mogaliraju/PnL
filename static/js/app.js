@@ -2514,25 +2514,11 @@ async function loadAllProjects() {
 
   container.innerHTML = `
     <div class="all-projects-shell">
-      <div class="all-projects-header mb-3">
-        <div class="all-projects-header-left">
-          <div class="all-projects-eyebrow">Portfolio View</div>
-          <div class="all-projects-hero-title">
-            All Saved Projects
-            <span class="all-projects-count-badge" id="all-projects-count-badge">${sortedList.length} / ${list.length}</span>
-          </div>
+      <div class="all-projects-topbar mb-2">
+        <div class="all-projects-topbar-left">
+          <span class="all-projects-hero-title">All Projects</span>
+          <span class="all-projects-count-badge" id="all-projects-count-badge">${sortedList.length} / ${list.length}</span>
         </div>
-        <div class="all-projects-header-actions">
-          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllProjectsColumnPicker()">
-            <i class="bi bi-sliders me-1"></i>${_allProjectsPickerOpen ? 'Hide Layout' : 'Customize Layout'}
-          </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="resetAllProjectsColumns()">Reset Default</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="loadAllProjects()">
-            <i class="bi bi-arrow-repeat me-1"></i>Refresh
-          </button>
-        </div>
-      </div>
-      <div class="all-projects-filterbar mb-3">
         <div class="all-projects-search">
           <i class="bi bi-search"></i>
           <input
@@ -2543,14 +2529,27 @@ async function loadAllProjects() {
             oninput="queueAllProjectsSearch(this.value)"
           />
         </div>
-        ${_renderFilterDropdown('folder',        'Folder',        _filterExcluding(list, searchQuery, 'folder'))}
-        ${_renderFilterDropdown('business_unit', 'Business Unit', _filterExcluding(list, searchQuery, 'business_unit'))}
-        ${_renderFilterDropdown('location',      'Location',      _filterExcluding(list, searchQuery, 'location'))}
-        ${_renderFilterDropdown('partner',       'Partner',       _filterExcluding(list, searchQuery, 'partner'))}
-        ${_renderFilterDropdown('sales_spoc',    'Sales SPOC',    _filterExcluding(list, searchQuery, 'sales_spoc'))}
-        <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
-          <i class="bi bi-x-lg me-1"></i>Clear
-        </button>
+        <div class="all-projects-topbar-filters">
+          ${_renderFilterDropdown('folder',        'Folder',        _filterExcluding(list, searchQuery, 'folder'))}
+          ${_renderFilterDropdown('business_unit', 'Business Unit', _filterExcluding(list, searchQuery, 'business_unit'))}
+          ${_renderFilterDropdown('location',      'Location',      _filterExcluding(list, searchQuery, 'location'))}
+          ${_renderFilterDropdown('partner',       'Partner',       _filterExcluding(list, searchQuery, 'partner'))}
+          ${_renderFilterDropdown('sales_spoc',    'Sales SPOC',    _filterExcluding(list, searchQuery, 'sales_spoc'))}
+          <button id="all-projects-clear-filters" class="btn btn-sm btn-outline-danger ${(searchQuery || Object.values(_allProjectsFilters).some(arr => arr.length > 0)) ? '' : 'd-none'}" onclick="clearAllProjectsFilters()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="all-projects-topbar-actions">
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllProjectsColumnPicker()" title="Customize Layout">
+            <i class="bi bi-sliders"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="resetAllProjectsColumns()" title="Reset Default">
+            <i class="bi bi-layout-three-columns"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="loadAllProjects()" title="Refresh">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+        </div>
       </div>
       <div id="all-projects-column-picker" class="all-projects-picker ${_allProjectsPickerOpen ? '' : 'd-none'} mb-3">
         <div class="all-projects-picker-header">
