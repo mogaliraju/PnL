@@ -1178,6 +1178,7 @@ function removeFromCatalog(groupName, roleName) {
   const group = (appData.role_catalog || []).find(g => g.group === groupName);
   if (group) {
     group.roles = group.roles.filter(r => r !== roleName);
+    renderCatalogList();
     renderPnlRoles();
     saveSettings();
   }
