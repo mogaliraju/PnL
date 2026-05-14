@@ -1858,10 +1858,11 @@ function getAllProjectsColumnDefs(formatters) {
       headerClass: 'text-end',
       sortValue: p => Number(p.costs?.ax_margin || 0),
       cell: p => {
-        const m = (p.costs?.ax_margin || 0) * 100;
-        return p.costs?.ax_margin != null
-          ? `<td class="text-end small" style="color:#7c3aed;font-weight:600">${m.toFixed(1)}%</td>`
-          : '<td></td>';
+        if (p.costs?.ax_margin == null) return '<td></td>';
+        const m = (p.costs.ax_margin || 0) * 100;
+        const color  = m >= 30 ? '#15803d' : m >= 20 ? '#d97706' : '#b91c1c';
+        const bg     = m >= 30 ? '#dcfce7' : m >= 20 ? '#fef3c7' : '#fee2e2';
+        return `<td class="text-end"><span style="background:${bg};color:${color};font-weight:700;font-size:0.8rem;padding:2px 8px;border-radius:6px;display:inline-block">${m.toFixed(1)}%</span></td>`;
       }
     },
     {
