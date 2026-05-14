@@ -1388,6 +1388,10 @@ async function loadDashboard() {
   const grossProfit = Math.max(Number(k.revenue || 0) - Number(k.input_cost || 0), 0);
   const costRatio = Number(k.revenue || 0) ? Number(k.input_cost || 0) / Number(k.revenue || 0) : 0;
   const avgDeal = Number(k.projects || 0) ? Number(k.revenue || 0) / Number(k.projects || 0) : 0;
+  const axMarginColor = m => {
+    const p = Number(m || 0) * 100;
+    return p >= 20 ? '#16a34a' : p >= 10 ? '#d97706' : '#dc2626';
+  };
 
   container.innerHTML = `
     <section class="db-shell">
@@ -1395,21 +1399,21 @@ async function loadDashboard() {
         <div>
           <div class="db-eyebrow">Executive portfolio view</div>
           <h2 class="db-title">Commercial health and delivery exposure</h2>
-          <div class="db-summary">A concise readout of portfolio value, margin quality, pipeline maturity, and where leadership attention is needed.</div>
+          <div class="db-summary">A concise readout of portfolio value, AX margin performance, pipeline maturity, and where leadership attention is needed.</div>
         </div>
         <div class="db-hero-metrics">
           ${renderExecMetric('Revenue', fmtMoney(k.revenue), 'Booked and proposed value', 'bi-cash-stack')}
-          ${renderExecMetric('Gross Profit', fmtMoney(grossProfit), 'Revenue less input cost', 'bi-graph-up-arrow')}
-          ${renderExecMetric('Avg Margin', fmtPct(k.avg_margin), `${fmtPct(costRatio)} cost ratio`, 'bi-percent', marginColor(k.avg_margin))}
+          ${renderExecMetric('AX Margin', fmtPct(k.avg_ax_margin), `C4C: ${fmtPct(k.avg_cloud4c_margin)} · Gross: ${fmtPct(k.avg_margin)}`, 'bi-percent', axMarginColor(k.avg_ax_margin))}
+          ${renderExecMetric('Gross Profit', fmtMoney(grossProfit), `${fmtPct(costRatio)} cost ratio`, 'bi-graph-up-arrow')}
         </div>
       </div>
 
       <div class="db-score-strip">
         ${renderScoreTile('Projects', fmtNum(k.projects), 'Total saved opportunities')}
         ${renderScoreTile('Avg Deal Size', fmtMoney(avgDeal), 'Portfolio revenue per project')}
-        ${renderScoreTile('Input Cost', fmtMoney(k.input_cost), 'Delivery cost baseline')}
+        ${renderScoreTile('AX Margin', fmtPct(k.avg_ax_margin), 'Avg AX margin across portfolio')}
+        ${renderScoreTile('C4C Margin', fmtPct(k.avg_cloud4c_margin), 'Avg Cloud4C margin')}
         ${renderScoreTile('Total Hours', fmtNum(k.hours), 'Planned delivery effort')}
-        ${renderScoreTile('Resources', fmtNum(k.resources), `${fmtNum(k.avg_resources_per_project)} avg / project`)}
       </div>
 
       <div class="row g-3 mb-3">
@@ -1437,10 +1441,10 @@ async function loadDashboard() {
         <div class="col-lg-4">
           <div class="db-panel h-100">
             <div class="db-panel-head">
-              <div><i class="bi bi-shield-check me-2"></i>Margin Quality</div>
+              <div><i class="bi bi-shield-check me-2"></i>AX Margin Quality</div>
               <span>risk bands</span>
             </div>
-            <div class="db-panel-body">${renderMarginBars(data.margin_buckets)}</div>
+            <div class="db-panel-body">${renderMarginBars(data.ax_margin_buckets)}</div>
           </div>
         </div>
         <div class="col-lg-4">
@@ -1523,28 +1527,28 @@ function renderScoreTile(label, value, hint) {
 
 function renderDecisionSignals(data, k) {
   const projects = Number(k.projects || 0);
-  const lowMargin = (data.margin_buckets || [])
-    .filter(i => String(i.label || '').includes('Below') || String(i.label || '').includes('20'))
+  const lowAxMargin = (data.ax_margin_buckets || [])
+    .filter(i => String(i.label || '').includes('Below'))
     .reduce((sum, i) => sum + Number(i.value || 0), 0);
   const draft = getDashboardValue(data.status_breakdown, 'Draft');
   const submitted = getDashboardValue(data.status_breakdown, 'Submitted');
   const highPriority = getDashboardValue(data.priority_breakdown, 'Critical') + getDashboardValue(data.priority_breakdown, 'High');
   const topCustomer = Array.isArray(data.top_customers) && data.top_customers.length ? data.top_customers[0] : null;
   const concentration = topCustomer && Number(k.revenue || 0) ? Number(topCustomer.value || 0) / Number(k.revenue || 0) : 0;
-  const margin = Number(k.avg_margin || 0);
+  const axMargin = Number(k.avg_ax_margin || 0);
 
   const signals = [
     {
-      label: margin >= 0.35 ? 'Margin is leadership-ready' : margin >= 0.20 ? 'Margin needs pricing review' : 'Margin is below guardrail',
-      value: ((margin || 0) * 100).toFixed(1) + '%',
-      tone: margin >= 0.35 ? 'good' : margin >= 0.20 ? 'watch' : 'risk',
-      detail: 'Average gross margin across the saved portfolio.'
+      label: axMargin >= 0.20 ? 'AX Margin is leadership-ready' : axMargin >= 0.10 ? 'AX Margin needs pricing review' : 'AX Margin is below guardrail',
+      value: ((axMargin || 0) * 100).toFixed(1) + '%',
+      tone: axMargin >= 0.20 ? 'good' : axMargin >= 0.10 ? 'watch' : 'risk',
+      detail: `Avg AX margin across portfolio. C4C: ${((Number(k.avg_cloud4c_margin||0))*100).toFixed(1)}% · Gross: ${((Number(k.avg_margin||0))*100).toFixed(1)}%`
     },
     {
-      label: lowMargin ? 'Low-margin exposure' : 'No low-margin exposure',
-      value: `${lowMargin}/${projects}`,
-      tone: lowMargin ? 'watch' : 'good',
-      detail: 'Projects below 35% gross margin.'
+      label: lowAxMargin ? 'Low AX-margin exposure' : 'No low AX-margin exposure',
+      value: `${lowAxMargin}/${projects}`,
+      tone: lowAxMargin ? 'watch' : 'good',
+      detail: 'Projects with AX margin below 10%.'
     },
     {
       label: draft ? 'Draft backlog to convert' : 'No draft backlog',

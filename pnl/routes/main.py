@@ -137,6 +137,8 @@ def dashboard_data():
     total_input_cost = 0.0
     total_revenue = 0.0
     margin_sum = 0.0
+    ax_margin_sum = 0.0
+    cloud4c_margin_sum = 0.0
 
     location_counter = Counter()
     customer_counter = Counter()
@@ -150,6 +152,7 @@ def dashboard_data():
     bu_counter = Counter()
     monthly_projects = defaultdict(int)
     margin_buckets = {'Below 20%': 0, '20–35%': 0, '35–50%': 0, '50%+': 0}
+    ax_margin_buckets = {'Below 10%': 0, '10–15%': 0, '15–20%': 0, '20%+': 0}
 
     STATUS_ORDER  = ['Won', 'Active', 'Submitted', 'Proposal', 'Draft', 'On Hold', 'Lost']
     STAGE_ORDER   = ['Qualification', 'Discovery', 'Solutioning', 'Proposal',
@@ -174,6 +177,8 @@ def dashboard_data():
         total_input_cost += costs['input_cost']
         total_revenue += costs['sell_cost']
         margin_sum += costs['gross_margin']
+        ax_margin_sum += costs['ax_margin']
+        cloud4c_margin_sum += costs['cloud4c_margin']
 
         loc = (project.get('location') or '').strip()
         cust = (project.get('customer') or '').strip()
@@ -206,6 +211,16 @@ def dashboard_data():
         else:
             margin_buckets['50%+'] += 1
 
+        ax_pct = costs['ax_margin'] * 100
+        if ax_pct < 10:
+            ax_margin_buckets['Below 10%'] += 1
+        elif ax_pct < 15:
+            ax_margin_buckets['10–15%'] += 1
+        elif ax_pct < 20:
+            ax_margin_buckets['15–20%'] += 1
+        else:
+            ax_margin_buckets['20%+'] += 1
+
         for resource in resources:
             role = resource.get('role', '').strip()
             group = resource.get('group', '').strip()
@@ -216,6 +231,8 @@ def dashboard_data():
                 group_counter[group] += hours
 
     avg_margin = (margin_sum / total_projects) if total_projects else 0
+    avg_ax_margin = (ax_margin_sum / total_projects) if total_projects else 0
+    avg_cloud4c_margin = (cloud4c_margin_sum / total_projects) if total_projects else 0
     avg_resources = (total_resources / total_projects) if total_projects else 0
 
     def ordered_list(counter, order, limit=None):
@@ -237,6 +254,8 @@ def dashboard_data():
             'input_cost': round(total_input_cost, 2),
             'revenue': round(total_revenue, 2),
             'avg_margin': round(avg_margin, 4),
+            'avg_ax_margin': round(avg_ax_margin, 4),
+            'avg_cloud4c_margin': round(avg_cloud4c_margin, 4),
             'avg_resources_per_project': round(avg_resources, 1),
         },
         'status_breakdown':   ordered_list(status_counter, STATUS_ORDER),
@@ -253,4 +272,5 @@ def dashboard_data():
             for m in sorted(monthly_projects.keys())
         ],
         'margin_buckets': [{'label': k, 'value': v} for k, v in margin_buckets.items()],
+        'ax_margin_buckets': [{'label': k, 'value': v} for k, v in ax_margin_buckets.items()],
     })
