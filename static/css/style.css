@@ -11,8 +11,11 @@
 
 body {
   background: var(--ax-surface);
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 .app-footer {
@@ -45,19 +48,21 @@ body {
   background: var(--ax-grad);
   box-shadow: 0 2px 12px rgba(109,40,217,0.35);
 }
-.ax-navbar .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1.15rem; }
-.ax-navbar .text-muted-nav { color: rgba(255,255,255,0.55) !important; font-size: 12px; }
+.ax-navbar .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
+.ax-navbar .text-muted-nav { color: rgba(255,255,255,0.50) !important; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
 
 /* ── Tabs ── */
 .nav-tabs { border-bottom: 2px solid var(--ax-tint); }
-.nav-tabs .nav-link { color: #555; font-weight: 500; border: none; }
+.nav-tabs .nav-link { color: #64748b; font-weight: 500; font-size: 13px; letter-spacing: -0.01em; border: none; padding: 10px 14px; }
 .nav-tabs .nav-link:hover { color: var(--ax-mid); background: var(--ax-tint2); border-radius: 6px 6px 0 0; }
 .nav-tabs .nav-link.active {
   color: var(--ax-mid);
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 13px;
   border: none;
   border-bottom: 3px solid var(--ax-mid);
   background: transparent;
+  letter-spacing: -0.01em;
 }
 
 /* ── Cards ── */
@@ -991,21 +996,23 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 .all-projects-eyebrow {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: rgba(109, 40, 217, 0.08);
   color: #6c46bb;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .all-projects-hero-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #22153f;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f0a1e;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1013,12 +1020,13 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 .all-projects-count-badge {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #6c46bb;
   background: rgba(109, 40, 217, 0.09);
   border-radius: 999px;
-  padding: 3px 12px;
+  padding: 3px 11px;
+  letter-spacing: 0.02em;
 }
 
 .all-projects-header-actions {
@@ -1056,12 +1064,15 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 .all-projects-search .form-control {
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(109, 40, 217, 0.16);
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(109, 40, 217, 0.14);
   padding-left: 36px;
   background: #fff;
   font-size: 13px;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   box-shadow: none;
 }
 
@@ -1079,13 +1090,14 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(109, 40, 217, 0.16);
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(109, 40, 217, 0.14);
   background: #fff;
   color: #3d2d6b;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   padding: 0 12px;
   cursor: pointer;
   white-space: nowrap;
@@ -1437,8 +1449,8 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 .all-projects-table > :not(caption) > * > * {
-  padding: 0.65rem 0.9rem;
-  font-size: 0.82rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.8125rem;
 }
 
 .all-projects-table thead th {
@@ -1447,10 +1459,12 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   z-index: 1;
   white-space: nowrap;
   border-color: rgba(255, 255, 255, 0.12);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 600;
+  color: #64748b;
+  background: #f8f7fc;
 }
 
 .all-projects-sort-btn {
@@ -1463,6 +1477,8 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   background: transparent;
   color: inherit;
   font-weight: 600;
+  font-size: inherit;
+  letter-spacing: inherit;
   padding: 0;
 }
 
@@ -1474,60 +1490,67 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 .all-projects-sort-btn i {
-  opacity: 0.7;
-  font-size: 12px;
+  opacity: 0.45;
+  font-size: 11px;
 }
 
 .all-projects-sort-btn.is-active i {
   opacity: 1;
-  color: #d7c3ff;
+  color: #7c3aed;
 }
 
 .all-projects-table tbody tr {
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition: background 0.12s ease;
 }
 
 .all-projects-table tbody tr:hover {
-  background: #faf7ff;
+  background: #f5f3ff;
 }
 
 .all-projects-table tbody td {
-  border-color: rgba(109, 40, 217, 0.08);
-  color: #1E0B4B;
+  border-color: rgba(109, 40, 217, 0.06);
+  color: #1e293b;
   vertical-align: middle;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 /* S.No column */
 .all-projects-table tbody td:first-child {
-  color: #9ca3af;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  color: #94a3b8;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 /* Customer column — bold primary */
 .all-projects-table tbody td.ap-col-customer {
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #1E0B4B;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 /* Numeric/financial columns — tabular nums */
 .all-projects-table tbody td.ap-col-number {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
   font-weight: 600;
-  color: #1E0B4B;
+  color: #0f172a;
+  letter-spacing: 0;
 }
 
 /* Date columns */
 .all-projects-table tbody td.ap-col-date {
-  color: #6b7280;
-  font-size: 0.78rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-feature-settings: "tnum";
 }
 
 /* Text muted secondary columns */
 .all-projects-table tbody td.ap-col-secondary {
-  color: #6b7280;
+  color: #64748b;
+  font-size: 0.8rem;
 }
 
 /* Status badges */
@@ -1535,13 +1558,14 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 .ap-status-won        { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .ap-status-lost       { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
