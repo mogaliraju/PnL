@@ -16,6 +16,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container-fluid.px-4.py-3 {
+  flex: 1;
 }
 
 .app-footer {
@@ -1440,13 +1447,13 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   top: 0;
   z-index: 1;
   white-space: nowrap;
-  border-color: rgba(109, 40, 217, 0.12);
-  font-size: 0.6875rem;
-  letter-spacing: 0.07em;
+  background: #1e1b4b;
+  color: #e2d9f3;
+  border-color: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-weight: 700;
-  color: #1e1b4b;
-  background: #ede9fe;
 }
 
 .all-projects-sort-btn {
@@ -1464,6 +1471,10 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   padding: 0;
 }
 
+.all-projects-sort-btn:hover {
+  color: #fff;
+}
+
 .all-projects-sort-btn span {
   text-align: left;
   min-width: 0;
@@ -1472,13 +1483,18 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
 }
 
 .all-projects-sort-btn i {
-  opacity: 0.45;
-  font-size: 11px;
+  opacity: 0.4;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.all-projects-sort-btn.is-active {
+  color: #fff;
 }
 
 .all-projects-sort-btn.is-active i {
   opacity: 1;
-  color: #7c3aed;
+  color: #c4b5fd;
 }
 
 .all-projects-table tbody tr {

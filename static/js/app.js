@@ -2573,7 +2573,7 @@ async function loadAllProjects() {
     </div>
     <div class="table-responsive all-projects-table-wrap">
       <table class="table table-bordered table-hover align-middle all-projects-table" style="cursor:pointer">
-        <thead style="background:var(--ax-deep);color:#fff">
+        <thead>
           <tr>
             <th class="text-center" style="width:48px">S.No</th>
             ${visibleColumns.map(def => `
