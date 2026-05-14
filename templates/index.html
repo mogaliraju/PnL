@@ -18,7 +18,7 @@
 <!-- Navbar -->
 <nav class="navbar ax-navbar navbar-dark">
   <div class="container-fluid d-flex align-items-center gap-3">
-    <img src="/static/img/logo.svg" height="42" width="42" alt="AutomatonsX" style="border-radius:8px;"/>
+    <a href="/" title="Home"><img src="/static/img/logo.svg" height="42" width="42" alt="AutomatonsX" style="border-radius:8px;"/></a>
     <div class="d-flex flex-column lh-1">
       <span class="navbar-brand fw-bold fs-6 mb-0 p-0">PnL Application</span>
       <span class="text-muted-nav">AutomatonsX</span>
@@ -38,16 +38,6 @@
         <i class="bi bi-plus-lg me-1"></i>New
       </button>
 
-
-      <!-- Import Excel -->
-      <label class="btn btn-outline-light btn-sm mb-0" title="Import from Excel" style="cursor:pointer">
-        <i class="bi bi-upload me-1"></i>Import
-        <input type="file" accept=".xlsx,.xlsm" style="display:none" onchange="importExcel(this)"/>
-      </label>
-
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#compareModal" onclick="loadCompareProjects()" title="Compare two project versions">
-        <i class="bi bi-arrow-left-right me-1"></i>Compare
-      </button>
 
       <div class="vr opacity-25 mx-1" style="height:24px"></div>
 
@@ -118,8 +108,8 @@
   <!-- Tabs -->
   <ul class="nav nav-tabs mb-3" id="mainTabs">
     {% if not editor_mode %}
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-dashboard" onclick="loadDashboard()"><i class="bi bi-graph-up-arrow me-1"></i>Dashboard</a></li>
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-all-projects" onclick="loadAllProjects()"><i class="bi bi-folder2 me-1"></i>All Projects</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-dashboard" onclick="loadDashboard()"><i class="bi bi-graph-up-arrow me-1"></i>Dashboard</a></li>
     {% endif %}
     {% if editor_mode %}
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
@@ -136,6 +126,13 @@
   <div class="tab-content">
 
     {% if not editor_mode %}
+    <!-- ===== ALL PROJECTS ===== -->
+    <div class="tab-pane fade show active" id="tab-all-projects">
+      <div id="all-projects-container">
+        <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
+      </div>
+    </div>
+
     <!-- ===== DASHBOARD ===== -->
     <div class="tab-pane fade" id="tab-dashboard">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -152,13 +149,6 @@
         <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
       </div>
     </div>
-
-    <!-- ===== ALL PROJECTS ===== -->
-    <div class="tab-pane fade show active" id="tab-all-projects">
-      <div id="all-projects-container">
-        <div class="text-center text-muted py-5"><i class="bi bi-hourglass-split me-1"></i>Loading…</div>
-      </div>
-    </div>
     {% endif %}
 
     <!-- ===== PROJECT ===== -->
@@ -168,6 +158,9 @@
       <div class="proj-savebar sticky-top d-flex justify-content-between align-items-center gap-2 mb-3 px-1 py-2">
         <span class="text-muted small" id="proj-savebar-label">New project — fill in details below</span>
         <div class="d-flex gap-2">
+          <a href="/" class="btn btn-outline-secondary btn-sm" title="Back to All Projects">
+            <i class="bi bi-house-door me-1"></i>Home
+          </a>
           <button class="btn btn-outline-success btn-sm" onclick="exportExcel()">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
           </button>
@@ -1266,7 +1259,7 @@
 
 <!-- ===== VERSION HISTORY MODAL ===== -->
 <div class="modal fade" id="versionHistoryModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Version History</h5>
@@ -1276,8 +1269,14 @@
         <table class="table table-sm table-hover mb-0">
           <thead class="table-light">
             <tr>
-              <th style="width:180px">Saved At</th>
-              <th style="width:120px">Saved By</th>
+              <th style="width:170px">Saved At</th>
+              <th style="width:100px">Saved By</th>
+              <th style="width:110px">Currency</th>
+              <th style="width:110px" class="text-end">Revenue</th>
+              <th style="width:110px" class="text-end">Input Cost</th>
+              <th style="width:90px" class="text-end">C4C Margin</th>
+              <th style="width:90px" class="text-end">AX Margin</th>
+              <th style="width:90px" class="text-end">Total Margin</th>
               <th>Label</th>
               <th style="width:140px"></th>
             </tr>

@@ -3140,19 +3140,27 @@ async function showVersionHistory() {
   }
   const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('versionHistoryModal'));
   const tbody = document.getElementById('version-history-tbody');
-  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>';
   modal.show();
   try {
     const res = await fetch(`/api/projects/${_currentPid}/versions`);
     const versions = await res.json();
     if (!versions.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No versions saved yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No versions saved yet.</td></tr>';
       return;
     }
+    const fmt = (n) => n ? n.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0}) : '—';
+    const pct = (n) => (n !== undefined && n !== null) ? n.toFixed(1) + '%' : '—';
     tbody.innerHTML = versions.map((v, idx) => `
       <tr>
         <td class="small text-muted">${esc(v.saved_at.replace('T',' '))}</td>
         <td class="small">${esc(v.saved_by || '—')}</td>
+        <td class="small">${esc(v.currency || 'USD')}</td>
+        <td class="small text-end fw-semibold">${fmt(v.revenue)}</td>
+        <td class="small text-end">${fmt(v.input_cost)}</td>
+        <td class="small text-end text-success">${pct(v.cloud4c_margin_pct)}</td>
+        <td class="small text-end text-primary">${pct(v.ax_margin_pct)}</td>
+        <td class="small text-end fw-semibold">${pct(v.gross_margin_pct)}</td>
         <td>
           <input type="text" class="form-control form-control-sm" value="${esc(v.label)}"
             placeholder="Add label…"
@@ -3170,7 +3178,7 @@ async function showVersionHistory() {
       </tr>
     `).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="4" class="text-danger small">Error: ${esc(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="text-danger small">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 

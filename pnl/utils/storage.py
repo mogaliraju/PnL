@@ -659,22 +659,47 @@ def list_project_versions(pid: str) -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(
             _sql("""
-            SELECT vid, saved_at, saved_by, label
+            SELECT vid, saved_at, saved_by, label, payload
             FROM project_versions
             WHERE pid = ?
             ORDER BY vid DESC
             """),
             (pid,),
         ).fetchall()
-    return [
-        {
+    from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
+    result = []
+    for row in rows:
+        entry = {
             'vid': row['vid'],
             'saved_at': row['saved_at'] or '',
             'saved_by': row['saved_by'] or '',
             'label': row['label'] or '',
         }
-        for row in rows
-    ]
+        payload = _json_loads(row['payload'] or '{}', {})
+        project = payload.get('project', {})
+        resources = payload.get('resources', [])
+        cloud4c_margin, ax_margin = resolve_margin_inputs(payload)
+        costs = compute_costs(
+            resources,
+            payload.get('rate_card', []),
+            cloud4c_margin=cloud4c_margin,
+            ax_margin=ax_margin,
+            one_time_costs=payload.get('one_time_costs', []),
+        )
+        discount_pct = _to_float(project.get('discount_pct'))
+        sell_cost = costs.get('sell_cost', 0)
+        revenue = sell_cost * (1 - discount_pct / 100) if discount_pct else sell_cost
+        entry.update({
+            'customer': project.get('customer', ''),
+            'currency': project.get('currency', 'USD') or 'USD',
+            'revenue': round(revenue, 2),
+            'input_cost': costs.get('input_cost', 0),
+            'cloud4c_margin_pct': round(costs.get('cloud4c_margin', 0) * 100, 1),
+            'ax_margin_pct': round(costs.get('ax_margin', 0) * 100, 1),
+            'gross_margin_pct': round(costs.get('gross_margin', 0) * 100, 1),
+        })
+        result.append(entry)
+    return result
 
 
 def load_project_version(pid: str, vid: str) -> dict | None:
