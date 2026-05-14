@@ -1458,13 +1458,13 @@ input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   top: 0;
   z-index: 1;
   white-space: nowrap;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(109, 40, 217, 0.12);
   font-size: 0.6875rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  font-weight: 600;
-  color: #64748b;
-  background: #f8f7fc;
+  font-weight: 700;
+  color: #1e1b4b;
+  background: #ede9fe;
 }
 
 .all-projects-sort-btn {
