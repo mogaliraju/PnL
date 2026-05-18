@@ -4,7 +4,7 @@ services:
     plan: free
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: python seed_data.py && gunicorn app:app
     envVars:
       - key: DATABASE_URL
         sync: false          # Set this manually in Render dashboard to your Neon/Supabase URL
