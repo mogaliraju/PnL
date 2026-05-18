@@ -1,0 +1,222 @@
+﻿{
+    "_meta":  {
+                  "folder":  "Benline",
+                  "id":  "Benline_20260403_163446",
+                  "name":  "Benline",
+                  "saved_at":  "2026-05-14T19:06:56",
+                  "saved_by":  "admin"
+              },
+    "approvals":  {
+                      "approved_by":  "",
+                      "prepared_by":  "",
+                      "reviewed_by":  ""
+                  },
+    "attachments":  {
+                        "cloud4c_quote":  false,
+                        "customer_po":  false,
+                        "partner_proposal":  false
+                    },
+    "ax_margin":  0.2,
+    "business_units":  [
+                           "EDM",
+                           "AI",
+                           "SAP",
+                           "RPA"
+                       ],
+    "cloud4c_margin":  0.3,
+    "export_filename":  "Benline_PnL_June_2025",
+    "export_path":  "C:/Users/15743/Downloads",
+    "funding":  {
+                    "discount":  {
+                                     "currency":  "USD",
+                                     "method":  "",
+                                     "reference":  "",
+                                     "value":  null
+                                 },
+                    "management":  {
+                                       "currency":  "USD",
+                                       "method":  "",
+                                       "reference":  "",
+                                       "value":  null
+                                   },
+                    "marketing":  {
+                                      "currency":  "USD",
+                                      "method":  "",
+                                      "reference":  "",
+                                      "value":  null
+                                  }
+                },
+    "fx_rate":  95.77173,
+    "one_time_costs":  [
+
+                       ],
+    "pnl_roles":  [
+
+                  ],
+    "project":  {
+                    "account_manager":  "Nitin Karunakaran",
+                    "billing_type":  "Time \u0026 Material",
+                    "business_unit":  "EDM",
+                    "company":  "AutomatonsX",
+                    "currency":  "USD",
+                    "customer":  "Benline",
+                    "customer_first_touch_point":  "",
+                    "delivery_manager":  "Srikar Mogaliraju",
+                    "delivery_model":  "Offshore",
+                    "dependencies":  "",
+                    "discount_pct":  null,
+                    "duration_months":  6,
+                    "expected_end_date":  "",
+                    "expected_start_date":  "",
+                    "industry":  "",
+                    "infra_cost":  null,
+                    "internal_notes":  "",
+                    "location":  "Singapore",
+                    "next_action":  "",
+                    "next_follow_up_date":  "",
+                    "opportunity_id":  "",
+                    "partner":  "",
+                    "payment_terms":  "",
+                    "priority":  "Medium",
+                    "project_description":  "Setting up MDM ",
+                    "project_owner":  "Gajendra Krishna",
+                    "project_type":  "",
+                    "proposal_date":  "2026-04-06",
+                    "reference":  "",
+                    "risks":  "",
+                    "sales_spoc":  "Nitin Karunakaran",
+                    "stage":  "Qualification",
+                    "status":  "Submitted",
+                    "technical_lead":  "",
+                    "third_party_cost":  null,
+                    "travel_cost":  null
+                },
+    "rate_card":  [
+                      {
+                          "level":  "L1",
+                          "rate":  7
+                      },
+                      {
+                          "level":  "L2",
+                          "rate":  20
+                      },
+                      {
+                          "level":  "L3",
+                          "rate":  25
+                      },
+                      {
+                          "level":  "L4",
+                          "rate":  29
+                      },
+                      {
+                          "level":  "L5",
+                          "rate":  35
+                      },
+                      {
+                          "level":  "L6",
+                          "rate":  48
+                      },
+                      {
+                          "level":  "L7",
+                          "rate":  55
+                      },
+                      {
+                          "level":  "L8",
+                          "rate":  65
+                      },
+                      {
+                          "level":  "Onsite",
+                          "rate":  100
+                      }
+                  ],
+    "releases":  [
+
+                 ],
+    "resources":  [
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  1000,
+                          "id":  1775215445323,
+                          "level":  "L1",
+                          "role":  "Junior Data Engineer"
+                      },
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  1000,
+                          "id":  1778057393508,
+                          "level":  "L3",
+                          "role":  "Junior Data Engineer"
+                      },
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  75,
+                          "id":  1778057417467,
+                          "level":  "L6",
+                          "role":  "Data Architect"
+                      }
+                  ],
+    "role_catalog":  [
+                         {
+                             "group":  "Data Engineering",
+                             "roles":  [
+                                           "Junior Data Engineer",
+                                           "Data Engineer",
+                                           "Senior Data Engineer",
+                                           "Lead Data Engineer",
+                                           "DataOps Engineer",
+                                           "Database Administrator",
+                                           "Big Data Engineer",
+                                           "Cloud Data Engineer",
+                                           "Devops Engineer",
+                                           "AI Engineer"
+                                       ]
+                         },
+                         {
+                             "group":  "Power BI \u0026 Analytics",
+                             "roles":  [
+                                           "Power BI Developer",
+                                           "Senior Power BI Developer",
+                                           "Power BI Architect",
+                                           "BI Developer",
+                                           "BI Analyst",
+                                           "Analytics Engineer",
+                                           "Data Analyst",
+                                           "Senior Data Analyst",
+                                           "Dashboard Developer",
+                                           "Reporting Analyst",
+                                           "Data Visualization Specialist"
+                                       ]
+                         },
+                         {
+                             "group":  "Architecture \u0026 Leadership",
+                             "roles":  [
+                                           "Solution Architect",
+                                           "Principal Architect",
+                                           "Enterprise Architect",
+                                           "Technical Lead",
+                                           "Data Lead",
+                                           "Head of Data",
+                                           "Infra Architect"
+                                       ]
+                         },
+                         {
+                             "group":  "Project \u0026 Product",
+                             "roles":  [
+                                           "Project Manager",
+                                           "Program Manager",
+                                           "Delivery Manager",
+                                           "Scrum Master",
+                                           "Product Owner"
+                                       ]
+                         },
+                         {
+                             "group":  "Support \u0026 Pre-Sales",
+                             "roles":  [
+                                           "Sales Manager",
+                                           "Presales Architect",
+                                           "Technical Writer"
+                                       ]
+                         }
+                     ],
+    "target_margin":  0.5
+}

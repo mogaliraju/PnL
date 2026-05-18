@@ -1,0 +1,208 @@
+﻿{
+    "_meta":  {
+                  "folder":  "K\u0026S",
+                  "id":  "K_S_ELZ_20260507_042232",
+                  "name":  "K\u0026S ELZ",
+                  "saved_at":  "2026-05-14T12:00:22",
+                  "saved_by":  "admin"
+              },
+    "approvals":  {
+                      "approved_by":  "",
+                      "prepared_by":  "",
+                      "reviewed_by":  ""
+                  },
+    "attachments":  {
+                        "cloud4c_quote":  false,
+                        "customer_po":  false,
+                        "partner_proposal":  false
+                    },
+    "ax_margin":  0.3,
+    "business_units":  [
+                           "EDM",
+                           "AI",
+                           "SAP",
+                           "RPA"
+                       ],
+    "cloud4c_margin":  0.3,
+    "export_filename":  "",
+    "funding":  {
+                    "discount":  {
+                                     "currency":  "USD",
+                                     "value":  null
+                                 },
+                    "management":  {
+                                       "currency":  "USD",
+                                       "value":  null
+                                   },
+                    "marketing":  {
+                                      "currency":  "USD",
+                                      "value":  null
+                                  }
+                },
+    "fx_rate":  95.77173,
+    "one_time_costs":  [
+
+                       ],
+    "pnl_roles":  [
+
+                  ],
+    "project":  {
+                    "account_manager":  "Nitin Karunakaran",
+                    "billing_type":  "Fixed Bid",
+                    "business_unit":  "EDM",
+                    "company":  "AutomatonsX",
+                    "currency":  "USD",
+                    "customer":  "K\u0026S ELZ",
+                    "customer_first_touch_point":  "",
+                    "delivery_manager":  "Srikar Mogaliraju",
+                    "delivery_model":  "Offshore",
+                    "dependencies":  "",
+                    "discount_pct":  null,
+                    "duration_months":  1,
+                    "expected_end_date":  "",
+                    "expected_start_date":  "",
+                    "industry":  "",
+                    "infra_cost":  null,
+                    "internal_notes":  "",
+                    "location":  "Singapore",
+                    "next_action":  "",
+                    "next_follow_up_date":  "",
+                    "opportunity_id":  "",
+                    "partner":  "Cloud4C",
+                    "payment_terms":  "As per proposal",
+                    "priority":  "Medium",
+                    "project_description":  "AI Landing Zone Set Up",
+                    "project_owner":  "Gaj",
+                    "project_type":  "OTC",
+                    "proposal_date":  "2026-05-07",
+                    "reference":  "",
+                    "risks":  "",
+                    "sales_spoc":  "",
+                    "stage":  "Qualification",
+                    "status":  "Draft",
+                    "technical_lead":  "",
+                    "third_party_cost":  null,
+                    "travel_cost":  null
+                },
+    "rate_card":  [
+                      {
+                          "level":  "L1",
+                          "rate":  7
+                      },
+                      {
+                          "level":  "L2",
+                          "rate":  20
+                      },
+                      {
+                          "level":  "L3",
+                          "rate":  25
+                      },
+                      {
+                          "level":  "L4",
+                          "rate":  29
+                      },
+                      {
+                          "level":  "L5",
+                          "rate":  35
+                      },
+                      {
+                          "level":  "L6",
+                          "rate":  48
+                      },
+                      {
+                          "level":  "L7",
+                          "rate":  55
+                      },
+                      {
+                          "level":  "L8",
+                          "rate":  65
+                      },
+                      {
+                          "level":  "Onsite",
+                          "rate":  100
+                      }
+                  ],
+    "releases":  [
+
+                 ],
+    "resources":  [
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  160,
+                          "id":  1778131665539,
+                          "level":  "L3",
+                          "role":  "Senior Data Engineer"
+                      },
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  160,
+                          "id":  1778131730241,
+                          "level":  "L3",
+                          "role":  "Junior Data Engineer"
+                      }
+                  ],
+    "role_catalog":  [
+                         {
+                             "group":  "Data Engineering",
+                             "roles":  [
+                                           "Junior Data Engineer",
+                                           "Data Engineer",
+                                           "Senior Data Engineer",
+                                           "Lead Data Engineer",
+                                           "DataOps Engineer",
+                                           "Database Administrator",
+                                           "Big Data Engineer",
+                                           "Cloud Data Engineer",
+                                           "Devops Engineer",
+                                           "AI Engineer"
+                                       ]
+                         },
+                         {
+                             "group":  "Power BI \u0026 Analytics",
+                             "roles":  [
+                                           "Power BI Developer",
+                                           "Senior Power BI Developer",
+                                           "Power BI Architect",
+                                           "BI Developer",
+                                           "BI Analyst",
+                                           "Analytics Engineer",
+                                           "Data Analyst",
+                                           "Senior Data Analyst",
+                                           "Dashboard Developer",
+                                           "Reporting Analyst",
+                                           "Data Visualization Specialist"
+                                       ]
+                         },
+                         {
+                             "group":  "Architecture \u0026 Leadership",
+                             "roles":  [
+                                           "Solution Architect",
+                                           "Principal Architect",
+                                           "Enterprise Architect",
+                                           "Technical Lead",
+                                           "Data Lead",
+                                           "Head of Data",
+                                           "Infra Architect"
+                                       ]
+                         },
+                         {
+                             "group":  "Project \u0026 Product",
+                             "roles":  [
+                                           "Project Manager",
+                                           "Program Manager",
+                                           "Delivery Manager",
+                                           "Scrum Master",
+                                           "Product Owner"
+                                       ]
+                         },
+                         {
+                             "group":  "Support \u0026 Pre-Sales",
+                             "roles":  [
+                                           "Sales Manager",
+                                           "Presales Architect",
+                                           "Technical Writer"
+                                       ]
+                         }
+                     ],
+    "target_margin":  0.6
+}

@@ -1,0 +1,236 @@
+﻿{
+    "_meta":  {
+                  "folder":  "Sobha Siniya",
+                  "id":  "Sobha_Siniya_Island_20260512_142210",
+                  "name":  "Sobha Siniya Island",
+                  "saved_at":  "2026-05-14T11:59:48",
+                  "saved_by":  "admin"
+              },
+    "approvals":  {
+                      "approved_by":  "",
+                      "prepared_by":  "",
+                      "reviewed_by":  ""
+                  },
+    "attachments":  {
+                        "cloud4c_quote":  false,
+                        "customer_po":  false,
+                        "partner_proposal":  false
+                    },
+    "ax_margin":  0,
+    "business_units":  [
+                           "EDM",
+                           "AI",
+                           "SAP",
+                           "RPA"
+                       ],
+    "cloud4c_margin":  0.3,
+    "export_filename":  "",
+    "funding":  {
+                    "discount":  {
+                                     "currency":  "USD",
+                                     "value":  null
+                                 },
+                    "management":  {
+                                       "currency":  "USD",
+                                       "value":  null
+                                   },
+                    "marketing":  {
+                                      "currency":  "USD",
+                                      "value":  null
+                                  }
+                },
+    "fx_rate":  95.77173,
+    "one_time_costs":  [
+
+                       ],
+    "pnl_roles":  [
+
+                  ],
+    "project":  {
+                    "account_manager":  "Salah",
+                    "billing_type":  "Fixed Bid",
+                    "business_unit":  "EDM",
+                    "company":  "AutomatonsX",
+                    "currency":  "USD",
+                    "customer":  "Sobha Siniya Island",
+                    "customer_first_touch_point":  "",
+                    "delivery_manager":  "Srikar Mogaliraju",
+                    "delivery_model":  "Offshore",
+                    "dependencies":  "",
+                    "discount_pct":  null,
+                    "duration_months":  6,
+                    "expected_end_date":  "2026-12-31",
+                    "expected_start_date":  "2026-05-25",
+                    "industry":  "",
+                    "infra_cost":  null,
+                    "internal_notes":  "",
+                    "location":  "United Arab Emirates",
+                    "next_action":  "",
+                    "next_follow_up_date":  "",
+                    "opportunity_id":  "",
+                    "partner":  "Cloud4C",
+                    "payment_terms":  "As per proposal",
+                    "priority":  "Medium",
+                    "project_description":  "Building Data Lake and Analytics in Fabric",
+                    "project_owner":  "Gajendra Krishna",
+                    "project_type":  "OTC",
+                    "proposal_date":  "2025-12-24",
+                    "reference":  "",
+                    "risks":  "",
+                    "sales_spoc":  "",
+                    "stage":  "Closed",
+                    "status":  "Won",
+                    "technical_lead":  "",
+                    "third_party_cost":  null,
+                    "travel_cost":  null
+                },
+    "rate_card":  [
+                      {
+                          "level":  "L1",
+                          "rate":  7
+                      },
+                      {
+                          "level":  "L2",
+                          "rate":  20
+                      },
+                      {
+                          "level":  "L3",
+                          "rate":  25
+                      },
+                      {
+                          "level":  "L4",
+                          "rate":  29
+                      },
+                      {
+                          "level":  "L5",
+                          "rate":  35
+                      },
+                      {
+                          "level":  "L6",
+                          "rate":  48
+                      },
+                      {
+                          "level":  "L7",
+                          "rate":  55
+                      },
+                      {
+                          "level":  "L8",
+                          "rate":  65
+                      },
+                      {
+                          "level":  "Onsite",
+                          "rate":  100
+                      }
+                  ],
+    "releases":  [
+
+                 ],
+    "resources":  [
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  480,
+                          "id":  1778595494721,
+                          "level":  "L1",
+                          "role":  "Junior Data Engineer"
+                      },
+                      {
+                          "group":  "Data Engineering",
+                          "hours":  480,
+                          "id":  1778595496016,
+                          "level":  "L1",
+                          "role":  "Junior Data Engineer"
+                      },
+                      {
+                          "group":  "Architecture \u0026 Leadership",
+                          "hours":  240,
+                          "id":  1778595496293,
+                          "level":  "L6",
+                          "role":  "Principal Architect"
+                      },
+                      {
+                          "group":  "Power BI \u0026 Analytics",
+                          "hours":  400,
+                          "id":  1778595496759,
+                          "level":  "L3",
+                          "role":  "Senior Power BI Developer"
+                      },
+                      {
+                          "group":  "Power BI \u0026 Analytics",
+                          "hours":  800,
+                          "id":  1778595499466,
+                          "level":  "L1",
+                          "role":  "Power BI Developer"
+                      },
+                      {
+                          "group":  "Project \u0026 Product",
+                          "hours":  200,
+                          "id":  1778595606436,
+                          "level":  "L3",
+                          "role":  "Project Manager"
+                      }
+                  ],
+    "role_catalog":  [
+                         {
+                             "group":  "Data Engineering",
+                             "roles":  [
+                                           "Junior Data Engineer",
+                                           "Data Engineer",
+                                           "Senior Data Engineer",
+                                           "Lead Data Engineer",
+                                           "DataOps Engineer",
+                                           "Database Administrator",
+                                           "Big Data Engineer",
+                                           "Cloud Data Engineer",
+                                           "Devops Engineer",
+                                           "AI Engineer"
+                                       ]
+                         },
+                         {
+                             "group":  "Power BI \u0026 Analytics",
+                             "roles":  [
+                                           "Power BI Developer",
+                                           "Senior Power BI Developer",
+                                           "Power BI Architect",
+                                           "BI Developer",
+                                           "BI Analyst",
+                                           "Analytics Engineer",
+                                           "Data Analyst",
+                                           "Senior Data Analyst",
+                                           "Dashboard Developer",
+                                           "Reporting Analyst",
+                                           "Data Visualization Specialist"
+                                       ]
+                         },
+                         {
+                             "group":  "Architecture \u0026 Leadership",
+                             "roles":  [
+                                           "Solution Architect",
+                                           "Principal Architect",
+                                           "Enterprise Architect",
+                                           "Technical Lead",
+                                           "Data Lead",
+                                           "Head of Data",
+                                           "Infra Architect"
+                                       ]
+                         },
+                         {
+                             "group":  "Project \u0026 Product",
+                             "roles":  [
+                                           "Project Manager",
+                                           "Program Manager",
+                                           "Delivery Manager",
+                                           "Scrum Master",
+                                           "Product Owner"
+                                       ]
+                         },
+                         {
+                             "group":  "Support \u0026 Pre-Sales",
+                             "roles":  [
+                                           "Sales Manager",
+                                           "Presales Architect",
+                                           "Technical Writer"
+                                       ]
+                         }
+                     ],
+    "target_margin":  0.3
+}
