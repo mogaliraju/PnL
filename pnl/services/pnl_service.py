@@ -98,8 +98,9 @@ def compute_costs(
 
     combined_margin = cloud4c_margin + ax_margin
     combined_divisor = 1.0 - combined_margin
-    sell_cost    = input_cost / combined_divisor if (input_cost > 0 and combined_divisor > 0) else 0
-    markup       = sell_cost - input_cost
+    margin_basis_sell_cost = input_cost / combined_divisor if (input_cost > 0 and combined_divisor > 0) else 0
+    sell_cost    = margin_basis_sell_cost + non_margin_cost
+    markup       = margin_basis_sell_cost - input_cost
     markup_pct   = markup / input_cost if input_cost > 0 else 0
     gross_margin = combined_margin  # markup / sell_cost == combined_margin by definition
 
@@ -109,6 +110,7 @@ def compute_costs(
         'resource_input_cost': round(resource_input_cost, 2),
         'one_time_input_cost': round(one_time_input_cost, 2),
         'non_margin_cost':     round(non_margin_cost, 2),
+        'margin_basis_sell_cost': round(margin_basis_sell_cost, 2),
         'sell_cost':           round(sell_cost, 2),
         'markup':              round(markup, 2),
         'markup_pct':          round(markup_pct, 4),

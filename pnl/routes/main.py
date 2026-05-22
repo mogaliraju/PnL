@@ -135,6 +135,7 @@ def dashboard_data():
     total_resources = 0
     total_hours = 0.0
     total_input_cost = 0.0
+    total_cost = 0.0
     total_revenue = 0.0
     margin_sum = 0.0
     ax_margin_sum = 0.0
@@ -179,6 +180,7 @@ def dashboard_data():
         total_resources += len(resources)
         total_hours += sum(float(r.get('hours') or 0) for r in resources)
         total_input_cost += costs['input_cost']
+        total_cost += costs['total_cost']
         total_revenue += costs['sell_cost']
         margin_sum += costs['gross_margin']
         ax_margin_sum += costs['ax_margin']
@@ -286,7 +288,7 @@ def dashboard_data():
             'hours': round(total_hours, 1),
             'input_cost': round(total_input_cost, 2),
             'revenue': round(total_revenue, 2),
-            'gross_profit': round(total_revenue - total_input_cost, 2),
+            'gross_profit': round(total_revenue - total_cost, 2),
             'avg_margin': round(avg_margin, 4),
             'avg_ax_margin': round(avg_ax_margin, 4),
             'avg_cloud4c_margin': round(avg_cloud4c_margin, 4),

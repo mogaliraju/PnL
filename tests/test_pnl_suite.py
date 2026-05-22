@@ -376,7 +376,9 @@ class TestMarginCalculations(unittest.TestCase):
         self.assertAlmostEqual(costs['one_time_input_cost'], 5000, places=2)
         self.assertAlmostEqual(costs['non_margin_cost'], 1200, places=2)
         self.assertAlmostEqual(costs['total_cost'], 6200, places=2)
-        self.assertAlmostEqual(costs['sell_cost'], 10000, places=2)
+        self.assertAlmostEqual(costs['margin_basis_sell_cost'], 10000, places=2)
+        self.assertAlmostEqual(costs['sell_cost'], 11200, places=2)
+        self.assertAlmostEqual(costs['markup'], 5000, places=2)
 
     def test_legacy_project_uses_target_margin_as_c4c(self):
         payload = {'target_margin': 0.40}  # no cloud4c_margin / ax_margin keys
@@ -577,10 +579,17 @@ class TestDashboardAPI(BaseTestCase):
         kpis = data['kpis']
         self.assertGreaterEqual(kpis['active_pipeline'], 0)
 
-    def test_dashboard_gross_profit_equals_revenue_minus_input_cost(self):
+    def test_dashboard_gross_profit_equals_revenue_minus_total_cost(self):
+        payload = json.loads(json.dumps(SAMPLE_PROJECT))
+        payload['one_time_costs'] = [
+            {'label': 'AI Subscriptions', 'amount': 1200, 'category': 'license', 'exclude_from_margin': True}
+        ]
+        update = self.client.put('/api/projects/proj1', json=payload)
+        self.assertEqual(update.status_code, 200)
+
         r = self.client.get('/api/dashboard')
         kpis = self._json(r)['kpis']
-        expected = round(kpis['revenue'] - kpis['input_cost'], 2)
+        expected = round(kpis['revenue'] - (kpis['input_cost'] + 1200), 2)
         self.assertAlmostEqual(kpis['gross_profit'], expected, places=1)
 
 

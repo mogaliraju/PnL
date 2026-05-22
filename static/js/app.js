@@ -478,8 +478,9 @@ function updateSummary() {
     else inputCost += amount;
   });
   const combinedMargin = _cloud4cMargin + _axMargin;
-  const sellCost = (inputCost > 0 && combinedMargin < 1) ? inputCost / (1 - combinedMargin) : 0;
-  const markup   = sellCost - inputCost;
+  const marginBasisRevenue = (inputCost > 0 && combinedMargin < 1) ? inputCost / (1 - combinedMargin) : 0;
+  const sellCost = marginBasisRevenue + nonMarginCost;
+  const markup   = marginBasisRevenue - inputCost;
 
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
   document.getElementById('sum_non_margin_cost').textContent = fmtMoney(nonMarginCost);
@@ -1446,7 +1447,7 @@ async function loadDashboard() {
       ${dbKpi('Portfolio Revenue',fmtM(k.revenue),'Total across all projects','bi-cash-stack','#6d28d9')}
       ${dbKpi('AX Margin',fmtPctRaw(axPct),'Avg AX margin — target ≥20%','bi-percent',axColor(axPct))}
       ${dbKpi('C4C Margin',fmtPctRaw(c4cPct),'Avg Cloud4C margin','bi-building','#0f766e')}
-      ${dbKpi('Gross Profit',fmtM(k.gross_profit),'Revenue minus input cost','bi-graph-up-arrow','#1d4ed8')}
+      ${dbKpi('Gross Profit',fmtM(k.gross_profit),'Revenue minus total cost','bi-graph-up-arrow','#1d4ed8')}
       ${dbKpi('Active Pipeline',fmtM(k.active_pipeline),'Won + Submitted + Active','bi-lightning-charge','#7c3aed')}
       ${dbKpi('At Risk',String(k.at_risk_count||0),'Projects with AX margin < 20%','bi-exclamation-triangle',k.at_risk_count>0?'#dc2626':'#15803d')}
     </div>
