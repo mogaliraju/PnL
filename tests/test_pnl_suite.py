@@ -361,6 +361,23 @@ class TestMarginCalculations(unittest.TestCase):
         self.assertAlmostEqual(costs['input_cost'], 5000, places=2)
         self.assertAlmostEqual(costs['one_time_input_cost'], 5000, places=2)
 
+    def test_license_costs_are_excluded_from_margin_basis(self):
+        costs = self.compute(
+            resources=[],
+            rate_card=[],
+            cloud4c_margin=0.30,
+            ax_margin=0.20,
+            one_time_costs=[
+                {'label': 'AI Subscriptions', 'amount': 1200, 'category': 'license', 'exclude_from_margin': True},
+                {'label': 'Hardware', 'amount': 5000},
+            ],
+        )
+        self.assertAlmostEqual(costs['input_cost'], 5000, places=2)
+        self.assertAlmostEqual(costs['one_time_input_cost'], 5000, places=2)
+        self.assertAlmostEqual(costs['non_margin_cost'], 1200, places=2)
+        self.assertAlmostEqual(costs['total_cost'], 6200, places=2)
+        self.assertAlmostEqual(costs['sell_cost'], 10000, places=2)
+
     def test_legacy_project_uses_target_margin_as_c4c(self):
         payload = {'target_margin': 0.40}  # no cloud4c_margin / ax_margin keys
         c4c, ax = self.resolve(payload)

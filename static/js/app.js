@@ -10,6 +10,10 @@ const ALL_PROJECTS_SEARCH_STORAGE_KEY = 'pnl.allProjects.search';
 const EDITOR_MODE = document.body?.dataset.editorMode === 'true';
 const EDITOR_PID = document.body?.dataset.editorPid || '';
 const LAUNCH_NEW_EDITOR = document.body?.dataset.launchNew === 'true';
+const LICENSE_COST_OPTIONS = [
+  'AI Subscriptions',
+  'Other Project Management Licenses',
+];
 
 function buildDefaultProject(overrides = {}) {
   return {
@@ -271,7 +275,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 function populateAll() {
   appData.project = normalizeProject(appData.project || {});
   appData.business_units = normalizeBusinessUnits(appData.business_units || []);
-  appData.one_time_costs = Array.isArray(appData.one_time_costs) ? appData.one_time_costs : [];
+  appData.one_time_costs = Array.isArray(appData.one_time_costs)
+    ? appData.one_time_costs.map(normalizeOneTimeCost)
+    : [];
   const legacyMargin = typeof appData.target_margin === 'number' ? appData.target_margin : 0.40;
   _cloud4cMargin = typeof appData.cloud4c_margin === 'number' ? appData.cloud4c_margin : legacyMargin;
   _axMargin = typeof appData.ax_margin === 'number' ? appData.ax_margin : 0.0;
@@ -462,17 +468,21 @@ function updateSummary() {
   const oneTimeCosts = appData.one_time_costs || [];
 
   let inputCost = 0;
+  let nonMarginCost = 0;
   resources.forEach(r => {
     inputCost += (r.hours || 0) * _getRateForResource(r);
   });
   oneTimeCosts.forEach(item => {
-    inputCost += parseFloat(item.amount) || 0;
+    const amount = parseFloat(item.amount) || 0;
+    if (_isNonMarginCost(item)) nonMarginCost += amount;
+    else inputCost += amount;
   });
   const combinedMargin = _cloud4cMargin + _axMargin;
   const sellCost = (inputCost > 0 && combinedMargin < 1) ? inputCost / (1 - combinedMargin) : 0;
   const markup   = sellCost - inputCost;
 
   document.getElementById('sum_input_cost').textContent = fmtMoney(inputCost);
+  document.getElementById('sum_non_margin_cost').textContent = fmtMoney(nonMarginCost);
   document.getElementById('sum_sell_cost').textContent  = fmtMoney(sellCost);
   document.getElementById('sum_markup').textContent     = fmtMoney(markup);
   document.getElementById('sum_c4c_margin').textContent = (_cloud4cMargin * 100).toFixed(1) + '%';
@@ -557,7 +567,8 @@ function applyFxRate() {
 // ============================================================
 function renderResources() {
   const resources = appData.resources || [];
-  const oneTimeCosts = appData.one_time_costs || [];
+  const oneTimeCosts = (appData.one_time_costs || []).map(normalizeOneTimeCost);
+  appData.one_time_costs = oneTimeCosts;
   const levels    = (appData.rate_card || []).map(r => r.level);
   const catalog   = appData.role_catalog || [];
 
@@ -630,14 +641,20 @@ function renderResources() {
     totalCost += amount;
     const rowNumber = resources.length + i + 1;
     const tr = document.createElement('tr');
+    const isNonMargin = _isNonMarginCost(item);
+    const labelField = isNonMargin
+      ? `<select class="form-select form-select-sm" onchange="updateOneTimeCostLabel(${i}, this.value)">
+          ${LICENSE_COST_OPTIONS.map(option => `<option value="${esc(option)}" ${item.label === option ? 'selected' : ''}>${esc(option)}</option>`).join('')}
+        </select>`
+      : `<input type="text" class="form-control form-control-sm" value="${esc(item.label || '')}" placeholder="e.g. Knowledge Transfer"
+          oninput="updateOneTimeCostLabel(${i}, this.value)"/>`;
     tr.innerHTML = `
       <td class="text-center text-muted small">${rowNumber}</td>
-      <td><span class="badge text-bg-secondary">One-Time</span></td>
-      <td><input type="text" class="form-control form-control-sm" value="${esc(item.label || '')}" placeholder="e.g. Knowledge Transfer"
-          oninput="updateOneTimeCostLabel(${i}, this.value)"/></td>
+      <td><span class="badge ${isNonMargin ? 'text-bg-warning' : 'text-bg-secondary'}">${isNonMargin ? 'Non-Margin' : 'One-Time'}</span></td>
+      <td>${labelField}</td>
       <td class="text-center text-muted">—</td>
       <td class="text-center text-muted">—</td>
-      <td class="text-end text-muted">Flat</td>
+      <td class="text-end text-muted">${isNonMargin ? 'Flat (Excluded)' : 'Flat'}</td>
       <td><input type="number" class="form-control form-control-sm text-end" value="${item.amount ?? ''}" min="0" step="0.01"
           oninput="updateOneTimeCostAmount(${i}, this.value)"/></td>
       <td class="text-end text-muted small" id="one_time_cost_inr_${i}">${_usdToInr ? '₹' + Math.round(amount * _usdToInr).toLocaleString('en-IN') : ''}</td>
@@ -728,7 +745,22 @@ function addOneTimeCost() {
   appData.one_time_costs.push({
     id: Date.now(),
     label: '',
-    amount: 0
+    amount: 0,
+    category: 'general',
+    exclude_from_margin: false
+  });
+  renderResources();
+  updateSummary();
+}
+
+function addLicenseCost() {
+  if (!appData.one_time_costs) appData.one_time_costs = [];
+  appData.one_time_costs.push({
+    id: Date.now(),
+    label: LICENSE_COST_OPTIONS[0],
+    amount: 0,
+    category: 'license',
+    exclude_from_margin: true
   });
   renderResources();
   updateSummary();
@@ -764,6 +796,27 @@ function removeOneTimeCost(i) {
   appData.one_time_costs.splice(i, 1);
   renderResources();
   updateSummary();
+}
+
+function normalizeOneTimeCost(item = {}) {
+  const normalized = {
+    id: item.id || Date.now(),
+    label: item.label || '',
+    amount: typeof item.amount === 'number' ? item.amount : (parseFloat(item.amount) || 0),
+    category: item.category || 'general',
+    exclude_from_margin: !!item.exclude_from_margin,
+  };
+  if (normalized.category === 'license') {
+    normalized.exclude_from_margin = true;
+    if (!LICENSE_COST_OPTIONS.includes(normalized.label)) {
+      normalized.label = LICENSE_COST_OPTIONS[0];
+    }
+  }
+  return normalized;
+}
+
+function _isNonMarginCost(item) {
+  return !!item?.exclude_from_margin || item?.category === 'license';
 }
 
 function removeResource(i) {

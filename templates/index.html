@@ -452,6 +452,9 @@
             <button class="btn btn-outline-primary btn-sm" onclick="addOneTimeCost()">
               <i class="bi bi-cash-stack me-1"></i>Add One-Time Cost
             </button>
+            <button class="btn btn-outline-warning btn-sm" onclick="addLicenseCost()">
+              <i class="bi bi-cpu me-1"></i>Add License Cost
+            </button>
             <button class="btn btn-primary btn-sm" onclick="addResource()">
               <i class="bi bi-plus-circle me-1"></i>Add Resource
             </button>
@@ -496,8 +499,14 @@
           <div class="row g-3">
             <div class="col-6 col-md">
               <div class="summary-box bg-warning-subtle text-center h-100">
-                <div class="summary-label">Input Cost (USD)</div>
+                <div class="summary-label">Input Cost (Margin Basis USD)</div>
                 <div class="summary-value" id="sum_input_cost">—</div>
+              </div>
+            </div>
+            <div class="col-6 col-md">
+              <div class="summary-box text-center h-100" style="background:#FFF7D6">
+                <div class="summary-label">Non-Margin License Cost</div>
+                <div class="summary-value" id="sum_non_margin_cost">—</div>
               </div>
             </div>
             <div class="col-6 col-md">

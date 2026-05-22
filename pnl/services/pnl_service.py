@@ -26,6 +26,24 @@ def _sum_one_time_costs(items: list | None) -> float:
     return total
 
 
+def _is_non_margin_cost(item: dict | None) -> bool:
+    if not isinstance(item, dict):
+        return False
+    return bool(item.get('exclude_from_margin')) or item.get('category') == 'license'
+
+
+def _sum_margin_included_one_time_costs(items: list | None) -> float:
+    return _sum_one_time_costs(
+        [item for item in (items or []) if not _is_non_margin_cost(item)]
+    )
+
+
+def _sum_non_margin_costs(items: list | None) -> float:
+    return _sum_one_time_costs(
+        [item for item in (items or []) if _is_non_margin_cost(item)]
+    )
+
+
 def _clamp_margin(value, default=0.0) -> float:
     try:
         margin = float(value)
@@ -67,8 +85,10 @@ def compute_costs(
         )
         for r in resources
     )
-    one_time_input_cost = _sum_one_time_costs(one_time_costs)
+    one_time_input_cost = _sum_margin_included_one_time_costs(one_time_costs)
+    non_margin_cost = _sum_non_margin_costs(one_time_costs)
     input_cost = resource_input_cost + one_time_input_cost
+    total_cost = input_cost + non_margin_cost
     if cloud4c_margin is None and ax_margin is None:
         cloud4c_margin = _clamp_margin(target_margin, 0.40)
         ax_margin = 0.0
@@ -85,8 +105,10 @@ def compute_costs(
 
     return {
         'input_cost':          round(input_cost, 2),
+        'total_cost':          round(total_cost, 2),
         'resource_input_cost': round(resource_input_cost, 2),
         'one_time_input_cost': round(one_time_input_cost, 2),
+        'non_margin_cost':     round(non_margin_cost, 2),
         'sell_cost':           round(sell_cost, 2),
         'markup':              round(markup, 2),
         'markup_pct':          round(markup_pct, 4),
