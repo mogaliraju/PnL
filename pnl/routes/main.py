@@ -40,7 +40,8 @@ def exchange_rate():
         except Exception as e:
             log.warning(f"Exchange rate fetch failed: {e}")
             if _fx_cache['rate'] is None:
-                return jsonify({'error': str(e)}), 503
+                log.warning(f"Exchange rate lookup failed: {e}")
+                return jsonify({'error': "The live exchange rate isn't available right now. Enter the rate by hand."}), 503
     return jsonify({
         'usd_to_inr': _fx_cache['rate'],
         'updated':    _fx_cache['updated'],

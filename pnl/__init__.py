@@ -35,8 +35,11 @@ def create_app() -> Flask:
         if isinstance(err, HTTPException):
             return {'error': err.description or 'Request failed'}, err.code
 
-        log.exception("Unhandled API error")
-        return {'error': str(err) or 'Internal server error'}, 500
+        import uuid
+        ref = uuid.uuid4().hex[:8]
+        log.exception(f"Unhandled API error [ref {ref}]")
+        return {'error': f'Something went wrong on the server (reference {ref}). Try again, and quote the reference if it keeps happening.',
+                'reference': ref}, 500
 
     log.info("PnL application created")
     return app

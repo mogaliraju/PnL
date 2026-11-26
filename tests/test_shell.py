@@ -33,6 +33,9 @@ class TestShellRoutes(BaseTestCase):
         self._auth()
 
     def test_home_pages_render_in_shell(self):
+        from pnl import config
+        config.FEATURE_BOOKINGS_FUNNEL = True
+        self.addCleanup(setattr, config, 'FEATURE_BOOKINGS_FUNNEL', False)
         for path, nav, tab in (('/', 'projects', 'projects'), ('/dashboard', 'dashboard', 'dashboard'),
                                ('/rates', 'rates', 'rates'), ('/rates/roles', 'rates', 'roles'),
                                ('/bookings', 'bookings', 'bookings'), ('/funnel', 'funnel', 'funnel')):
@@ -64,15 +67,18 @@ class TestShellRoutes(BaseTestCase):
         self.assertIn('<b id="nav_username">Administrator</b>', html)
         self.assertIn('<span class="ax-avatar">A</span>', html)
 
-    def test_bookings_and_funnel_follow_feature_flag(self):
+    def test_bookings_and_funnel_hidden_by_default(self):
+        # DESIGN.md 2.4: hidden from the UI; tables and API unchanged
         from pnl import config
-        config.FEATURE_BOOKINGS_FUNNEL = False
-        try:
-            self.assertEqual(self.client.get('/bookings').status_code, 404)
-            self.assertEqual(self.client.get('/funnel').status_code, 404)
-            self.assertNotIn('data-ax-route="bookings"', self.client.get('/').data.decode())
-        finally:
-            config.FEATURE_BOOKINGS_FUNNEL = True
+        self.assertFalse(config.FEATURE_BOOKINGS_FUNNEL)
+        self.assertEqual(self.client.get('/bookings').status_code, 404)
+        self.assertEqual(self.client.get('/funnel').status_code, 404)
+        html = self.client.get('/').data.decode()
+        for hidden in ('data-ax-route="bookings"', 'id="tab-bookings"', 'id="tab-funnel"', 'bookingsColumnModal'):
+            self.assertNotIn(hidden, html)
+        # the data API still answers, so nothing is lost
+        self.assertEqual(self.client.get('/api/bookings').status_code, 200)
+        self.assertEqual(self.client.get('/api/funnel').status_code, 200)
 
     def test_pages_require_sign_in(self):
         self.client = self.app.test_client()
@@ -89,7 +95,7 @@ class TestShellRoutes(BaseTestCase):
         # app.js depends on these; they must survive the shell move
         html = self.client.get('/').data.decode()
         for el in ('nav_username', 'nav_role_label', 'nav_admin_link', 'current_project_badge',
-                   'active_project_pill', 'usersModal', 'changePasswordModal', 'tab-export'):
+                   'active_project_pill', 'usersModal', 'changePasswordModal', 'exportModal', 'export_filename'):
             self.assertIn(f'id="{el}"', html, el)
 
 
@@ -99,3 +105,44 @@ class TestLoginPage(BaseTestCase):
         self.assertIn('Sign in', html)
         self.assertIn('Forgot your password? Ask an admin to reset it from Users.', html)
         self.assertNotIn('bootstrap', html)
+
+
+class TestExportDialog(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self._auth()
+
+    def _payload(self, **extra):
+        from test_pnl_suite import SAMPLE_PROJECT
+        return {**SAMPLE_PROJECT, **extra}
+
+    def test_export_screen_replaced_by_dialog(self):
+        html = self.client.get('/projects/proj1').data.decode()
+        self.assertNotIn('id="tab-export"', html)
+        self.assertIn('onclick="openExportDialog()"', html)
+        self.assertNotIn('Export settings', html)
+
+    def test_download_name_from_dialog(self):
+        r = self.client.post('/api/export', json=self._payload(download_name='ACME PnL v3'))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('ACME PnL v3.xlsx', r.headers['Content-Disposition'])
+
+    def test_download_name_is_sanitised(self):
+        r = self.client.post('/api/export', json=self._payload(download_name='../../etc/pass:wd*'))
+        cd = r.headers['Content-Disposition']
+        self.assertNotIn('/', cd.split('filename', 1)[1])
+        self.assertIn('filename="etc pass wd.xlsx"', cd)
+
+    def test_without_name_keeps_old_timestamped_name(self):
+        r = self.client.post('/api/export', json=self._payload())
+        self.assertRegex(r.headers['Content-Disposition'], r'ACME_Corp_PnL_\d{8}_\d{6}\.xlsx')
+
+    def test_server_error_has_reference_not_traceback(self):
+        from unittest.mock import patch
+        with patch('pnl.routes.export.build_workbook', side_effect=RuntimeError('boom secret detail')):
+            r = self.client.post('/api/export', json=self._payload())
+        self.assertEqual(r.status_code, 500)
+        body = r.get_json()
+        self.assertIn('reference', body)
+        self.assertNotIn('boom', body['error'])
+        self.assertNotIn('detail', body)

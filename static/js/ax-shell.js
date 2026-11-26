@@ -60,19 +60,6 @@
     if (el && window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show();
   }
 
-  function openExportSettings() {
-    const pane = document.getElementById('tab-export');
-    if (!pane) return;
-    document.querySelectorAll('.tab-content > .tab-pane.active').forEach(p => p.classList.remove('show', 'active'));
-    document.querySelectorAll('#mainTabs .nav-link.active').forEach(a => a.classList.remove('active'));
-    const ratesHead = document.getElementById('ax-rates-head');
-    if (ratesHead) ratesHead.hidden = true;
-    pane.classList.add('show', 'active');
-    if (typeof populateExportSettings === 'function') populateExportSettings();
-    if (typeof updateFilenamePreview === 'function') updateFilenamePreview();
-    window.scrollTo({ top: 0 });
-  }
-
   function search(q) {
     q = (q || '').trim();
     if (EDITOR || !legacyLink(ROUTES.projects.tab)) {
@@ -128,5 +115,5 @@
     input && input.focus();
   });
 
-  window.axShell = { show, openInitialTab, openUsers, openExportSettings, search, get current() { return current; } };
+  window.axShell = { show, openInitialTab, openUsers, search, get current() { return current; } };
 })();

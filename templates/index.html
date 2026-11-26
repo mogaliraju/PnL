@@ -6,9 +6,6 @@
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 {% endblock %}
 {% block body_attrs %}data-editor-mode="{{ 'true' if editor_mode else 'false' }}" data-editor-pid="{{ editor_pid or '' }}" data-launch-new="{{ 'true' if launch_new else 'false' }}" data-initial-tab="{{ initial_tab|default('') }}" data-open-users="{{ 'true' if open_users else 'false' }}"{% endblock %}
-{% block account_menu_extra %}
-        <li><a class="dropdown-item" href="#" onclick="axShell.openExportSettings(); return false;">Export settings</a></li>
-{% endblock %}
 {% block top_actions %}
       <div id="active_project_pill" class="ax-project-pill d-none" title="Project open in the editor">{{ icon('folder') }}<span id="current_project_badge"></span></div>
       <button class="ax-btn ax-btn--primary" type="button" onclick="newProject()">{{ icon('plus') }}New project</button>
@@ -69,7 +66,7 @@
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
 
-    {% if not editor_mode %}
+    {% if not editor_mode and feature_bookings_funnel %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bookings" onclick="loadBookingsOverview()"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funnel" onclick="loadFunnelOverview()"><i class="bi bi-funnel me-1"></i>Funnel Report</a></li>
     {% endif %}
@@ -122,7 +119,7 @@
           <a href="/" class="btn btn-outline-secondary btn-sm" title="Back to All Projects">
             <i class="bi bi-house-door me-1"></i>Home
           </a>
-          <button class="btn btn-outline-success btn-sm" onclick="exportExcel()">
+          <button class="btn btn-outline-success btn-sm" onclick="openExportDialog()">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
           </button>
           <button class="btn btn-outline-secondary btn-sm" onclick="showVersionHistory()" title="View version history">
@@ -630,36 +627,9 @@
       </div>
     </div>
 
-    <!-- ===== EXPORT SETTINGS ===== -->
-    <div class="tab-pane fade" id="tab-export">
-      <div class="col-md-5">
-        <div class="card">
-          <div class="card-header fw-bold"><i class="bi bi-file-earmark-excel me-1"></i>Export Settings</div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label">Filename prefix <span class="text-muted small">(optional override)</span></label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="export_filename" placeholder="Auto from project name"/>
-                <span class="input-group-text text-muted">.xlsx</span>
-              </div>
-              <div class="form-text">Leave blank to auto-generate from customer name.</div>
-            </div>
-            <div class="alert alert-secondary py-2 small mb-4">
-              <i class="bi bi-file-earmark-excel me-1 text-success"></i>
-              Final filename: <strong id="filename_preview">…</strong>
-            </div>
-            <button class="btn btn-primary w-100 mb-2" onclick="saveExportSettings()">
-              <i class="bi bi-floppy me-1"></i>Save Settings
-            </button>
-            <button class="btn btn-success w-100" onclick="exportExcel()">
-              <i class="bi bi-file-earmark-excel me-1"></i>Download Excel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    {% if not editor_mode %}
+    {#- Hidden from the UI by FEATURE_BOOKINGS_FUNNEL (DESIGN.md 2.4). Tables, API and data are unchanged. #}
+    {% if not editor_mode and feature_bookings_funnel %}
     <!-- ===== ORDER BOOKINGS & COMMITS ===== -->
     <div class="tab-pane fade" id="tab-bookings">
       <div id="bookings-sub-overview" class="">
@@ -1054,6 +1024,7 @@
   </div><!-- /tab-content -->
 </div><!-- /container -->
 
+{% if feature_bookings_funnel %}
 <!-- Bookings Column Settings Modal -->
 <div class="modal fade" id="bookingsColumnModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -1103,6 +1074,40 @@
         <button class="btn btn-primary btn-sm" onclick="saveFunnelColumnSettings()">
           <i class="bi bi-floppy me-1"></i>Save
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<!-- ===== EXPORT DIALOG (replaces the Export Settings screen, DESIGN.md 5.3) ===== -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalTitle">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="exportModalTitle">Export Excel</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="display:grid;gap:16px">
+        <div class="ax-field">
+          <label for="export_filename">File name</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="ax-input" id="export_filename" autocomplete="off">
+            <span class="ax-muted">.xlsx</span>
+          </div>
+          <span class="ax-hint">Uses the Benline PnL template. The name is kept with this project when you save it.</span>
+        </div>
+        <div class="ax-field">
+          <label for="export_version">Version</label>
+          <select class="ax-input" id="export_version"></select>
+          <span class="ax-hint" id="export_version_hint"></span>
+        </div>
+        <p class="ax-caption" style="margin:0">Downloads as <b id="filename_preview">…</b></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="ax-btn" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="ax-btn ax-btn--primary" id="export_download" onclick="runExport()">{{ icon('download') }}Download</button>
       </div>
     </div>
   </div>

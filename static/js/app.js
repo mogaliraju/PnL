@@ -2745,42 +2745,82 @@ function collectFundingApprovals() {
 // ============================================================
 // EXPORT SETTINGS
 // ============================================================
+// Export settings now live in the Export dialog (DESIGN.md 5.3). The file name is kept
+// on the project (appData.export_filename) and saved with it; nothing is written here.
 function populateExportSettings() {
   setVal('export_filename', appData.export_filename || '');
   updateFilenamePreview();
-  document.getElementById('export_filename')?.addEventListener('input', updateFilenamePreview);
 }
 
 function collectExportSettings() {
-  appData.export_filename = getVal('export_filename');
+  // The name is taken from the dialog when the user downloads (runExport), not on every save.
 }
 
-async function saveExportSettings() {
-  collectExportSettings();
-  appData.target_margin = _combinedMargin();
-  appData.cloud4c_margin = _cloud4cMargin;
-  appData.ax_margin = _axMargin;
-  await fetch('/api/data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(appData)
-  });
-  showToast('Export settings saved!', 'success');
+function _defaultExportName(versionNo) {
+  const customer = (appData.project?.customer || '').trim() || 'PnL';
+  return versionNo ? `${customer} PnL v${versionNo}` : `${customer} PnL`;
+}
+
+function _safeFileName(name) {
+  return String(name || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
 function updateFilenamePreview() {
-  const customer = (appData.project?.customer || 'PnL').trim().replace(/[^a-zA-Z0-9 _-]/g, '').replace(/ /g, '_');
-  const base = getVal('export_filename').trim() || `${customer}_PnL`;
-  const now = new Date();
-  const ts = now.getFullYear().toString()
-    + String(now.getMonth()+1).padStart(2,'0')
-    + String(now.getDate()).padStart(2,'0')
-    + '_'
-    + String(now.getHours()).padStart(2,'0')
-    + String(now.getMinutes()).padStart(2,'0')
-    + String(now.getSeconds()).padStart(2,'0');
   const el = document.getElementById('filename_preview');
-  if (el) el.textContent = `${base}_${ts}.xlsx`;
+  if (!el) return;
+  const name = _safeFileName(getVal('export_filename')) || _defaultExportName();
+  el.textContent = `${name}.xlsx`;
+}
+
+let _exportVersions = [];
+
+async function openExportDialog() {
+  collectAll();
+  const select = document.getElementById('export_version');
+  const hint = document.getElementById('export_version_hint');
+  _exportVersions = [];
+  if (_currentPid) {
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(_currentPid)}/versions`);
+      if (res.ok) _exportVersions = await res.json();
+    } catch { /* offline: only the on-screen numbers can be exported */ }
+  }
+  // Versions come newest first; number them oldest = 1.
+  const total = _exportVersions.length;
+  const opts = [`<option value="">Changes on screen${total ? ' (not saved yet)' : ''}</option>`]
+    .concat(_exportVersions.map((v, i) => {
+      const no = total - i;
+      const label = v.label ? `, ${esc(v.label)}` : '';
+      return `<option value="${esc(v.vid)}">Version ${no}${label} (${esc((v.saved_at || '').replace('T', ' ').slice(0, 16))})</option>`;
+    }));
+  select.innerHTML = opts.join('');
+  select.onchange = () => {
+    const i = _exportVersions.findIndex(v => v.vid === select.value);
+    hint.textContent = select.value ? 'Exports that saved version exactly as it was saved.' : 'Exports the numbers currently on screen.';
+    if (!appData.export_filename) setVal('export_filename', _defaultExportName(i >= 0 ? total - i : (total || null)));
+    updateFilenamePreview();
+  };
+  setVal('export_filename', appData.export_filename || _defaultExportName(total || null));
+  document.getElementById('export_filename').oninput = updateFilenamePreview;
+  select.onchange();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('exportModal')).show();
+}
+
+async function runExport() {
+  const vid = getVal('export_version');
+  const name = _safeFileName(getVal('export_filename')) || _defaultExportName();
+  appData.export_filename = name;
+  let payload = appData;
+  if (vid) {
+    const res = await fetch(`/api/projects/${encodeURIComponent(_currentPid)}/versions/${encodeURIComponent(vid)}`);
+    if (!res.ok) { showToast('That version could not be loaded. Try again or pick another version.', 'danger'); return; }
+    payload = await res.json();
+  }
+  const btn = document.getElementById('export_download');
+  if (btn) btn.disabled = true;
+  const ok = await exportExcel(payload, name);
+  if (btn) btn.disabled = false;
+  if (ok) bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
 }
 
 // ============================================================
@@ -2845,28 +2885,24 @@ function _refreshAllProjectsIfVisible() {
   loadAllProjects();
 }
 
-async function exportExcel() {
-  collectAll();
+async function exportExcel(payload, downloadName) {
+  if (!payload) { collectAll(); payload = appData; }
   try {
-    showToast('Generating Excel…', 'primary');
     const res = await fetch('/api/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appData)
+      body: JSON.stringify({ ...payload, download_name: downloadName || '' })
     });
-
     if (!res.ok) {
-      // Error responses come back as JSON
-      const err = await res.json();
-      showToast('Export failed: ' + (err.error || 'unknown error'), 'danger');
-      return;
+      let msg = 'The export could not be created.';
+      try { const err = await res.json(); if (err.error) msg = `The export could not be created: ${err.error}`; } catch {}
+      showToast(msg, 'danger');
+      return false;
     }
-
-    // Success: stream the blob as a browser download
     const blob = await res.blob();
     const disposition = res.headers.get('Content-Disposition') || '';
-    const match = disposition.match(/filename[^;=\n]*=["']?([^"';\n]+)/);
-    const filename = match ? match[1] : (appData.export_filename || 'PnL_Export') + '.xlsx';
+    const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/i);
+    const filename = match ? decodeURIComponent(match[1]) : `${downloadName || 'PnL'}.xlsx`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2875,9 +2911,11 @@ async function exportExcel() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showToast(`✓ Downloaded: ${filename}`, 'success');
+    showToast(`Downloaded ${filename}`, 'success');
+    return true;
   } catch (e) {
-    showToast('Error: ' + e.message, 'danger');
+    showToast("The export couldn't reach the server. Check your connection and try again.", 'danger');
+    return false;
   }
 }
 

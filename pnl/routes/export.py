@@ -1,3 +1,4 @@
+import uuid
 """Excel export route."""
 import traceback
 from datetime import datetime
@@ -12,6 +13,12 @@ from pnl.utils.logger import get_logger
 
 bp = Blueprint('export', __name__)
 log = get_logger(__name__)
+
+
+def _safe_name(name) -> str:
+    """File name from the Export dialog: no path separators or reserved characters."""
+    cleaned = ''.join(' ' if c in '\\/:*?"<>|' or ord(c) < 32 else c for c in str(name or ''))
+    return ' '.join(cleaned.split())[:120].strip(' .')
 
 
 @bp.route('/api/export', methods=['POST'])
@@ -44,8 +51,12 @@ def export_excel():
         customer     = data.get('project', {}).get('customer', 'PnL') or 'PnL'
         safe_cust    = ''.join(c for c in customer if c.isalnum() or c in ' _-').strip().replace(' ', '_')
         timestamp    = datetime.now().strftime('%Y%m%d_%H%M%S')
-        base         = data.get('export_filename') or f"{safe_cust}_PnL"
-        filename     = f"{base}_{timestamp}.xlsx"
+        requested    = _safe_name(data.get('download_name'))
+        if requested:
+            filename = f"{requested}.xlsx"           # name chosen in the Export dialog
+        else:
+            base     = data.get('export_filename') or f"{safe_cust}_PnL"
+            filename = f"{base}_{timestamp}.xlsx"
 
         log.info(f"Excel exported: '{filename}' by '{session.get('user')}'")
         return send_file(
@@ -56,5 +67,7 @@ def export_excel():
         )
 
     except Exception as e:
-        log.error(f"Export failed: {e}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e), 'detail': traceback.format_exc()}), 500
+        ref = uuid.uuid4().hex[:8]
+        log.error(f"Export failed [ref {ref}]: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': f'Something went wrong while building the workbook (reference {ref}).',
+                        'reference': ref}), 500

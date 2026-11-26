@@ -36,4 +36,4 @@ AX_MARGIN_GOOD = float(os.environ.get('PNL_AX_MARGIN_GOOD', 20))
 AX_MARGIN_WARN = float(os.environ.get('PNL_AX_MARGIN_WARN', 10))
 
 # Order Bookings and Funnel Report are hidden from the UI from Phase 3 (DESIGN.md 2.4).
-FEATURE_BOOKINGS_FUNNEL = os.environ.get('FEATURE_BOOKINGS_FUNNEL', 'true').lower() in ('1', 'true', 'yes')
+FEATURE_BOOKINGS_FUNNEL = os.environ.get('FEATURE_BOOKINGS_FUNNEL', 'false').lower() in ('1', 'true', 'yes')
