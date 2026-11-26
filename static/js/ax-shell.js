@@ -78,10 +78,7 @@
     const a = e.target.closest('[data-ax-route]');
     if (!a) return;
     const route = a.dataset.axRoute;
-    if (route === 'users') {
-      if (document.getElementById('usersModal')) { e.preventDefault(); openUsers(); }
-      return;
-    }
+    if (route === 'users') return;                                           // its own page now
     if (EDITOR || !ROUTES[route] || !legacyLink(ROUTES[route].tab)) return;   // normal navigation
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;      // new tab / window
     e.preventDefault();
@@ -108,5 +105,34 @@
     input && input.focus();
   });
 
-  window.axShell = { show, openInitialTab, openUsers, search, get current() { return current; } };
+  // Account menu: change your own password (asks for the current one).
+  async function changePassword() {
+    const ui = window.axUI;
+    const me = (window.AX && window.AX.user || {}).username;
+    const res = await ui.dialog({
+      title: 'Change password',
+      fields: [
+        { name: 'current_password', label: 'Current password', type: 'password', autocomplete: 'current-password', required: true },
+        { name: 'password', label: 'New password', type: 'password', autocomplete: 'new-password', required: true, hint: 'At least 8 characters.' },
+        { name: 'confirm', label: 'Confirm new password', type: 'password', autocomplete: 'new-password', required: true },
+      ],
+      validate: v => {
+        if (!v.current_password) return { current_password: 'Enter your current password.' };
+        if (v.password.length < 8) return { password: 'The new password needs at least 8 characters.' };
+        if (v.password !== v.confirm) return { confirm: "The two new passwords don't match." };
+        return {};
+      },
+      confirmLabel: 'Change password',
+    });
+    if (!res) return;
+    const r = await fetch(`/api/users/${encodeURIComponent(me)}/password`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: res.values.current_password, password: res.values.password }) });
+    if (r.ok) ui.toast('Password changed');
+    else ui.toast(await ui.errorMessage(r, "The password couldn't be changed."), { error: true });
+  }
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-ax-action="change-password"]')) { e.preventDefault(); changePassword(); }
+  });
+
+  window.axShell = { show, openInitialTab, openUsers, search, changePassword, get current() { return current; } };
 })();

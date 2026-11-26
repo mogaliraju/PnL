@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div id="ax-users">
+  <div class="ax-page-head">
+    <div><h1 class="ax-h1">Users</h1><p>People who can sign in. Admins manage users, publish rate cards and edit roles.</p></div>
+    <div class="ax-actions"><button type="button" class="ax-btn ax-btn--primary" data-act="add">{{ icon('plus') }}Add user</button></div>
+  </div>
+  <section class="ax-panel"><div class="ax-table-wrap" id="ax-users-table"><div class="ax-empty">Loading…</div></div></section>
+  <p class="ax-caption" style="margin:12px 4px 0">Removing a user switches the account off. It is never deleted, because saved versions name their authors. You can restore it at any time.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+{% endblock %}

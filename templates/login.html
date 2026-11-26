@@ -25,7 +25,7 @@
     .login-form { width: min(360px, 100%); display: flex; flex-direction: column; gap: 16px; }
     .login-form .ax-btn { height: 40px; width: 100%; }
     .login-help { font-size: 13px; color: var(--ink-3); margin: 0; }
-    #error-msg { display: none; margin: 0; padding: 10px 12px; border-radius: var(--radius-control); background: var(--bad-soft); color: var(--bad); font-size: 14px; }
+    #error-msg, .login-error { display: none; margin: 0; padding: 10px 12px; border-radius: var(--radius-control); background: var(--bad-soft); color: var(--bad); font-size: 14px; }
     @media (max-width: 860px) { .login { grid-template-columns: minmax(0, 1fr); } .login-art { display: none; } }
   </style>
 </head>
@@ -40,7 +40,7 @@
       <small>Presales PnL</small>
     </section>
     <section class="login-form-side">
-      <form class="login-form" id="login-form" onsubmit="doLogin(event)" novalidate>
+      <form class="login-form" id="login-form" onsubmit="doLogin(event)" novalidate {% if must_change %}hidden{% endif %}>
         <div>
           <h1 class="ax-h1">Sign in</h1>
           <p class="ax-muted" style="margin:6px 0 0">Use the account your admin created for you.</p>
@@ -57,31 +57,84 @@
         <button type="submit" class="ax-btn ax-btn--primary" id="login-btn">Sign in</button>
         <p class="login-help">Forgot your password? Ask an admin to reset it from Users.</p>
       </form>
+      <form class="login-form" id="change-form" onsubmit="doChange(event)" novalidate {% if not must_change %}hidden{% endif %}>
+        <div>
+          <h1 class="ax-h1">Set a new password</h1>
+          <p class="ax-muted" style="margin:6px 0 0">Your admin gave you a temporary password. Choose your own to continue.</p>
+        </div>
+        <input type="hidden" id="change-user" value="{{ username }}">
+        <div class="ax-field">
+          <label for="current">Temporary password</label>
+          <input class="ax-input" id="current" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="ax-field">
+          <label for="new1">New password</label>
+          <input class="ax-input" id="new1" type="password" autocomplete="new-password" required>
+          <span class="ax-hint">At least 8 characters.</span>
+        </div>
+        <div class="ax-field">
+          <label for="new2">Confirm new password</label>
+          <input class="ax-input" id="new2" type="password" autocomplete="new-password" required>
+        </div>
+        <p id="change-msg" class="login-error" role="alert"></p>
+        <button type="submit" class="ax-btn ax-btn--primary" id="change-btn">Save password and continue</button>
+        <p class="login-help"><a href="/logout">Sign out</a></p>
+      </form>
     </section>
   </div>
   <script>
+    const show = (id, msg) => { const el = document.getElementById(id); el.textContent = msg; el.style.display = msg ? 'block' : 'none'; };
     async function doLogin(e) {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
-      const err = document.getElementById('error-msg');
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
-      const fail = msg => { err.textContent = msg; err.style.display = 'block'; btn.textContent = 'Sign in'; btn.disabled = false; };
-      err.style.display = 'none';
+      const fail = msg => { show('error-msg', msg); btn.textContent = 'Sign in'; btn.disabled = false; };
+      show('error-msg', '');
       if (!username || !password) { fail('Enter your username and password.'); return; }
       btn.textContent = 'Signing in…'; btn.disabled = true;
       try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
+        const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ username, password }) });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok && body.must_change_password) {
+          document.getElementById('change-user').value = username.toLowerCase();
+          document.getElementById('current').value = password;
+          document.getElementById('login-form').hidden = true;
+          document.getElementById('change-form').hidden = false;
+          document.getElementById('new1').focus();
+          return;
+        }
         if (res.ok) { window.location.href = '/'; return; }
         if (res.status === 401) fail("That username and password don't match. Try again or ask an admin to reset it.");
+        else if (res.status === 403 && body.error) fail(body.error);
         else fail("We couldn't sign you in just now. Try again in a minute.");
       } catch {
         fail("We couldn't reach the server. Check your connection and try again.");
       }
+    }
+    async function doChange(e) {
+      e.preventDefault();
+      const btn = document.getElementById('change-btn');
+      const user = document.getElementById('change-user').value;
+      const current = document.getElementById('current').value;
+      const a = document.getElementById('new1').value, b = document.getElementById('new2').value;
+      show('change-msg', '');
+      if (!current) { show('change-msg', 'Enter the temporary password your admin gave you.'); return; }
+      if (a.length < 8) { show('change-msg', 'The new password needs at least 8 characters.'); return; }
+      if (a !== b) { show('change-msg', "The two new passwords don't match."); return; }
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(user)}/password`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password: current, password: a }) });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok) { window.location.href = '/'; return; }
+        show('change-msg', body.error || "The password couldn't be changed. Try again.");
+      } catch {
+        show('change-msg', "We couldn't reach the server. Check your connection and try again.");
+      }
+      btn.disabled = false;
     }
   </script>
 </body>

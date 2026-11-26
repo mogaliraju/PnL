@@ -44,7 +44,7 @@
         <div><b id="nav_username">{{ session.get('name') or session.get('user') }}</b><span id="nav_role_label">{{ 'Admin' if is_admin else 'User' }}</span></div>
       </button>
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change password</a></li>
+        <li><button type="button" class="dropdown-item" data-ax-action="change-password">Change password</button></li>
         {% block account_menu_extra %}{% endblock %}
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item text-danger" href="/logout">Sign out</a></li>

@@ -230,6 +230,11 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         for col in ('archived_at', 'archived_by'):
             if col not in existing_proj:
                 conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
+        existing_users = {row['name'] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+        for col, ddl in (('active', 'INTEGER NOT NULL DEFAULT 1'), ('must_change_password', 'INTEGER NOT NULL DEFAULT 0'),
+                         ('deactivated_at', 'TEXT'), ('deactivated_by', 'TEXT')):
+            if col not in existing_users:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_pref (
                 username TEXT NOT NULL, pref_key TEXT NOT NULL, value TEXT NOT NULL,
@@ -363,15 +368,20 @@ def _features() -> dict:
         _ensure_db()
         with _connect() as conn:
             if _USE_POSTGRES:
-                cols = {r['column_name'] for r in conn.execute(
-                    "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='projects'").fetchall()}
+                def cols_of(table):
+                    return {r['column_name'] for r in conn.execute(
+                        "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=%s",
+                        (table,)).fetchall()}
                 tables = {r['table_name'] for r in conn.execute(
                     "SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()}
             else:
-                cols = {r['name'] for r in conn.execute("PRAGMA table_info(projects)").fetchall()}
+                def cols_of(table):
+                    return {r['name'] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()}
                 tables = {r['name'] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+            cols, ucols = cols_of('projects'), cols_of('users')
         _FEATURES = {'archive': 'archived_at' in cols, 'prefs': 'user_pref' in tables,
-                     'rate_cards': _USE_POSTGRES and 'rate_card' in tables}
+                     'rate_cards': _USE_POSTGRES and 'rate_card' in tables,
+                     'user_status': 'active' in ucols}
     return _FEATURES
 
 
@@ -477,62 +487,98 @@ def merge_settings(data: dict) -> dict:
 
 
 def load_users() -> dict:
+    """All users, including switched-off ones (check `active`)."""
     _ensure_db()
+    status = _features()['user_status']
+    extra = ', active, must_change_password, deactivated_at' if status else ''
     with _connect() as conn:
         rows = conn.execute(
-            _sql("SELECT username, password, role, name, created_at FROM users ORDER BY username")
+            _sql(f"SELECT username, password, role, name, created_at{extra} FROM users ORDER BY username")
         ).fetchall()
-        if rows:
-            return {
-                row['username']: {
-                    'password': row['password'],
-                    'role': row['role'],
-                    'name': row['name'],
-                    'created_at': row['created_at'],
-                }
-                for row in rows
+    if rows:
+        return {
+            row['username']: {
+                'password': row['password'],
+                'role': row['role'],
+                'name': row['name'],
+                'created_at': row['created_at'],
+                'active': bool(row['active']) if status else True,
+                'must_change_password': bool(row['must_change_password']) if status else False,
+                'deactivated_at': str(row['deactivated_at'] or '') if status else '',
             }
+            for row in rows
+        }
 
-        bootstrap_password = os.environ.get('PNL_BOOTSTRAP_ADMIN_PASSWORD', '').strip()
-        bootstrap_username = os.environ.get('PNL_BOOTSTRAP_ADMIN_USERNAME', 'admin').strip() or 'admin'
-        bootstrap_name = os.environ.get('PNL_BOOTSTRAP_ADMIN_NAME', 'Administrator').strip() or 'Administrator'
-
-        if bootstrap_password:
-            admin = {
-                bootstrap_username.lower(): {
-                    'password': generate_password_hash(bootstrap_password),
-                    'role': 'admin',
-                    'name': bootstrap_name,
-                    'created_at': datetime.now().isoformat(timespec='seconds')
-                }
-            }
-            save_users(admin)
-            log.warning("Bootstrapped admin user from environment because no users existed in SQLite")
-            return admin
-
+    bootstrap_password = os.environ.get('PNL_BOOTSTRAP_ADMIN_PASSWORD', '').strip()
+    bootstrap_username = os.environ.get('PNL_BOOTSTRAP_ADMIN_USERNAME', 'admin').strip() or 'admin'
+    bootstrap_name = os.environ.get('PNL_BOOTSTRAP_ADMIN_NAME', 'Administrator').strip() or 'Administrator'
+    if bootstrap_password:
+        create_user(bootstrap_username.lower(), generate_password_hash(bootstrap_password), 'admin', bootstrap_name)
+        log.warning("Bootstrapped admin user from environment because no users existed")
+        return load_users()
     log.warning("No users exist and no bootstrap admin password was provided")
     return {}
 
 
+class UserExists(ValueError):
+    pass
+
+
+def create_user(username: str, password_hash: str, role: str, name: str, must_change_password: bool = False) -> None:
+    """Add one user. Existing users are never touched."""
+    _ensure_db()
+    status = _features()['user_status']
+    with _connect() as conn:
+        if status:
+            cur = _execute(conn, """INSERT INTO users(username, password, role, name, created_at, must_change_password)
+                                    VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(username) DO NOTHING""",
+                           (username, password_hash, role, name, datetime.now().isoformat(timespec='seconds'), must_change_password))
+        else:
+            cur = _execute(conn, """INSERT INTO users(username, password, role, name, created_at)
+                                    VALUES (?, ?, ?, ?, ?) ON CONFLICT(username) DO NOTHING""",
+                           (username, password_hash, role, name, datetime.now().isoformat(timespec='seconds')))
+        conn.commit()
+    if not cur.rowcount:
+        raise UserExists(username)
+
+
+def set_user_password(username: str, password_hash: str, must_change: bool | None = None) -> bool:
+    _ensure_db()
+    status = _features()['user_status']
+    with _connect() as conn:
+        if status and must_change is not None:
+            cur = _execute(conn, "UPDATE users SET password = ?, must_change_password = ? WHERE username = ?",
+                           (password_hash, must_change, username))
+        else:
+            cur = _execute(conn, "UPDATE users SET password = ? WHERE username = ?", (password_hash, username))
+        conn.commit()
+    return cur.rowcount > 0
+
+
+def set_user_active(username: str, active: bool, by: str = '') -> bool:
+    """Switch a user off or on. Users are never deleted: saved versions name their authors."""
+    if not _features()['user_status']:
+        raise FeatureUnavailable('Switching users off needs database migration 0004. Run scripts/migrate.py.')
+    with _connect() as conn:
+        if active:
+            cur = _execute(conn, "UPDATE users SET active = ?, deactivated_at = NULL, deactivated_by = NULL WHERE username = ?",
+                           (True, username))
+        else:
+            cur = _execute(conn, "UPDATE users SET active = ?, deactivated_at = CURRENT_TIMESTAMP, deactivated_by = ? WHERE username = ?",
+                           (False, by, username))
+        conn.commit()
+    return cur.rowcount > 0
+
+
 def save_users(users: dict):
+    """Kept for old callers: adds or updates the given users, never removes anyone."""
     _ensure_db()
     with _connect() as conn:
-        _execute(conn, "DELETE FROM users")
         for username, user in users.items():
-            _execute(
-                conn,
-                """
-                INSERT INTO users(username, password, role, name, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    username,
-                    user.get('password', ''),
-                    user.get('role', 'user'),
-                    user.get('name', username),
-                    user.get('created_at', ''),
-                ),
-            )
+            _execute(conn, """
+                INSERT INTO users(username, password, role, name, created_at) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET password = excluded.password, role = excluded.role, name = excluded.name
+            """, (username, user.get('password', ''), user.get('role', 'user'), user.get('name', username), user.get('created_at', '')))
         conn.commit()
 
 
@@ -554,10 +600,13 @@ def list_projects(summary: bool = False, archived: bool = False) -> list[dict]:
             ORDER BY saved_at DESC, pid DESC
             """)
         ).fetchall()
-        version_counts = {}
+        version_counts, card_versions = {}, {}
         if summary:
             version_counts = {r['pid']: int(r['n']) for r in conn.execute(
                 "SELECT pid, COUNT(*) AS n FROM project_versions GROUP BY pid").fetchall()}
+            if _features()['rate_cards']:
+                card_versions = {r['pid']: r['version'] for r in conn.execute(
+                    "SELECT p.pid, rc.version FROM projects p JOIN rate_card rc ON rc.id = p.rate_card_id").fetchall()}
 
     projects = []
     for row in rows:
@@ -639,6 +688,7 @@ def list_projects(summary: bool = False, archived: bool = False) -> list[dict]:
                 'costs': costs,
                 'profit_amount': _to_float(costs.get('markup')),
                 'version_count': version_counts.get(row['pid'], 0),
+                'rate_card_version': payload.get('rate_card_version') or card_versions.get(row['pid']),
                 'calc_mode': payload.get('calc_mode') or 'legacy',
                 'pnl': _engine_summary(payload),
             })

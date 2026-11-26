@@ -118,8 +118,10 @@ def funnel_page():
 @login_required
 @admin_required
 def users_page():
-    # Phase 7 replaces this with the Users screen; until then it opens the users dialog.
-    return _render_shell(active_nav='users', initial_tab='projects', page_title='Users', open_users=True)
+    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
+    return render_template('users.html', active_nav='users',
+                           app_refreshed_at_iso=refreshed_at_ist.isoformat(),
+                           app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'))
 
 
 def _render_workspace(pid=''):
