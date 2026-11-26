@@ -1,0 +1,109 @@
+{
+  "$description": "AX Presales PnL design tokens. W3C DTCG format. Import into Figma with Tokens Studio or the Variables Import plugin. Two modes: light and dark.",
+  "brand": {
+    "navy": { "$type": "color", "$value": "#262262" },
+    "navy-deep": { "$type": "color", "$value": "#1A1747" },
+    "magenta": { "$type": "color", "$value": "#C201B0" },
+    "magenta-hover": { "$type": "color", "$value": "#A30094" },
+    "logo-gradient-start": { "$type": "color", "$value": "#7A74E8" },
+    "logo-gradient-end": { "$type": "color", "$value": "#C201B0" }
+  },
+  "light": {
+    "canvas": { "$type": "color", "$value": "#F4F4F9" },
+    "surface": { "$type": "color", "$value": "#FFFFFF" },
+    "sunk": { "$type": "color", "$value": "#EEEDF5" },
+    "ink": { "$type": "color", "$value": "#17163A" },
+    "ink-2": { "$type": "color", "$value": "#5B5A7E" },
+    "ink-3": { "$type": "color", "$value": "#8A89A8" },
+    "line": { "$type": "color", "$value": "#E2E1EC" },
+    "line-strong": { "$type": "color", "$value": "#CFCDE0" },
+    "accent": { "$type": "color", "$value": "{brand.magenta}" },
+    "accent-soft": { "$type": "color", "$value": "#FBE7F8" },
+    "rail": { "$type": "color", "$value": "{brand.navy}" },
+    "rail-active": { "$type": "color", "$value": "#332F7A" },
+    "rail-ink": { "$type": "color", "$value": "#D8D7F3" },
+    "good": { "$type": "color", "$value": "#1E7F55" },
+    "good-soft": { "$type": "color", "$value": "#E3F3EB" },
+    "warn": { "$type": "color", "$value": "#A35F00" },
+    "warn-soft": { "$type": "color", "$value": "#FCF0DC" },
+    "bad": { "$type": "color", "$value": "#BC2C27" },
+    "bad-soft": { "$type": "color", "$value": "#FBE8E7" }
+  },
+  "dark": {
+    "canvas": { "$type": "color", "$value": "#100F26" },
+    "surface": { "$type": "color", "$value": "#1A1936" },
+    "sunk": { "$type": "color", "$value": "#232248" },
+    "ink": { "$type": "color", "$value": "#EDECF8" },
+    "ink-2": { "$type": "color", "$value": "#A9A8CB" },
+    "ink-3": { "$type": "color", "$value": "#7C7BA0" },
+    "line": { "$type": "color", "$value": "#2E2D57" },
+    "line-strong": { "$type": "color", "$value": "#403F70" },
+    "accent": { "$type": "color", "$value": "#E45BD7" },
+    "accent-soft": { "$type": "color", "$value": "#3B1943" },
+    "rail": { "$type": "color", "$value": "#0C0B22" },
+    "rail-active": { "$type": "color", "$value": "#221F55" },
+    "rail-ink": { "$type": "color", "$value": "#C9C8EC" },
+    "good": { "$type": "color", "$value": "#5FCB97" },
+    "good-soft": { "$type": "color", "$value": "#163628" },
+    "warn": { "$type": "color", "$value": "#F0B25A" },
+    "warn-soft": { "$type": "color", "$value": "#3A2A12" },
+    "bad": { "$type": "color", "$value": "#F08A84" },
+    "bad-soft": { "$type": "color", "$value": "#3E1C1C" }
+  },
+  "status": {
+    "draft": { "bg": { "$type": "color", "$value": "{light.sunk}" }, "fg": { "$type": "color", "$value": "{light.ink-2}" } },
+    "submitted": { "bg": { "$type": "color", "$value": "#E8E7FA" }, "fg": { "$type": "color", "$value": "#3E38A8" } },
+    "won": { "bg": { "$type": "color", "$value": "{light.good-soft}" }, "fg": { "$type": "color", "$value": "{light.good}" } },
+    "lost": { "bg": { "$type": "color", "$value": "{light.bad-soft}" }, "fg": { "$type": "color", "$value": "{light.bad}" } },
+    "on-hold": { "bg": { "$type": "color", "$value": "{light.warn-soft}" }, "fg": { "$type": "color", "$value": "{light.warn}" } }
+  },
+  "font": {
+    "family": { "$type": "fontFamily", "$value": ["Carlito", "Calibri", "Segoe UI", "Arial", "sans-serif"] },
+    "weight-regular": { "$type": "fontWeight", "$value": 400 },
+    "weight-bold": { "$type": "fontWeight", "$value": 700 }
+  },
+  "type": {
+    "page-title": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "26px", "fontWeight": 700, "lineHeight": 1.2, "letterSpacing": "-0.01em" } },
+    "section-title": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "18px", "fontWeight": 700, "lineHeight": 1.3 } },
+    "body": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "15px", "fontWeight": 400, "lineHeight": 1.45 } },
+    "table": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "14px", "fontWeight": 400, "lineHeight": 1.4 } },
+    "label": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "13px", "fontWeight": 700, "lineHeight": 1.3 } },
+    "caption": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "12.5px", "fontWeight": 400, "lineHeight": 1.35 } },
+    "kpi": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "28px", "fontWeight": 700, "lineHeight": 1.1 } },
+    "contract-value": { "$type": "typography", "$value": { "fontFamily": "{font.family}", "fontSize": "34px", "fontWeight": 700, "lineHeight": 1.1, "letterSpacing": "-0.02em" } }
+  },
+  "space": {
+    "1": { "$type": "dimension", "$value": "4px" },
+    "2": { "$type": "dimension", "$value": "8px" },
+    "3": { "$type": "dimension", "$value": "12px" },
+    "4": { "$type": "dimension", "$value": "16px" },
+    "5": { "$type": "dimension", "$value": "20px" },
+    "6": { "$type": "dimension", "$value": "28px" }
+  },
+  "radius": {
+    "sm": { "$type": "dimension", "$value": "6px" },
+    "control": { "$type": "dimension", "$value": "8px" },
+    "md": { "$type": "dimension", "$value": "10px" },
+    "lg": { "$type": "dimension", "$value": "14px" },
+    "pill": { "$type": "dimension", "$value": "999px" }
+  },
+  "size": {
+    "rail-width": { "$type": "dimension", "$value": "236px" },
+    "ledger-width": { "$type": "dimension", "$value": "372px" },
+    "drawer-width": { "$type": "dimension", "$value": "440px" },
+    "control-height": { "$type": "dimension", "$value": "36px" },
+    "control-height-sm": { "$type": "dimension", "$value": "30px" },
+    "content-max": { "$type": "dimension", "$value": "1440px" }
+  },
+  "shadow": {
+    "pop": { "$type": "shadow", "$value": [
+      { "color": "#17163A29", "offsetX": "0px", "offsetY": "12px", "blur": "32px", "spread": "0px" },
+      { "color": "#17163A14", "offsetX": "0px", "offsetY": "2px", "blur": "6px", "spread": "0px" }
+    ] },
+    "focus-ring": { "$type": "shadow", "$value": { "color": "#C201B047", "offsetX": "0px", "offsetY": "0px", "blur": "0px", "spread": "3px" } }
+  },
+  "threshold": {
+    "ax-margin-good": { "$type": "number", "$value": 20 },
+    "ax-margin-warn": { "$type": "number", "$value": 10 }
+  }
+}

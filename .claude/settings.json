@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(dropdb:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)"
+    ]
+  }
+}

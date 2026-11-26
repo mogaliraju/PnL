@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Presales PnL | AutomatonsX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============ AX tokens (mirror of figma-tokens.json) ============ */
+:root{
+  --navy:#262262; --navy-deep:#1A1747; --magenta:#C201B0; --magenta-hover:#A30094; --magenta-soft:#FBE7F8;
+  --canvas:#F4F4F9; --surface:#FFFFFF; --sunk:#EEEDF5; --ink:#17163A; --ink-2:#5B5A7E; --ink-3:#8A89A8;
+  --line:#E2E1EC; --line-strong:#CFCDE0;
+  --good:#1E7F55; --good-soft:#E3F3EB; --warn:#A35F00; --warn-soft:#FCF0DC; --bad:#BC2C27; --bad-soft:#FBE8E7;
+  --rail:#262262; --rail-ink:#D8D7F3; --rail-active:#332F7A;
+  --focus:0 0 0 3px rgba(194,1,176,.28);
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --shadow-pop:0 12px 32px rgba(23,22,58,.16), 0 2px 6px rgba(23,22,58,.08);
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#100F26; --surface:#1A1936; --sunk:#232248; --ink:#EDECF8; --ink-2:#A9A8CB; --ink-3:#7C7BA0;
+    --line:#2E2D57; --line-strong:#403F70; --magenta:#E45BD7; --magenta-hover:#F07CE5; --magenta-soft:#3B1943;
+    --good:#5FCB97; --good-soft:#163628; --warn:#F0B25A; --warn-soft:#3A2A12; --bad:#F08A84; --bad-soft:#3E1C1C;
+    --rail:#0C0B22; --rail-ink:#C9C8EC; --rail-active:#221F55; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#100F26; --surface:#1A1936; --sunk:#232248; --ink:#EDECF8; --ink-2:#A9A8CB; --ink-3:#7C7BA0;
+  --line:#2E2D57; --line-strong:#403F70; --magenta:#E45BD7; --magenta-hover:#F07CE5; --magenta-soft:#3B1943;
+  --good:#5FCB97; --good-soft:#163628; --warn:#F0B25A; --warn-soft:#3A2A12; --bad:#F08A84; --bad-soft:#3E1C1C;
+  --rail:#0C0B22; --rail-ink:#C9C8EC; --rail-active:#221F55; color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--canvas);color:var(--ink);font-family:Carlito,Calibri,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--magenta)}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:var(--r-sm)}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ============ Shell ============ */
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);height:100%}
+.rail{background:var(--rail);color:var(--rail-ink);display:flex;flex-direction:column;padding:20px 12px 16px;position:sticky;top:0;height:100vh;align-self:start}
+@media (min-width:861px){.app{min-height:100vh;background:linear-gradient(to right,var(--rail) 236px,transparent 236px)}}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 22px}
+.brand small{display:block;font-size:12px;color:#9C9AD0;letter-spacing:.02em}
+.brand b{display:block;color:#fff;font-size:16px}
+.nav a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;color:inherit;text-decoration:none;margin-bottom:2px;position:relative}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav a.on{background:var(--rail-active);color:#fff}
+.nav a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--magenta)}
+.nav .sep{font-size:12px;color:#8987BF;padding:18px 12px 6px}
+.rail .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--magenta);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.me b{color:#fff;font-size:14px;display:block}.me span{font-size:12px;color:#9C9AD0}
+.main{min-width:0;display:flex;flex-direction:column;min-height:100vh}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:12px 28px;background:color-mix(in srgb,var(--canvas) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--ink-3)}
+.search input{border:0;background:none;outline:none;flex:1;color:var(--ink)}
+.kbd{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 6px;color:var(--ink-3)}
+.spacer{flex:1}
+.page{padding:28px;max-width:1440px;width:100%}
+
+/* ============ Primitives ============ */
+.btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);cursor:pointer;white-space:nowrap;font-weight:700;font-size:14px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--magenta);border-color:var(--magenta);color:#fff}
+.btn.primary:hover{background:var(--magenta-hover);border-color:var(--magenta-hover)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.ghost:hover{background:var(--sunk)}
+.btn.danger{color:var(--bad)}
+.btn.sm{height:30px;padding:0 10px;font-size:13px}
+.btn.icon{width:36px;padding:0;justify-content:center}
+.btn.ai{border-color:var(--magenta);color:var(--magenta)}
+.btn.ai:hover{background:var(--magenta-soft)}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:13px;color:var(--ink-2);font-weight:700}
+.field .hint{font-size:12.5px;color:var(--ink-3)}
+.in{height:36px;border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:0 10px;width:100%;min-width:0}
+textarea.in{height:auto;padding:8px 10px;resize:vertical}
+.in:focus{outline:none;border-color:var(--magenta);box-shadow:var(--focus)}
+.in.num{text-align:right}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-Draft{background:var(--sunk);color:var(--ink-2)}
+.s-Submitted{background:#E8E7FA;color:#3E38A8}
+.s-Won{background:var(--good-soft);color:var(--good)}
+.s-Lost{background:var(--bad-soft);color:var(--bad)}
+.s-Onhold{background:var(--warn-soft);color:var(--warn)}
+:root[data-theme="dark"] .s-Submitted{background:#25235A;color:#B4B0F5}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .s-Submitted{background:#25235A;color:#B4B0F5}}
+.health{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.health i{width:8px;height:8px;border-radius:50%}
+.h-good{color:var(--good)}.h-good i{background:var(--good)}
+.h-warn{color:var(--warn)}.h-warn i{background:var(--warn)}
+.h-bad{color:var(--bad)}.h-bad i{background:var(--bad)}
+.muted{color:var(--ink-2)}.faint{color:var(--ink-3)}
+h1{font-size:26px;line-height:1.2;margin:0;color:var(--ink);letter-spacing:-.01em}
+h2{font-size:18px;margin:0}
+h3{font-size:15px;margin:0}
+.head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.head p{margin:4px 0 0;color:var(--ink-2)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--ink-2);font-weight:700;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--magenta)}
+.tabs .count{font-weight:400;color:var(--ink-3);margin-left:4px}
+
+/* tables */
+.tw{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:left;font-size:12.5px;color:var(--ink-2);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface);position:sticky;top:0}
+.t td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.t tr:last-child td{border-bottom:0}
+.t .r{text-align:right}
+.t tbody tr.click{cursor:pointer}
+.t tbody tr.click:hover td{background:var(--sunk)}
+.t tfoot td{font-weight:700;border-top:1px solid var(--line-strong);border-bottom:0;background:var(--sunk)}
+.cell-in{border:1px solid transparent;background:transparent;border-radius:6px;height:32px;padding:0 8px;width:100%;min-width:60px}
+.cell-in:hover{border-color:var(--line-strong)}
+.cell-in:focus{outline:none;border-color:var(--magenta);background:var(--surface);box-shadow:var(--focus)}
+select.cell-in{cursor:pointer}
+
+/* toolbar + chips */
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--line)}
+.chipbtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px dashed var(--line-strong);border-radius:999px;background:none;cursor:pointer;color:var(--ink-2);font-size:13.5px}
+.chipbtn.set{border-style:solid;border-color:var(--magenta);color:var(--ink);background:var(--magenta-soft)}
+.chipbtn b{color:var(--magenta)}
+.pop{position:absolute;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-pop);padding:8px;min-width:220px}
+.pop label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+.pop label:hover{background:var(--sunk)}
+.pop .cnt{margin-left:auto;color:var(--ink-3);font-size:12.5px}
+input[type=checkbox]{accent-color:var(--magenta);width:16px;height:16px}
+.mark{background:var(--magenta-soft);color:inherit;border-radius:3px;padding:0 1px}
+
+/* ============ Project workspace ============ */
+.ws-head{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
+.crumb{font-size:13.5px;color:var(--ink-2);margin-bottom:6px}
+.crumb a{color:var(--ink-2);text-decoration:none}.crumb a:hover{color:var(--magenta)}
+.ws-meta{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:13.5px;color:var(--ink-2)}
+.dirty{display:inline-flex;align-items:center;gap:6px;color:var(--warn);font-weight:700}
+.dirty i{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.saved{display:inline-flex;align-items:center;gap:6px;color:var(--good)}
+.ws{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:22px;align-items:start}
+.banner{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r-md);background:var(--magenta-soft);border:1px solid color-mix(in srgb,var(--magenta) 30%,transparent);margin-bottom:16px;font-size:14px}
+.banner .btn{margin-left:auto}
+.sec{padding:18px 20px}
+.sec + .sec{border-top:1px solid var(--line)}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec-h p{margin:2px 0 0;font-size:13.5px;color:var(--ink-2)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+.rolecell b{display:block;font-weight:700}
+.rolecell span{font-size:12.5px;color:var(--ink-3)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:5px 10px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.seg button.on{background:var(--navy);color:#fff}
+.empty{padding:28px;text-align:center;color:var(--ink-2)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+/* The ledger: price build-up (signature element) */
+.ledger{position:sticky;top:78px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.ledger-h{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.ledger-h p{margin:2px 0 0;font-size:13px;color:var(--ink-2)}
+.levers{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 18px;background:var(--sunk);border-bottom:1px solid var(--line)}
+.lever label{font-size:12.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:4px}
+.lever .wrap{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;height:36px;padding-right:10px}
+.lever .wrap:focus-within{border-color:var(--magenta);box-shadow:var(--focus)}
+.lever input{border:0;outline:none;background:none;width:100%;padding:0 4px 0 10px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.lever .u{color:var(--ink-3);font-size:13px}
+.rows{padding:8px 18px 4px}
+.lr{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:baseline;padding:7px 0;font-size:14.5px}
+.lr .op{color:var(--ink-3);font-weight:700;text-align:center}
+.lr .v{font-variant-numeric:tabular-nums;text-align:right}
+.lr .sub{display:block;font-size:12.5px;color:var(--ink-3)}
+.lr.total{border-top:1px solid var(--line-strong);margin-top:4px;padding-top:10px;font-weight:700}
+.tcv{margin:6px 18px 0;padding:16px 0 14px;border-top:2px solid var(--navy)}
+:root[data-theme="dark"] .tcv{border-top-color:var(--magenta)}
+.tcv .lbl{font-size:13px;color:var(--ink-2);font-weight:700}
+.tcv .amt{font-size:34px;line-height:1.1;font-weight:700;color:var(--magenta);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tcv .inr{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.meter{margin:0 18px 16px}
+.meter .track{position:relative;height:8px;border-radius:999px;background:var(--sunk);overflow:visible}
+.meter .fill{position:absolute;inset:0 auto 0 0;border-radius:999px}
+.meter .tgt{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.meter .cap{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);margin-top:8px}
+.ledger-f{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:var(--sunk)}
+.ledger-f .btn{flex:1;justify-content:center}
+
+/* ============ Dashboard ============ */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:18px}
+.kpi{padding:18px 20px}
+.kpi + .kpi{border-left:1px solid var(--line)}
+.kpi span{font-size:13.5px;color:var(--ink-2);font-weight:700}
+.kpi b{display:block;font-size:28px;margin:4px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi small{font-size:13px;color:var(--ink-3)}
+.dgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+.hbar{display:grid;grid-template-columns:110px minmax(0,1fr) 90px;gap:10px;align-items:center;margin:10px 0;font-size:14px}
+.hbar .tr{height:14px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.hbar .fl{height:100%;background:var(--navy);border-radius:4px}
+:root[data-theme="dark"] .hbar .fl{background:#7D78E6}
+.strip{position:relative;height:150px;margin:8px 0 0;border-left:1px solid var(--line);border-bottom:1px solid var(--line)}
+.strip .dot{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,50%);border:2px solid var(--surface)}
+.strip .line{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
+.strip .line span{position:absolute;left:6px;top:-20px;font-size:12px;color:var(--ink-2)}
+.att{list-style:none;margin:0;padding:0}
+.att li{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:flex-start}
+.att li:last-child{border-bottom:0}
+.att svg{color:var(--warn);margin-top:2px}
+
+/* ============ Rates & roles ============ */
+.matrix th.lv{text-align:right;min-width:104px}
+.matrix td{vertical-align:middle}.matrix td.cat{font-weight:700;white-space:nowrap;padding-top:14px;padding-bottom:14px}
+.matrix td.cell{text-align:right;padding:6px 8px}
+.matrix .rin{width:96px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.matrix .na{color:var(--ink-3);font-size:13px}
+.matrix .chg{background:var(--magenta-soft);border-color:var(--magenta)}
+.matrix .was{display:block;font-size:11.5px;color:var(--ink-3);text-decoration:line-through;font-weight:400}
+.lock{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink-2)}
+.two{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}
+.catlist button{display:flex;width:100%;align-items:center;justify-content:space-between;border:0;background:none;padding:10px 14px;cursor:pointer;text-align:left;border-left:3px solid transparent}
+.catlist button:hover{background:var(--sunk)}
+.catlist button.on{background:var(--magenta-soft);border-left-color:var(--magenta);font-weight:700}
+.catlist .c{color:var(--ink-3);font-size:13px}
+.switch{position:relative;width:34px;height:20px;border-radius:999px;background:var(--line-strong);border:0;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.switch.on{background:var(--good)}
+.switch.on::after{left:17px}
+
+/* ============ Overlays ============ */
+.scrim{position:fixed;inset:0;background:rgba(16,15,38,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column}
+.modal.wide{width:min(980px,100%)}
+.modal-h{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.modal-b{padding:20px;overflow:auto}
+.modal-f{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow-pop);z-index:70;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none}
+.drawer-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.toasts{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;box-shadow:var(--shadow-pop);font-size:14px;display:flex;gap:12px;align-items:center}
+.toast.err{background:var(--bad)}
+.toast button{background:none;border:0;color:#F7B4EF;font-weight:700;cursor:pointer}
+.ver{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:start}
+.ver.cur{background:var(--magenta-soft)}
+.ver b{display:block}
+.ver .m{font-size:12.5px;color:var(--ink-3)}
+.delta-up{color:var(--good)}.delta-down{color:var(--bad)}
+
+/* ============ Assistant ============ */
+.chat{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:92%;font-size:14.5px}
+.msg.u{align-self:flex-end;background:var(--navy);color:#fff;padding:9px 13px;border-radius:14px 14px 4px 14px}
+.msg.a{align-self:flex-start}
+.msg.a .body{background:var(--sunk);padding:11px 13px;border-radius:14px 14px 14px 4px}
+.msg.a p{margin:0 0 8px}.msg.a p:last-child{margin:0}
+.msg table{font-size:13px;border-collapse:collapse;width:100%;margin:6px 0;background:var(--surface);border-radius:8px;overflow:hidden}
+.msg td,.msg th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.msg td.r,.msg th.r{text-align:right}
+.src{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.src span{font-size:12px;border:1px solid var(--line-strong);border-radius:999px;padding:1px 8px;color:var(--ink-2);background:var(--surface)}
+.filecard{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px}
+.filecard .ico{width:36px;height:36px;border-radius:8px;background:#1D7A45;color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.sugg{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}
+.sugg button{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.sugg button:hover{border-color:var(--magenta);color:var(--ink)}
+.composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.composer textarea{flex:1;resize:none;height:42px;border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.composer textarea:focus{outline:none;border-color:var(--magenta);box-shadow:var(--focus)}
+.ctx{font-size:12.5px;color:var(--ink-2);padding:8px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin-right:3px;animation:b 1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+/* ============ Login ============ */
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.login .art{background:var(--navy);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.login .art h2{font-size:36px;line-height:1.15;max-width:15ch;margin:0}
+.login .art p{color:#C9C7F0;max-width:42ch}
+.login .formside{display:flex;align-items:center;justify-content:center;padding:32px;background:var(--surface)}
+.login form{width:min(360px,100%);display:flex;flex-direction:column;gap:16px}
+
+@media (max-width:1180px){.ws{grid-template-columns:minmax(0,1fr)}.ledger{position:static}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:60}
+  .brand,.rail .me,.nav .sep{display:none}
+  .nav{display:flex;width:100%;justify-content:space-around}
+  .nav a{flex-direction:column;gap:2px;font-size:11.5px;padding:6px 8px}
+  .nav a.on::before{display:none}
+  .main{padding-bottom:70px}
+  .page{padding:18px}
+  .top{padding:10px 18px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi:nth-child(3){border-left:0}
+  .kpi:nth-child(n+3){border-top:1px solid var(--line)}
+  .dgrid,.two,.grid2,.grid3,.login{grid-template-columns:minmax(0,1fr)}
+  .login .art{display:none}
+  .search .kbd{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* ======================= Icons ======================= */
+const C=(x,y,r)=>`M${x-r} ${y}a${r} ${r} 0 1 0 ${2*r} 0a${r} ${r} 0 1 0 ${-2*r} 0`;
+const ICONS={
+ folder:['M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z'],
+ chart:['M3 3v18h18','M7 16V10','M12 16V5','M17 16v-4'],
+ grid:['M3 3h18v18H3z','M3 9h18','M3 15h18','M9 3v18'],
+ users:['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2',C(9,7,4),'M22 21v-2a4 4 0 0 0-3-3.9','M16 3.1a4 4 0 0 1 0 7.8'],
+ search:[C(11,11,7),'m21 21-4.3-4.3'],
+ spark:['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z','M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z'],
+ plus:['M12 5v14','M5 12h14'],
+ download:['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4','M7 10l5 5 5-5','M12 15V3'],
+ history:['M3 12a9 9 0 1 0 3-6.7L3 8','M3 3v5h5','M12 7v5l4 2'],
+ x:['M18 6 6 18','M6 6l12 12'],
+ trash:['M3 6h18','M19 6l-1 14H6L5 6','M10 11v6','M14 11v6','M9 6V4h6v2'],
+ sun:[C(12,12,4),'M12 2v2','M12 20v2','M4.9 4.9l1.4 1.4','M17.7 17.7l1.4 1.4','M2 12h2','M20 12h2','M4.9 19.1l1.4-1.4','M17.7 6.3l1.4-1.4'],
+ moon:['M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'],
+ send:['M22 2 11 13','M22 2l-7 20-4-9-9-4z'],
+ alert:['M12 9v4','M12 17h.01','M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'],
+ compare:['M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3','M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3','M12 2v20'],
+ columns:['M3 3h18v18H3z','M9 3v18','M15 3v18'],
+ lock:['M5 11h14v10H5z','M8 11V7a4 4 0 0 1 8 0v4'],
+ check:['M20 6 9 17l-5-5'],
+ save:['M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z','M17 21v-8H7v8','M7 3v5h8'],
+ copy:['M9 9h12v12H9z','M5 15H3V3h12v2'],
+ back:['M15 18l-6-6 6-6'],
+ more:[C(12,5,1),C(12,12,1),C(12,19,1)],
+ archive:['M3 4h18v4H3z','M5 8v12h14V8','M10 12h4'],
+ key:[C(7.5,15.5,4.5),'m10.7 12.3 9.8-9.8','m16 7 3 3','m19 4 2 2'],
+};
+const ic=(n,cls='i')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${(ICONS[n]||[]).map(d=>`<path d="${d}"/>`).join('')}</svg>`;
+const LOGO=(w=40)=>`<svg width="${w}" height="${w}" viewBox="0 0 48 48" aria-label="AutomatonsX"><defs><linearGradient id="axg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7A74E8"/><stop offset="1" stop-color="#C201B0"/></linearGradient></defs><path d="M4 44 20 6h8l16 38h-9l-3.4-8.6H16.4L13 44zM19.4 28h9.2L24 16z" fill="url(#axg)"/><path d="M33 3l5 5m0-5-5 5" stroke="#C201B0" stroke-width="3.2" stroke-linecap="round"/></svg>`;
+
+/* ======================= Reference data ======================= */
+const LEVELS=['L1 Associate','L2 Engineer','L3 Senior','L4 Lead','L5 Architect','L6 Principal'];
+const STATUSES=['Draft','Submitted','Won','Lost','On hold'];
+const STAGES=['Qualification','Discovery','Solutioning','Proposal','Commercial review','Negotiation','Closed'];
+const BUS=['EDM','AI','SAP','RPA'];
+let CATALOG=[
+ {cat:'Data Engineering',roles:[{n:'Data engineer',lv:'L2 Engineer',on:true,used:14},{n:'Data architect',lv:'L5 Architect',on:true,used:9},{n:'Platform engineer',lv:'L3 Senior',on:true,used:5},{n:'ETL developer (legacy)',lv:'L2 Engineer',on:false,used:3}]},
+ {cat:'BI & Analytics',roles:[{n:'Power BI developer',lv:'L2 Engineer',on:true,used:11},{n:'Semantic model lead',lv:'L4 Lead',on:true,used:4},{n:'BI analyst',lv:'L1 Associate',on:true,used:6}]},
+ {cat:'AI & ML',roles:[{n:'ML engineer',lv:'L3 Senior',on:true,used:4},{n:'AI solution architect',lv:'L5 Architect',on:true,used:3},{n:'Data scientist',lv:'L3 Senior',on:true,used:2}]},
+ {cat:'SAP',roles:[{n:'SAP BW consultant',lv:'L4 Lead',on:true,used:3},{n:'SAP HANA modeler',lv:'L3 Senior',on:true,used:2}]},
+ {cat:'Delivery',roles:[{n:'Project manager',lv:'L4 Lead',on:true,used:17},{n:'Scrum master',lv:'L3 Senior',on:true,used:5},{n:'QA engineer',lv:'L2 Engineer',on:true,used:8}]},
+];
+const RV4={'Data Engineering':[24,30,38,47,60,75],'BI & Analytics':[20,26,33,42,54,null],'AI & ML':[28,35,44,55,70,88],'SAP':[null,34,42,52,66,82],'Delivery':[18,24,30,40,null,null]};
+const RV3={'Data Engineering':[22,28,36,45,58,72],'BI & Analytics':[20,25,32,40,52,null],'AI & ML':[26,33,42,52,68,85],'SAP':[null,34,42,52,66,82],'Delivery':[18,24,30,38,null,null]};
+const clone=o=>JSON.parse(JSON.stringify(o));
+let RATECARDS=[
+ {v:'v3',status:'Archived',effective:'1 Apr 2026',by:'Srikar M.',note:'FY27 opening rates',rates:RV3,pinned:6},
+ {v:'v4',status:'Published',effective:'2 Nov 2026',by:'Srikar M.',note:'Fabric and AI uplift',rates:RV4,pinned:21},
+ {v:'v5',status:'Draft',effective:'1 Jan 2027',by:'Srikar M.',note:'CY27 revision',rates:clone(RV4),pinned:0},
+];
+const rc=v=>RATECARDS.find(r=>r.v===v)||RATECARDS[1];
+const roleCat=role=>(CATALOG.find(c=>c.roles.some(r=>r.n===role))||{}).cat;
+
+function R(cat,role,level,hours){return{cat,role,level,hours}}
+const BASE=[
+ {id:1,customer:'Northwind Logistics',name:'Fabric lakehouse migration',bu:'EDM',loc:'UAE',status:'Submitted',stage:'Commercial review',owner:'Srikar M.',am:'Rohit K.',folder:'Q4-2026',rateCard:'v3',c4c:40,ax:12,disc:0,fx:89.4,months:6,
+  resources:[R('Data Engineering','Data architect','L5 Architect',480),R('Data Engineering','Data engineer','L2 Engineer',1920),R('Data Engineering','Platform engineer','L3 Senior',640),R('BI & Analytics','Power BI developer','L2 Engineer',960),R('Delivery','Project manager','L4 Lead',360)],
+  oneTime:[{name:'Knowledge transfer',amt:6000}],licenses:[{name:'Fabric F64 capacity (3 months)',type:'Platform',amt:15600}],addons:[{name:'Travel',amt:8000,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:2,customer:'Meridian Health',name:'AWS data lake phase 2',bu:'EDM',loc:'India',status:'Won',stage:'Closed',owner:'Srikar M.',am:'Anita P.',folder:'Q3-2026',rateCard:'v4',c4c:38,ax:22,disc:3,fx:89.4,months:8,
+  resources:[R('Data Engineering','Data architect','L5 Architect',640),R('Data Engineering','Data engineer','L2 Engineer',2880),R('BI & Analytics','BI analyst','L1 Associate',960),R('Delivery','Project manager','L4 Lead',480)],
+  oneTime:[],licenses:[],addons:[{name:'Travel',amt:4000,mode:'basis'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:3,customer:'Harbor Shipping',name:'Managed data platform support',bu:'EDM',loc:'Singapore',status:'Won',stage:'Closed',owner:'Venkatesh R.',am:'Rohit K.',folder:'Run',rateCard:'v4',c4c:35,ax:18,disc:0,fx:89.4,months:12,
+  resources:[R('Data Engineering','Data engineer','L2 Engineer',1920),R('Data Engineering','Platform engineer','L3 Senior',960),R('Delivery','Project manager','L4 Lead',240)],
+  oneTime:[],licenses:[{name:'Monitoring tool',type:'Other',amt:3600}],addons:[{name:'Travel',amt:0,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:4,customer:'Crestline Realty',name:'Fabric modernization with Purview',bu:'EDM',loc:'UAE',status:'Draft',stage:'Solutioning',owner:'Srikar M.',am:'Faisal A.',folder:'Q4-2026',rateCard:'v4',c4c:40,ax:8,disc:5,fx:89.4,months:7,
+  resources:[R('Data Engineering','Data architect','L5 Architect',560),R('Data Engineering','Data engineer','L2 Engineer',2240),R('BI & Analytics','Semantic model lead','L4 Lead',480),R('BI & Analytics','Power BI developer','L2 Engineer',1120),R('Delivery','Project manager','L4 Lead',420)],
+  oneTime:[{name:'Purview setup workshop',amt:4500}],licenses:[{name:'AI subscriptions',type:'AI',amt:6000}],addons:[{name:'Travel',amt:12000,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:5,customer:'Atlas Aero Engineering',name:'Synapse to Fabric subscription move',bu:'EDM',loc:'Germany',status:'Submitted',stage:'Negotiation',owner:'Srikar M.',am:'Anita P.',folder:'Q4-2026',rateCard:'v4',c4c:40,ax:15,disc:0,fx:89.4,months:4,
+  resources:[R('Data Engineering','Data architect','L5 Architect',320),R('Data Engineering','Data engineer','L2 Engineer',1280),R('Delivery','Project manager','L4 Lead',200)],
+  oneTime:[],licenses:[],addons:[{name:'Travel',amt:6000,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:6,customer:'Bluewater Foods',name:'Power BI rollout',bu:'EDM',loc:'India',status:'Lost',stage:'Closed',owner:'Dharma T.',am:'Rohit K.',folder:'Q2-2026',rateCard:'v3',c4c:40,ax:20,disc:8,fx:89.4,months:3,
+  resources:[R('BI & Analytics','Power BI developer','L2 Engineer',960),R('BI & Analytics','BI analyst','L1 Associate',480)],
+  oneTime:[],licenses:[],addons:[{name:'Travel',amt:0,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:7,customer:'Kestrel Bank',name:'AI document intake POC',bu:'AI',loc:'India',status:'On hold',stage:'Discovery',owner:'Srikar M.',am:'Faisal A.',folder:'POC',rateCard:'v4',c4c:40,ax:25,disc:0,fx:89.4,months:2,
+  resources:[R('AI & ML','AI solution architect','L5 Architect',160),R('AI & ML','ML engineer','L3 Senior',480)],
+  oneTime:[],licenses:[{name:'AI subscriptions',type:'AI',amt:2400}],addons:[{name:'Travel',amt:0,mode:'pass'},{name:'Infra',amt:1500,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+ {id:8,customer:'Solace Retail',name:'SAP HANA incremental extraction',bu:'SAP',loc:'India',status:'Draft',stage:'Proposal',owner:'Srikar M.',am:'Anita P.',folder:'Q4-2026',rateCard:'v4',c4c:38,ax:22,disc:0,fx:89.4,months:5,
+  resources:[R('SAP','SAP HANA modeler','L3 Senior',640),R('Data Engineering','Data engineer','L2 Engineer',960),R('Delivery','Project manager','L4 Lead',160)],
+  oneTime:[],licenses:[],addons:[{name:'Travel',amt:0,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}]},
+];
+const WHO=['Srikar M.','Venkatesh R.','Dharma T.','Srikar M.'];
+const DATES=['3 Nov 2026','9 Nov 2026','14 Nov 2026','19 Nov 2026','24 Nov 2026','27 Nov 2026'];
+const LABELS=['First cut','After discovery call','Scope trimmed','Margin revision','Client feedback','Final for submission'];
+function snap(p){const s=clone(p);delete s.versions;return s}
+let PROJECTS=BASE.map((p,i)=>{
+  const n=3+(i%4), versions=[];
+  for(let k=0;k<n;k++){
+    const s=snap(p); const back=n-1-k;
+    s.ax=Math.max(4,p.ax-back*2); s.disc=k<n-1?0:p.disc;
+    s.resources.forEach((r,j)=>{r.hours=Math.round(r.hours*(1+back*0.06*((j%2)?1:-0.5)))});
+    versions.push({no:k+1,label:LABELS[(k+i)%LABELS.length],by:WHO[(k+i)%4],at:DATES[Math.min(k+i,5)],snap:s});
+  }
+  versions[n-1].snap=snap(p);
+  return Object.assign(clone(p),{versions,updated:versions[n-1].at,by:versions[n-1].by});
+});
+
+/* ======================= PnL engine ======================= */
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+const rateFor=(v,cat,level)=>{const r=rc(v).rates[cat];return r?r[LEVELS.indexOf(level)]:null};
+function calc(p){
+  let res=0,hrs=0;
+  p.resources.forEach(r=>{const rate=rateFor(p.rateCard,r.cat,r.level)||0;r._rate=rate;r._cost=rate*(+r.hours||0);res+=r._cost;hrs+=+r.hours||0});
+  const one=sum(p.oneTime.map(x=>x.amt));
+  const addB=sum(p.addons.filter(a=>a.mode==='basis').map(a=>a.amt));
+  const addP=sum(p.addons.filter(a=>a.mode==='pass').map(a=>a.amt));
+  const lic=sum(p.licenses.map(x=>x.amt));
+  const basis=res+one+addB, g=(+p.c4c + +p.ax)/100;
+  const list=g<1?basis/(1-g):0;
+  const c4cAmt=list*p.c4c/100, axAmt=list*p.ax/100, disc=list*(+p.disc||0)/100;
+  const pass=lic+addP, tcv=list-disc+pass, cost=basis+pass;
+  const axNetPct=(list-disc)?(axAmt-disc)/(list-disc)*100:0;
+  return{res,hrs,one,addB,addP,lic,basis,list,c4cAmt,axAmt,disc,pass,tcv,cost,gross:(+p.c4c + +p.ax),axNetPct,effPct:tcv?(tcv-cost)/tcv*100:0,inr:tcv*p.fx};
+}
+const $m=n=>(n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US');
+const $k=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':'$'+(n/1e3).toFixed(1)+'k';
+const $inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const pct=n=>(Math.round(n*10)/10).toFixed(1)+'%';
+const hcls=v=>v>=20?'h-good':v>=10?'h-warn':'h-bad';
+const health=v=>`<span class="health ${hcls(v)}"><i></i>${pct(v)}</span>`;
+const pill=s=>`<span class="pill s-${s.replace(' ','')}">${s}</span>`;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ======================= State + routing ======================= */
+const S={route:'projects',pid:1,tab:'resources',rtab:'matrix',rcv:'v5',rcat:'Data Engineering',dirty:false,q:'',filters:{status:[],bu:[],owner:[],folder:[]},view:'all',chat:[],chatOpen:false,cols:{stage:true,bu:true,owner:true,updated:true,folder:false,loc:false}};
+let work=null; // working copy of open project
+function go(r){location.hash=r}
+function parseHash(){
+  const h=(location.hash||'#projects').slice(1).split('/');
+  if(h[0]==='project'&&h[1]){const id=+h[1]; if(!work||work.id!==id){work=clone(PROJECTS.find(p=>p.id===id));S.dirty=false;S.tab='resources'} S.pid=id; S.route='project'}
+  else S.route=['projects','dashboard','rates','users','login'].includes(h[0])?h[0]:'projects';
+  render();
+}
+window.addEventListener('hashchange',parseHash);
+window.addEventListener('beforeunload',e=>{if(S.dirty){e.preventDefault();e.returnValue=''}});
+
+/* ======================= Shell ======================= */
+function shell(content){
+  const nav=[['projects','folder','Projects'],['dashboard','chart','Dashboard'],['rates','grid','Rates & roles']];
+  const on=r=>S.route===r||(r==='projects'&&S.route==='project');
+  return `<div class="app">
+  <aside class="rail">
+    <div class="brand">${LOGO(38)}<div><b>Presales PnL</b><small>AutomatonsX</small></div></div>
+    <nav class="nav" aria-label="Main">
+      ${nav.map(([r,i,l])=>`<a href="#${r}" class="${on(r)?'on':''}">${ic(i)}<span>${l}</span></a>`).join('')}
+      <div class="sep">Admin</div>
+      <a href="#users" class="${on('users')?'on':''}">${ic('users')}<span>Users</span></a>
+    </nav>
+    <div class="me"><div class="avatar">SM</div><div><b>Srikar M.</b><span>Admin</span></div></div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <label class="search">${ic('search')}<input id="gsearch" placeholder="Search projects, versions and rates" aria-label="Search"><span class="kbd">/</span></label>
+      <div class="spacer"></div>
+      <button class="btn ai" onclick="openChat()">${ic('spark')}Ask PnL assistant</button>
+      <button class="btn icon ghost" onclick="toggleTheme()" aria-label="Toggle theme">${ic(isDark()?'sun':'moon')}</button>
+    </header>
+    <main class="page">${content}</main>
+  </div></div>`;
+}
+const isDark=()=>document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+function toggleTheme(){document.documentElement.dataset.theme=isDark()?'light':'dark';render()}
+
+function render(){
+  const root=document.getElementById('root');
+  if(S.route==='login'){root.innerHTML=loginView();return}
+  const views={projects:projectsView,project:projectView,dashboard:dashboardView,rates:ratesView,users:usersView};
+  root.innerHTML=shell(views[S.route]());
+  root.insertAdjacentHTML('beforeend',chatDrawer());
+  bindGlobal();
+  if(S.route==='project')paintLedger();
+}
+function bindGlobal(){
+  const g=document.getElementById('gsearch');
+  g.onkeydown=e=>{if(e.key==='Enter'&&g.value.trim()){openChat();ask(g.value.trim());g.value=''}};
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();document.getElementById('gsearch')?.focus()}
+  if(e.key==='Escape'){if(document.getElementById('scrim')){closeModal();return}closePop();document.getElementById('vdrawer')?.remove();if(S.chatOpen){S.chatOpen=false;document.getElementById('chat')?.classList.remove('open')}}
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'&&S.route==='project'){e.preventDefault();saveProject()}
+});
+
+/* ======================= Login ======================= */
+function loginView(){return `<div class="login">
+  <div class="art"><div style="display:flex;align-items:center;gap:12px">${LOGO(44)}<b style="font-size:18px">AutomatonsX</b></div>
+  <div><h2>Price every proposal from one source of truth.</h2><p>Resource plans, rate cards and margins in one place, with every version kept and an assistant that can answer questions about any of them.</p></div>
+  <small style="color:#8E8BC9">Presales PnL</small></div>
+  <div class="formside"><form onsubmit="event.preventDefault();go('projects')">
+    <div><h1>Sign in</h1><p class="muted" style="margin:6px 0 0">Use the account your admin created for you.</p></div>
+    <div class="field"><label for="u">Username</label><input class="in" id="u" autocomplete="username" required></div>
+    <div class="field"><label for="pw">Password</label><input class="in" id="pw" type="password" autocomplete="current-password" required></div>
+    <button class="btn primary" style="justify-content:center;height:40px">Sign in</button>
+    <p class="faint" style="font-size:13px;margin:0">Forgot your password? Ask an admin to reset it from Users.</p>
+  </form></div></div>`}
+
+/* ======================= Projects ======================= */
+function filtered(){
+  const q=S.q.toLowerCase(), f=S.filters;
+  return PROJECTS.filter(p=>{
+    if(S.view==='mine'&&p.owner!=='Srikar M.')return false;
+    if(S.view==='attention'&&!(calc(p).axNetPct<20&&p.status!=='Lost'))return false;
+    if(f.status.length&&!f.status.includes(p.status))return false;
+    if(f.bu.length&&!f.bu.includes(p.bu))return false;
+    if(f.owner.length&&!f.owner.includes(p.owner))return false;
+    if(f.folder.length&&!f.folder.includes(p.folder))return false;
+    return !q||[p.customer,p.name,p.owner,p.folder,p.am].join(' ').toLowerCase().includes(q);
+  });
+}
+const hl=s=>{if(!S.q)return esc(s);const i=s.toLowerCase().indexOf(S.q.toLowerCase());return i<0?esc(s):esc(s.slice(0,i))+'<mark class="mark">'+esc(s.slice(i,i+S.q.length))+'</mark>'+esc(s.slice(i+S.q.length))};
+function projectsView(){
+  const list=filtered(), any=S.q||Object.values(S.filters).some(a=>a.length);
+  const views=[['all','All projects',PROJECTS.length],['mine','Mine',PROJECTS.filter(p=>p.owner==='Srikar M.').length],['attention','Below AX target',PROJECTS.filter(p=>calc(p).axNetPct<20&&p.status!=='Lost').length]];
+  const chip=(k,l)=>{const n=S.filters[k].length;return `<button class="chipbtn ${n?'set':''}" onclick="openFilter(event,'${k}')">${l}${n?` <b>${n}</b>`:''}</button>`};
+  const c=S.cols;
+  return `<div class="head"><div><h1>Projects</h1><p>Every saved proposal with its latest numbers. Open one to edit its resource plan and pricing.</p></div><div class="spacer"></div>
+  <button class="btn" onclick="toast('Pick an Excel file in the real app to import a project')">Import project</button>
+  <button class="btn primary" onclick="newProject()">${ic('plus')}New project</button></div>
+  <div class="tabs">${views.map(([k,l,n])=>`<button class="${S.view===k?'on':''}" onclick="S.view='${k}';render()">${l}<span class="count">${n}</span></button>`).join('')}</div>
+  <div class="panel">
+    <div class="bar">
+      <label class="search" style="max-width:320px;border-radius:8px">${ic('search')}<input placeholder="Customer, project, owner" value="${esc(S.q)}" oninput="S.q=this.value;refreshTable()" aria-label="Filter projects"></label>
+      ${chip('status','Status')}${chip('bu','Business unit')}${chip('owner','Owner')}${chip('folder','Folder')}
+      ${any?`<button class="btn ghost sm" onclick="clearFilters()">Clear</button>`:''}
+      <div class="spacer"></div>
+      <button class="btn sm" onclick="openColumns(event)">${ic('columns')}Columns</button>
+    </div>
+    <div class="tw" id="ptable">${projectsTable(list)}</div>
+  </div>`;
+}
+function projectsTable(list){
+  const c=S.cols;
+  if(!list.length)return `<div class="empty"><b>No projects match</b>Try a different search or clear the filters.<div style="margin-top:12px"><button class="btn sm" onclick="clearFilters()">Clear filters</button></div></div>`;
+  return `<table class="t"><thead><tr><th>Customer and project</th><th>Status</th>${c.stage?'<th>Stage</th>':''}${c.bu?'<th>Unit</th>':''}${c.loc?'<th>Location</th>':''}${c.folder?'<th>Folder</th>':''}${c.owner?'<th>Owner</th>':''}<th class="r">Contract value</th><th class="r">AX margin</th><th>Version</th>${c.updated?'<th>Updated</th>':''}<th></th></tr></thead><tbody>
+  ${list.map(p=>{const k=calc(p);return `<tr class="click" onclick="go('project/${p.id}')">
+   <td><div class="rolecell"><b>${hl(p.customer)}</b><span>${hl(p.name)}</span></div></td><td>${pill(p.status)}</td>
+   ${c.stage?`<td>${p.stage}</td>`:''}${c.bu?`<td>${p.bu}</td>`:''}${c.loc?`<td>${p.loc}</td>`:''}${c.folder?`<td>${hl(p.folder)}</td>`:''}${c.owner?`<td>${hl(p.owner)}</td>`:''}
+   <td class="r num"><b>${$m(k.tcv)}</b></td><td class="r">${health(k.axNetPct)}</td>
+   <td class="faint">v${p.versions.length} <span style="font-size:12.5px">(rates ${p.rateCard})</span></td>${c.updated?`<td class="faint">${p.updated}</td>`:''}
+   <td class="r"><button class="btn icon ghost sm" aria-label="Delete project" onclick="event.stopPropagation();confirmDelete(${p.id})">${ic('trash')}</button></td></tr>`}).join('')}
+  </tbody></table>`;
+}
+function refreshTable(){document.getElementById('ptable').innerHTML=projectsTable(filtered())}
+function clearFilters(){S.q='';Object.keys(S.filters).forEach(k=>S.filters[k]=[]);render()}
+let popEl=null;
+function closePop(){popEl?.remove();popEl=null}
+function placePop(e,html){closePop();const b=e.currentTarget.getBoundingClientRect();popEl=document.createElement('div');popEl.className='pop';popEl.innerHTML=html;popEl.style.top=(b.bottom+window.scrollY+6)+'px';popEl.style.left=Math.min(b.left,window.innerWidth-260)+'px';document.body.appendChild(popEl);setTimeout(()=>document.addEventListener('click',outside),0)}
+function outside(e){if(popEl&&!popEl.contains(e.target)){closePop();document.removeEventListener('click',outside)}}
+function openFilter(e,k){
+  e.stopPropagation();
+  const vals=[...new Set(PROJECTS.map(p=>p[k]))];
+  placePop(e,vals.map(v=>`<label><input type="checkbox" ${S.filters[k].includes(v)?'checked':''} onchange="tog('${k}','${v}',this.checked)">${v}<span class="cnt">${PROJECTS.filter(p=>p[k]===v).length}</span></label>`).join(''));
+}
+function tog(k,v,on){S.filters[k]=on?[...S.filters[k],v]:S.filters[k].filter(x=>x!==v);render();}
+function openColumns(e){e.stopPropagation();const L={stage:'Stage',bu:'Business unit',loc:'Location',folder:'Folder',owner:'Owner',updated:'Updated'};
+  placePop(e,`<div class="faint" style="font-size:12.5px;padding:4px 8px">Shown columns are saved to your account</div>`+Object.keys(L).map(k=>`<label><input type="checkbox" ${S.cols[k]?'checked':''} onchange="S.cols['${k}']=this.checked;refreshTable()">${L[k]}</label>`).join(''))}
+function confirmDelete(id){const p=PROJECTS.find(x=>x.id===id);
+  modal('Archive project?',`<p style="margin:0">${esc(p.customer)}, ${esc(p.name)} moves to the archive with all ${p.versions.length} versions. Nothing is deleted. An admin can restore it.</p>`,
+  `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="archive(${id})">Archive project</button>`)}
+let archived=[];
+function archive(id){const i=PROJECTS.findIndex(p=>p.id===id);archived.push(PROJECTS.splice(i,1)[0]);closeModal();render();toast('Project archived',()=>{PROJECTS.splice(i,0,archived.pop());render()})}
+function newProject(){const id=Math.max(...PROJECTS.map(p=>p.id))+1;
+  const p={id,customer:'New customer',name:'Untitled proposal',bu:'EDM',loc:'India',status:'Draft',stage:'Qualification',owner:'Srikar M.',am:'',folder:'',rateCard:'v4',c4c:40,ax:20,disc:0,fx:89.4,months:3,resources:[],oneTime:[],licenses:[],addons:[{name:'Travel',amt:0,mode:'pass'},{name:'Infra',amt:0,mode:'basis'},{name:'Third-party',amt:0,mode:'basis'}],versions:[],updated:'Not saved',by:'Srikar M.'};
+  PROJECTS.unshift(p);work=clone(p);S.dirty=true;S.tab='details';go('project/'+id)}
+
+/* ======================= Project workspace ======================= */
+function projectView(){
+  const p=work, latest=RATECARDS.find(r=>r.status==='Published').v, cur=p.versions.length;
+  const tabs=[['resources','Resources',p.resources.length],['costs','Other costs',p.oneTime.length+p.licenses.length],['details','Details',''],['notes','Notes','']];
+  return `<div class="ws-head"><div style="min-width:0;flex:1">
+    <div class="crumb"><a href="#projects">Projects</a> / ${esc(p.customer)}</div>
+    <h1>${esc(p.name)}</h1>
+    <div class="ws-meta">${pill(p.status)}<span>${esc(p.customer)}</span><span>${p.stage}</span>
+      <span>${cur?`Version ${cur}, saved ${p.updated} by ${p.by}`:'Not saved yet'}</span>
+      <span id="dirtyflag">${S.dirty?'<span class="dirty"><i></i>Unsaved changes</span>':''}</span></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="openVersions()">${ic('history')}Versions</button>
+      <button class="btn" onclick="exportDialog()">${ic('download')}Export Excel</button>
+      <button class="btn" onclick="saveAsNew()">${ic('copy')}Save as new</button>
+      <button class="btn primary" onclick="saveProject()">${ic('save')}Save version</button></div></div>
+  ${p.rateCard!==latest?`<div class="banner">${ic('alert')}<span>This project prices with rate card <b>${p.rateCard}</b>. Rate card <b>${latest}</b> was published on ${rc(latest).effective}. Rates only change if you choose to update.</span><button class="btn sm" onclick="rateDiff()">Review changes</button></div>`:''}
+  <div class="ws"><div class="panel" style="min-width:0">
+    <div class="tabs" style="padding:0 12px;margin:0">${tabs.map(([k,l,n])=>`<button class="${S.tab===k?'on':''}" onclick="S.tab='${k}';render()">${l}${n!==''?`<span class="count">${n}</span>`:''}</button>`).join('')}</div>
+    ${{resources:resTab,costs:costsTab,details:detailsTab,notes:notesTab}[S.tab]()}
+  </div>
+  <aside class="ledger" id="ledger" aria-label="Price build-up"></aside></div>`;
+}
+function markDirty(){S.dirty=true;const d=document.getElementById('dirtyflag');if(d)d.innerHTML='<span class="dirty"><i></i>Unsaved changes</span>';paintLedger()}
+function setP(k,v){work[k]=v;markDirty()}
+
+function resTab(){
+  const p=work;calc(p);
+  const catOpts=c=>CATALOG.map(x=>`<option ${x.cat===c?'selected':''}>${x.cat}</option>`).join('');
+  const roleOpts=(c,r)=>(CATALOG.find(x=>x.cat===c)?.roles||[]).filter(x=>x.on||x.n===r).map(x=>`<option ${x.n===r?'selected':''}>${x.n}</option>`).join('');
+  const lvOpts=(c,l)=>LEVELS.map((x,i)=>{const rate=rc(p.rateCard).rates[c]?.[i];return rate==null?'':`<option ${x===l?'selected':''} value="${x}">${x}  ($${rate})</option>`}).join('');
+  return `<div class="sec"><div class="sec-h"><div><h2>Resource plan</h2><p>Pick a role and level. The hourly rate comes from rate card ${p.rateCard} and can't be typed over.</p></div></div>
+  ${p.resources.length?`<div class="tw"><table class="t"><thead><tr><th>Category</th><th>Role</th><th>Level</th><th class="r">Hours</th><th class="r">Rate</th><th class="r">Cost</th><th></th></tr></thead><tbody>
+  ${p.resources.map((r,i)=>`<tr><td><select class="cell-in" style="min-width:150px" onchange="setRes(${i},'cat',this.value)">${catOpts(r.cat)}</select></td>
+   <td><select class="cell-in" style="min-width:160px" onchange="setRes(${i},'role',this.value)">${roleOpts(r.cat,r.role)}</select></td>
+   <td><select class="cell-in" style="min-width:170px" onchange="setRes(${i},'level',this.value)">${lvOpts(r.cat,r.level)}</select></td>
+   <td class="r"><input class="cell-in num" style="text-align:right;width:90px" type="number" min="0" step="8" value="${r.hours}" oninput="work.resources[${i}].hours=+this.value;resTotals()"></td>
+   <td class="r num faint">$${r._rate}/h</td><td class="r num" id="rc${i}"><b>${$m(r._cost)}</b></td>
+   <td class="r"><button class="btn icon ghost sm" aria-label="Remove row" onclick="work.resources.splice(${i},1);markDirty();render()">${ic('x')}</button></td></tr>`).join('')}
+  </tbody><tfoot><tr><td colspan="3">Total</td><td class="r num" id="rhrs">${calc(p).hrs.toLocaleString()} h</td><td></td><td class="r num" id="rcost">${$m(calc(p).res)}</td><td></td></tr></tfoot></table></div>`
+  :`<div class="empty"><b>No resources yet</b>Add the first role to start building the cost basis.</div>`}
+  <div style="margin-top:12px"><button class="btn" onclick="addRes()">${ic('plus')}Add resource</button></div></div>`;
+}
+function setRes(i,k,v){const r=work.resources[i];r[k]=v;
+  if(k==='cat'){const c=CATALOG.find(x=>x.cat===v);r.role=c.roles.find(x=>x.on).n;r.level=c.roles.find(x=>x.on).lv}
+  if(k==='role'){const rr=CATALOG.find(x=>x.cat===r.cat).roles.find(x=>x.n===v);r.level=rr.lv}
+  if(rateFor(work.rateCard,r.cat,r.level)==null){const i2=rc(work.rateCard).rates[r.cat].findIndex(x=>x!=null);r.level=LEVELS[i2]}
+  markDirty();render()}
+function addRes(){work.resources.push(R('Data Engineering','Data engineer','L2 Engineer',160));markDirty();render()}
+function resTotals(){const k=calc(work);work.resources.forEach((r,i)=>{const e=document.getElementById('rc'+i);if(e)e.innerHTML='<b>'+$m(r._cost)+'</b>'});
+  document.getElementById('rhrs').textContent=k.hrs.toLocaleString()+' h';document.getElementById('rcost').textContent=$m(k.res);markDirty()}
+
+function costsTab(){const p=work;
+  const rowsOne=p.oneTime.map((x,i)=>`<tr><td><input class="cell-in" value="${esc(x.name)}" oninput="work.oneTime[${i}].name=this.value;markDirty()"></td><td class="r"><input class="cell-in num" style="text-align:right;width:130px" type="number" min="0" value="${x.amt}" oninput="work.oneTime[${i}].amt=+this.value;markDirty()"></td><td class="r"><button class="btn icon ghost sm" aria-label="Remove" onclick="work.oneTime.splice(${i},1);markDirty();render()">${ic('x')}</button></td></tr>`).join('');
+  const rowsLic=p.licenses.map((x,i)=>`<tr><td><input class="cell-in" value="${esc(x.name)}" oninput="work.licenses[${i}].name=this.value;markDirty()"></td><td><select class="cell-in" onchange="work.licenses[${i}].type=this.value;markDirty()">${['AI','Platform','Project management','Other'].map(t=>`<option ${t===x.type?'selected':''}>${t}</option>`).join('')}</select></td><td class="r"><input class="cell-in num" style="text-align:right;width:130px" type="number" min="0" value="${x.amt}" oninput="work.licenses[${i}].amt=+this.value;markDirty()"></td><td class="r"><button class="btn icon ghost sm" aria-label="Remove" onclick="work.licenses.splice(${i},1);markDirty();render()">${ic('x')}</button></td></tr>`).join('');
+  return `<div class="sec"><div class="sec-h"><div><h2>One-time costs</h2><p>Fixed amounts like knowledge transfer or workshops. Margin is applied to these.</p></div></div>
+   ${p.oneTime.length?`<table class="t"><thead><tr><th>Item</th><th class="r">Amount (USD)</th><th></th></tr></thead><tbody>${rowsOne}</tbody></table>`:'<p class="faint" style="margin:0">None added.</p>'}
+   <button class="btn sm" style="margin-top:10px" onclick="work.oneTime.push({name:'New item',amt:0});markDirty();render()">${ic('plus')}Add one-time cost</button></div>
+  <div class="sec"><div class="sec-h"><div><h2>Licenses and subscriptions</h2><p>Passed through to the customer at cost. No margin is applied.</p></div></div>
+   ${p.licenses.length?`<table class="t"><thead><tr><th>Item</th><th>Type</th><th class="r">Amount (USD)</th><th></th></tr></thead><tbody>${rowsLic}</tbody></table>`:'<p class="faint" style="margin:0">None added.</p>'}
+   <button class="btn sm" style="margin-top:10px" onclick="work.licenses.push({name:'New license',type:'Other',amt:0});markDirty();render()">${ic('plus')}Add license</button></div>
+  <div class="sec"><div class="sec-h"><div><h2>Travel, infra and third-party</h2><p>Choose how each one is priced. Both options now flow into the contract value.</p></div></div>
+   <table class="t"><thead><tr><th>Item</th><th>Pricing</th><th class="r">Amount (USD)</th></tr></thead><tbody>
+   ${p.addons.map((a,i)=>`<tr><td><b>${a.name}</b></td><td><div class="seg"><button class="${a.mode==='basis'?'on':''}" onclick="work.addons[${i}].mode='basis';markDirty();render()">Apply margin</button><button class="${a.mode==='pass'?'on':''}" onclick="work.addons[${i}].mode='pass';markDirty();render()">Pass through</button></div></td><td class="r"><input class="cell-in num" style="text-align:right;width:130px" type="number" min="0" value="${a.amt}" oninput="work.addons[${i}].amt=+this.value;markDirty()"></td></tr>`).join('')}
+   </tbody></table></div>`}
+function fld(label,key,type='text',opts){const v=work[key]??'';
+  if(opts)return `<div class="field"><label>${label}</label><select class="in" onchange="setP('${key}',this.value)">${opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select></div>`;
+  return `<div class="field"><label>${label}</label><input class="in" type="${type}" value="${esc(v)}" oninput="setP('${key}',this.value)"></div>`}
+function detailsTab(){return `<div class="sec"><div class="sec-h"><h2>Customer and opportunity</h2></div><div class="grid2">
+  ${fld('Customer name','customer')}${fld('Project name','name')}${fld('Location','loc','text',['India','UAE','Singapore','Germany','USA','UK','Malaysia'])}${fld('Folder','folder')}${fld('Opportunity ID','oppid')}${fld('Partner','partner')}</div></div>
+  <div class="sec"><div class="sec-h"><h2>Pipeline</h2></div><div class="grid3">
+  ${fld('Status','status','',STATUSES)}${fld('Stage','stage','',STAGES)}${fld('Business unit','bu','',BUS)}${fld('Delivery model','dm','',['Offshore','Onsite','Hybrid','Managed service'])}${fld('Billing type','bt','',['Time and material','Fixed bid','Milestone based','Retainer'])}${fld('Duration (months)','months','number')}</div></div>
+  <div class="sec"><div class="sec-h"><div><h2>People</h2><p>Picked from the user list so names stay consistent across projects.</p></div></div><div class="grid3">
+  ${fld('Project owner','owner','',['Srikar M.','Venkatesh R.','Dharma T.'])}${fld('Account manager','am','',['Rohit K.','Anita P.','Faisal A.'])}${fld('Delivery manager','dmgr','',['','Venkatesh R.','Dharma T.'])}</div></div>`}
+function notesTab(){return `<div class="sec"><div class="grid2">
+  <div class="field" style="grid-column:1/-1"><label>Description</label><textarea class="in" rows="3" oninput="setP('desc',this.value)">${esc(work.desc||'')}</textarea></div>
+  <div class="field"><label>Risks</label><textarea class="in" rows="4" oninput="setP('risks',this.value)">${esc(work.risks||'')}</textarea></div>
+  <div class="field"><label>Dependencies</label><textarea class="in" rows="4" oninput="setP('deps',this.value)">${esc(work.deps||'')}</textarea></div>
+  ${fld('Next action','next')}${fld('Next follow-up','fu','date')}</div></div>`}
+
+function paintLedger(){
+  const el=document.getElementById('ledger');if(!el)return;
+  const p=work,k=calc(p),w=Math.max(0,Math.min(100,k.axNetPct/40*100));
+  const col=k.axNetPct>=20?'var(--good)':k.axNetPct>=10?'var(--warn)':'var(--bad)';
+  const lever=(l,key,u,step)=>`<div class="lever"><label for="lv-${key}">${l}</label><div class="wrap"><input id="lv-${key}" type="number" step="${step}" min="0" value="${p[key]}" onchange="setLever('${key}',this.value)"><span class="u">${u}</span></div></div>`;
+  el.innerHTML=`<div class="ledger-h"><h2>Price build-up</h2><p>Updates as you edit. Rate card ${p.rateCard}.</p></div>
+  <div class="levers">${lever('Cloud4C margin','c4c','%',0.5)}${lever('AX margin','ax','%',0.5)}${lever('Discount','disc','%',0.5)}${lever('USD to INR','fx','₹',0.01)}</div>
+  <div class="rows">
+   <div class="lr"><span class="op"></span><span>Resources<span class="sub">${k.hrs.toLocaleString()} hours</span></span><span class="v">${$m(k.res)}</span></div>
+   <div class="lr"><span class="op">+</span><span>One-time costs</span><span class="v">${$m(k.one)}</span></div>
+   ${k.addB?`<div class="lr"><span class="op">+</span><span>Add-ons with margin</span><span class="v">${$m(k.addB)}</span></div>`:''}
+   <div class="lr total"><span class="op">=</span><span>Cost basis</span><span class="v">${$m(k.basis)}</span></div>
+   <div class="lr"><span class="op">+</span><span>Cloud4C margin<span class="sub">${pct(p.c4c)} of list price</span></span><span class="v">${$m(k.c4cAmt)}</span></div>
+   <div class="lr"><span class="op">+</span><span>AX margin<span class="sub">${pct(p.ax)} of list price</span></span><span class="v">${$m(k.axAmt)}</span></div>
+   <div class="lr total"><span class="op">=</span><span>List price<span class="sub">Gross margin ${pct(k.gross)}</span></span><span class="v">${$m(k.list)}</span></div>
+   ${k.disc?`<div class="lr"><span class="op">−</span><span>Discount<span class="sub">${pct(p.disc)}, taken from AX margin</span></span><span class="v">${$m(-k.disc)}</span></div>`:''}
+   <div class="lr"><span class="op">+</span><span>Pass-through<span class="sub">Licenses ${$m(k.lic)}, add-ons ${$m(k.addP)}</span></span><span class="v">${$m(k.pass)}</span></div>
+  </div>
+  <div class="tcv"><div class="lbl">Contract value</div><div class="amt">${$m(k.tcv)}</div><div class="inr">${$inr(k.inr)} at ₹${(+p.fx).toFixed(2)}</div></div>
+  <div class="meter"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><span style="font-size:13.5px;font-weight:700">AX margin after discount</span>${health(k.axNetPct)}</div>
+   <div class="track"><div class="fill" style="width:${w}%;background:${col}"></div><div class="tgt" style="left:50%" title="Target 20%"></div></div>
+   <div class="cap"><span>0%</span><span>Target 20%</span><span>40%</span></div></div>
+  <div class="ledger-f"><button class="btn sm" onclick="openChat('Explain how ${esc(p.customer)} is priced')">${ic('spark')}Explain</button><button class="btn sm" onclick="exportDialog()">${ic('download')}Excel</button></div>`;
+}
+function setLever(k,v){v=+v;if((k==='c4c'||k==='ax')&&(v<0||(+work.c4c + +work.ax - work[k] + v)>=95)){toast('Cloud4C and AX margin together must stay below 95%','err');paintLedger();return}work[k]=v;markDirty()}
+function saveProject(){
+  if(!work.customer.trim()){toast('Add a customer name before saving','err');S.tab='details';render();return}
+  const i=PROJECTS.findIndex(p=>p.id===work.id);
+  const v={no:work.versions.length+1,label:'',by:'Srikar M.',at:'27 Nov 2026',snap:snap(work)};
+  work.versions.push(v);work.updated='just now';work.by='Srikar M.';
+  PROJECTS[i]=clone(work);S.dirty=false;render();toast(`Saved as version ${v.no}`);
+}
+function saveAsNew(){modal('Save as new project',`<div class="field"><label for="snn">Project name</label><input class="in" id="snn" value="${esc(work.name)} (copy)"><span class="hint">Creates a separate project with version 1. This project stays as it is.</span></div>`,
+ `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doSaveAs()">Create project</button>`)}
+function doSaveAs(){const n=document.getElementById('snn').value||work.name;const id=Math.max(...PROJECTS.map(p=>p.id))+1;const c=clone(work);c.id=id;c.name=n;c.versions=[{no:1,label:'Copied from '+work.name,by:'Srikar M.',at:'27 Nov 2026',snap:snap(c)}];c.updated='just now';PROJECTS.unshift(c);closeModal();S.dirty=false;work=null;go('project/'+id);toast('Project created')}
+function rateDiff(){const from=rc(work.rateCard),to=RATECARDS.find(r=>r.status==='Published');const rows=[];
+  work.resources.forEach(r=>{const i=LEVELS.indexOf(r.level),a=from.rates[r.cat]?.[i],b=to.rates[r.cat]?.[i];if(a!==b)rows.push({r,a,b,d:(b-a)*r.hours})});
+  const tot=sum(rows.map(x=>x.d));
+  modal(`Rate card ${from.v} to ${to.v}`,`<p style="margin:0 0 12px">${rows.length} of ${work.resources.length} resource lines change. Cost basis moves by <b>${$m(tot)}</b>${tot?`, which changes the contract value by about <b>${$m(tot/(1-calc(work).gross/100))}</b>`:''}.</p>
+   <table class="t"><thead><tr><th>Role</th><th>Level</th><th class="r">${from.v}</th><th class="r">${to.v}</th><th class="r">Cost change</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.r.role}</td><td>${x.r.level}</td><td class="r num">$${x.a}</td><td class="r num"><b>$${x.b}</b></td><td class="r num ${x.d>0?'delta-down':'delta-up'}">${x.d>0?'+':''}${$m(x.d)}</td></tr>`).join('')}</tbody></table>`,
+   `<button class="btn" onclick="closeModal()">Keep ${from.v}</button><button class="btn primary" onclick="work.rateCard='${to.v}';closeModal();markDirty();render();toast('Now pricing with rate card ${to.v}. Save to keep it.')">Update to ${to.v}</button>`,true)}
+
+/* versions drawer + compare */
+function openVersions(){
+  const vs=work.versions.slice().reverse();
+  const sel=[];
+  const html=`<div class="drawer open" id="vdrawer" role="dialog" aria-label="Versions"><div class="drawer-h">${ic('history')}<h2 style="flex:1">Versions</h2><button class="btn icon ghost" aria-label="Close" onclick="document.getElementById('vdrawer').remove()">${ic('x')}</button></div>
+   <div class="ctx">Every save keeps a full snapshot. Pick two to compare.</div>
+   <div style="overflow:auto;flex:1">${vs.length?vs.map((v,idx)=>{const k=calc(clone(v.snap)),prev=work.versions[v.no-2],pk=prev?calc(clone(prev.snap)):null,d=pk?k.tcv-pk.tcv:0;
+     return `<div class="ver ${idx===0?'cur':''}"><input type="checkbox" aria-label="Select version ${v.no}" onchange="verSel(${v.no},this.checked)">
+     <div><b>Version ${v.no}${idx===0?' (current)':''}</b><input class="cell-in" style="height:28px;padding:0 6px;margin:2px 0 2px -6px" placeholder="Add a label" value="${esc(v.label)}" onchange="work.versions[${v.no-1}].label=this.value">
+     <div class="m">${v.at} by ${v.by}, rates ${v.snap.rateCard}, AX ${pct(v.snap.ax)}</div></div>
+     <div style="text-align:right"><b class="num">${$k(k.tcv)}</b><div class="m num ${d>0?'delta-up':d<0?'delta-down':''}">${pk?(d>=0?'+':'')+$k(d).replace('$-','−$'):'first save'}</div>
+     ${idx?`<button class="btn sm ghost" onclick="restoreV(${v.no})">Restore</button>`:''}</div></div>`}).join(''):'<div class="empty"><b>No versions yet</b>Save the project to create version 1.</div>'}</div>
+   <div class="ledger-f"><button class="btn primary" id="cmpbtn" disabled onclick="compareV()">${ic('compare')}Compare selected</button></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);window._vsel=[];
+}
+function verSel(n,on){window._vsel=on?[...window._vsel,n].slice(-2):window._vsel.filter(x=>x!==n);document.getElementById('cmpbtn').disabled=window._vsel.length!==2}
+function restoreV(n){modal(`Restore version ${n}?`,`<p style="margin:0">Version ${n} loads into the editor as unsaved changes. Saving it creates a new version, so nothing in the history is overwritten.</p>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doRestore(${n})">Restore version ${n}</button>`)}
+function doRestore(n){const v=work.versions[n-1];const keep=work.versions;work=Object.assign(clone(v.snap),{versions:keep,updated:work.updated,by:work.by,id:work.id});closeModal();document.getElementById('vdrawer')?.remove();S.dirty=true;render();toast(`Version ${n} restored. Save to keep it.`)}
+function compareV(){const [a,b]=window._vsel.sort((x,y)=>x-y);const A=clone(work.versions[a-1].snap),B=clone(work.versions[b-1].snap),ka=calc(A),kb=calc(B);
+  const row=(l,x,y,f=$m)=>{const d=y-x;return `<tr><td>${l}</td><td class="r num">${f(x)}</td><td class="r num">${f(y)}</td><td class="r num ${d>0?'delta-up':d<0?'delta-down':''}">${d===0?'no change':(d>0?'+':'')+f(d)}</td></tr>`};
+  const roles=[...new Set([...A.resources,...B.resources].map(r=>r.role+'|'+r.level))];
+  modal(`Version ${a} and version ${b}`,`<div class="grid2" style="align-items:start"><div><h3 style="margin-bottom:8px">Numbers</h3><table class="t"><thead><tr><th></th><th class="r">v${a}</th><th class="r">v${b}</th><th class="r">Change</th></tr></thead><tbody>
+   ${row('Cost basis',ka.basis,kb.basis)}${row('List price',ka.list,kb.list)}${row('Contract value',ka.tcv,kb.tcv)}${row('Cloud4C margin',A.c4c,B.c4c,pct)}${row('AX margin',A.ax,B.ax,pct)}${row('Discount',A.disc,B.disc,pct)}${row('Hours',ka.hrs,kb.hrs,x=>Math.round(x).toLocaleString())}</tbody></table></div>
+   <div><h3 style="margin-bottom:8px">Resource changes</h3><table class="t"><thead><tr><th>Role</th><th class="r">v${a} h</th><th class="r">v${b} h</th></tr></thead><tbody>
+   ${roles.map(k=>{const[r,l]=k.split('|');const x=sum(A.resources.filter(q=>q.role===r&&q.level===l).map(q=>q.hours)),y=sum(B.resources.filter(q=>q.role===r&&q.level===l).map(q=>q.hours));return x===y?'':`<tr><td>${r}<div class="faint" style="font-size:12.5px">${l}</div></td><td class="r num">${x||'none'}</td><td class="r num"><b>${y||'removed'}</b></td></tr>`}).join('')||'<tr><td colspan="3" class="faint">No resource changes</td></tr>'}</tbody></table></div></div>`,
+  `<button class="btn" onclick="closeModal()">Close</button><button class="btn" onclick="openChat('What changed between version ${a} and ${b} of ${esc(work.customer)}?');closeModal()">${ic('spark')}Summarise changes</button>`,true)}
+
+/* export */
+function exportDialog(){const p=work||PROJECTS[0];const def=`${p.customer} PnL v${p.versions.length||1}`;
+  modal('Export Excel',`<div class="field"><label for="fn">File name</label><div style="display:flex;align-items:center;gap:6px"><input class="in" id="fn" value="${esc(def)}"><span class="faint">.xlsx</span></div><span class="hint">Uses the Benline PnL template. The name is saved with this project.</span></div>
+   <div class="field" style="margin-top:14px"><label for="fv">Version</label><select class="in" id="fv">${(p.versions.length?p.versions:[{no:1}]).slice().reverse().map(v=>`<option value="${v.no}">Version ${v.no}${v.label?', '+esc(v.label):''}</option>`).join('')}${S.dirty?'<option value="0" selected>Unsaved changes on screen</option>':''}</select></div>`,
+  `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doExport()">${ic('download')}Download</button>`)}
+function doExport(){const p=work;const v=+document.getElementById('fv').value;const data=v?clone(p.versions[v-1].snap):clone(p);downloadXlsx(data,document.getElementById('fn').value+'.xlsx');closeModal()}
+function downloadXlsx(p,name){
+  const k=calc(p);
+  if(!window.XLSX){toast('Excel library did not load. Check your connection.','err');return}
+  const wb=XLSX.utils.book_new();
+  const sum1=[['AutomatonsX PnL'],['Customer',p.customer],['Project',p.name],['Rate card',p.rateCard],[],['Resources',k.res],['One-time costs',k.one],['Add-ons with margin',k.addB],['Cost basis',k.basis],['Cloud4C margin %',p.c4c],['AX margin %',p.ax],['Cloud4C margin',k.c4cAmt],['AX margin',k.axAmt],['List price',k.list],['Discount %',p.disc],['Discount',k.disc],['Pass-through',k.pass],['Contract value (USD)',k.tcv],['USD to INR',p.fx],['Contract value (INR)',k.inr]];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sum1),'Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Category','Role','Level','Hours','Rate USD','Cost USD'],...p.resources.map(r=>[r.cat,r.role,r.level,r.hours,r._rate,r._cost])]),'Resources');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Type','Item','Pricing','Amount USD'],...p.oneTime.map(x=>['One-time',x.name,'Margin',x.amt]),...p.licenses.map(x=>['License',x.name,'Pass-through',x.amt]),...p.addons.map(x=>['Add-on',x.name,x.mode==='basis'?'Margin':'Pass-through',x.amt])]),'Other costs');
+  XLSX.writeFile(wb,name);toast('Downloaded '+name);
+}
+
+/* ======================= Dashboard ======================= */
+function dashboardView(){
+  const live=PROJECTS.filter(p=>p.status!=='Lost'),K=PROJECTS.map(p=>({p,k:calc(p)}));
+  const pipe=sum(K.filter(x=>['Submitted','Draft'].includes(x.p.status)).map(x=>x.k.tcv));
+  const won=sum(K.filter(x=>x.p.status==='Won').map(x=>x.k.tcv));
+  const avgAx=sum(K.filter(x=>x.p.status!=='Lost').map(x=>x.k.axNetPct))/live.length;
+  const risk=K.filter(x=>x.p.status!=='Lost'&&x.k.axNetPct<20);
+  const byStatus=STATUSES.map(s=>({s,v:sum(K.filter(x=>x.p.status===s).map(x=>x.k.tcv)),n:K.filter(x=>x.p.status===s).length}));
+  const max=Math.max(...byStatus.map(x=>x.v));
+  const stale=PROJECTS.filter(p=>p.rateCard!==RATECARDS.find(r=>r.status==='Published').v&&p.status!=='Lost');
+  return `<div class="head"><div><h1>Dashboard</h1><p>Portfolio value and margin health across ${PROJECTS.length} projects. AX margin target is 20%.</p></div></div>
+  <div class="kpis"><div class="kpi"><span>Open pipeline</span><b>${$k(pipe)}</b><small>Draft and submitted</small></div>
+   <div class="kpi"><span>Won</span><b>${$k(won)}</b><small>${K.filter(x=>x.p.status==='Won').length} projects</small></div>
+   <div class="kpi"><span>Average AX margin</span><b class="${hcls(avgAx)}">${pct(avgAx)}</b><small>After discount, excluding lost</small></div>
+   <div class="kpi"><span>Below target</span><b class="${risk.length?'h-bad':'h-good'}">${risk.length}</b><small>Open projects under 20%</small></div></div>
+  <div class="dgrid"><div class="panel sec"><div class="sec-h"><h2 style="flex:1">AX margin by project</h2><span class="faint" style="font-size:13px">Dot size shows contract value</span></div>
+   <div class="strip" aria-label="AX margin by project">
+    <div class="line" style="bottom:${20/40*100}%"><span>Target 20%</span></div>
+    ${K.filter(x=>x.p.status!=='Lost').map((x,i,a)=>{const s=8+Math.sqrt(x.k.tcv)/40;return `<div class="dot" title="${esc(x.p.customer)}: ${pct(x.k.axNetPct)}" style="left:${(i+0.5)/a.length*100}%;bottom:${Math.min(100,x.k.axNetPct/40*100)}%;width:${s}px;height:${s}px;background:${x.k.axNetPct>=20?'var(--good)':x.k.axNetPct>=10?'var(--warn)':'var(--bad)'}"></div>`}).join('')}
+   </div><div style="display:flex;justify-content:space-around;font-size:12px;color:var(--ink-3);margin-top:6px">${K.filter(x=>x.p.status!=='Lost').map(x=>`<span style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px">${esc(x.p.customer.split(' ')[0])}</span>`).join('')}</div></div>
+   <div class="panel sec"><h2 style="margin-bottom:6px">Needs attention</h2><ul class="att">
+    ${risk.map(x=>`<li>${ic('alert')}<div><a href="#project/${x.p.id}" style="font-weight:700">${esc(x.p.customer)}</a> is at ${pct(x.k.axNetPct)} AX margin <span class="faint">(${x.p.status})</span></div></li>`).join('')}
+    ${stale.map(p=>`<li>${ic('alert')}<div><a href="#project/${p.id}" style="font-weight:700">${esc(p.customer)}</a> still prices with rate card ${p.rateCard}</div></li>`).join('')}
+    ${!risk.length&&!stale.length?'<li>All open projects meet the AX target.</li>':''}</ul></div></div>
+  <div class="panel sec" style="margin-top:18px"><h2 style="margin-bottom:6px">Contract value by status</h2>
+   ${byStatus.map(x=>`<div class="hbar"><span>${x.s} <span class="faint">(${x.n})</span></span><div class="tr"><div class="fl" style="width:${max?x.v/max*100:0}%"></div></div><span class="num" style="text-align:right">${$k(x.v)}</span></div>`).join('')}</div>`;
+}
+
+/* ======================= Rates & roles ======================= */
+function ratesView(){
+  const tabs=[['matrix','Rate card'],['roles','Roles'],['history','Rate card history']];
+  return `<div class="head"><div><h1>Rates & roles</h1><p>Roles belong to a category. Each category has an hourly rate per level. Projects keep the rate card they were priced with until someone updates them.</p></div></div>
+  <div class="tabs">${tabs.map(([k,l])=>`<button class="${S.rtab===k?'on':''}" onclick="S.rtab='${k}';render()">${l}</button>`).join('')}</div>
+  ${{matrix:matrixTab,roles:rolesTab,history:historyTab}[S.rtab]()}`;
+}
+let rateUnit='USD';
+function matrixTab(){
+  const card=rc(S.rcv),pub=RATECARDS.find(r=>r.status==='Published'),draft=card.status==='Draft',fx=89.4;
+  const changes=draft?CATALOG.reduce((n,c)=>n+LEVELS.filter((_,i)=>card.rates[c.cat]?.[i]!==pub.rates[c.cat]?.[i]).length,0):0;
+  return `<div class="panel"><div class="bar">
+   <select class="in" style="width:auto" onchange="S.rcv=this.value;render()" aria-label="Rate card version">${RATECARDS.slice().reverse().map(r=>`<option value="${r.v}" ${r.v===S.rcv?'selected':''}>Rate card ${r.v} (${r.status.toLowerCase()})</option>`).join('')}</select>
+   ${draft?`<span class="pill s-Onhold">Draft, ${changes} change${changes===1?'':'s'} from ${pub.v}</span>`:`<span class="lock">${ic('lock')}${card.status==='Published'?'Published '+card.effective+'. Create a draft to change rates.':'Archived. Read only.'}</span>`}
+   <div class="spacer"></div>
+   <div class="seg"><button class="${rateUnit==='USD'?'on':''}" onclick="rateUnit='USD';render()">USD / h</button><button class="${rateUnit==='INR'?'on':''}" onclick="rateUnit='INR';render()">INR / h</button></div>
+   ${draft?`<button class="btn sm" onclick="toast('Draft saved')">Save draft</button><button class="btn primary sm" onclick="publishDraft(${changes})">Publish ${card.v}</button>`:card.status==='Published'&&!RATECARDS.some(r=>r.status==='Draft')?`<button class="btn primary sm" onclick="newDraft()">${ic('plus')}New draft</button>`:''}
+  </div>
+  <div class="tw"><table class="t matrix"><thead><tr><th>Category</th>${LEVELS.map(l=>`<th class="lv">${l}</th>`).join('')}<th class="r">Roles</th></tr></thead><tbody>
+   ${CATALOG.map(c=>`<tr><td class="cat">${c.cat}</td>${LEVELS.map((l,i)=>{const v=card.rates[c.cat]?.[i],was=pub.rates[c.cat]?.[i],chg=draft&&v!==was;
+     if(draft&&rateUnit==='USD')return `<td class="cell"><input class="in rin ${chg?'chg':''}" type="number" min="0" placeholder="None" value="${v??''}" aria-label="${c.cat} ${l}" onchange="setRate('${c.cat}',${i},this.value)">${chg?`<span class="was">was ${was==null?'not offered':'$'+was}</span>`:''}</td>`;
+     return `<td class="cell num">${v==null?'<span class="na">Not offered</span>':`<b>${rateUnit==='USD'?'$'+v:'₹'+Math.round(v*fx).toLocaleString('en-IN')}</b>`}</td>`}).join('')}
+     <td class="r"><button class="btn ghost sm" onclick="S.rtab='roles';S.rcat='${c.cat}';render()">${c.roles.filter(r=>r.on).length}</button></td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="sec faint" style="font-size:13.5px">Leave a cell empty when a category doesn't offer that level. It then won't appear in the level picker for that category.</div></div>`;
+}
+function setRate(cat,i,v){rc(S.rcv).rates[cat][i]=v===''?null:+v;render()}
+function newDraft(){const pub=RATECARDS.find(r=>r.status==='Published');const n='v'+(+pub.v.slice(1)+1);RATECARDS.push({v:n,status:'Draft',effective:'Not set',by:'Srikar M.',note:'',rates:clone(pub.rates),pinned:0});S.rcv=n;render();toast('Draft '+n+' created from '+pub.v)}
+function publishDraft(n){const d=rc(S.rcv);modal(`Publish rate card ${d.v}?`,`<p style="margin-top:0">${n} rates change. Existing projects keep their current rate card and see a prompt to review the change. New projects use ${d.v}.</p><div class="field"><label for="eff">Effective from</label><input class="in" id="eff" type="date" value="2027-01-01"></div>`,
+ `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doPublish()">Publish ${d.v}</button>`)}
+function doPublish(){RATECARDS.forEach(r=>{if(r.status==='Published')r.status='Archived'});const d=rc(S.rcv);d.status='Published';d.effective=new Date(document.getElementById('eff').value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});closeModal();render();toast('Rate card '+d.v+' published')}
+function rolesTab(){
+  const c=CATALOG.find(x=>x.cat===S.rcat)||CATALOG[0];
+  return `<div class="two"><div class="panel catlist" style="overflow:hidden"><div class="sec-h" style="padding:14px 14px 6px;margin:0"><h2 style="flex:1">Categories</h2><button class="btn icon sm" aria-label="Add category" onclick="addCat()">${ic('plus')}</button></div>
+   ${CATALOG.map(x=>`<button class="${x.cat===c.cat?'on':''}" onclick="S.rcat='${x.cat}';render()"><span>${x.cat}</span><span class="c">${x.roles.filter(r=>r.on).length}</span></button>`).join('')}</div>
+   <div class="panel"><div class="bar"><h2>${c.cat}</h2><div class="spacer"></div><button class="btn sm" onclick="addRole()">${ic('plus')}Add role</button></div>
+   <table class="t"><thead><tr><th>Role</th><th>Default level</th><th class="r">Used in</th><th>Active</th></tr></thead><tbody>
+   ${c.roles.map((r,i)=>`<tr style="${r.on?'':'opacity:.6'}"><td><input class="cell-in" value="${esc(r.n)}" onchange="CATALOG.find(x=>x.cat==='${c.cat}').roles[${i}].n=this.value;toast('Role renamed. Projects that use it show the new name.')"></td>
+     <td><select class="cell-in" onchange="CATALOG.find(x=>x.cat==='${c.cat}').roles[${i}].lv=this.value">${LEVELS.map(l=>`<option ${l===r.lv?'selected':''}>${l}</option>`).join('')}</select></td>
+     <td class="r faint">${r.used} projects</td>
+     <td><button class="switch ${r.on?'on':''}" role="switch" aria-checked="${r.on}" aria-label="Active" onclick="togRole('${c.cat}',${i})"></button></td></tr>`).join('')}
+   </tbody></table>
+   <div class="sec faint" style="font-size:13.5px">Roles are never deleted. Turn one off to hide it from the role picker. Projects that already use it keep it.</div></div></div>`;
+}
+function togRole(c,i){const r=CATALOG.find(x=>x.cat===c).roles[i];r.on=!r.on;render();toast(r.on?'Role turned on':'Role hidden from new resources')}
+function addRole(){modal('Add role',`<div class="field"><label for="rn">Role name</label><input class="in" id="rn" placeholder="For example, Analytics engineer"></div><div class="field" style="margin-top:12px"><label for="rl">Default level</label><select class="in" id="rl">${LEVELS.map(l=>`<option>${l}</option>`).join('')}</select></div>`,
+ `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doAddRole()">Add role</button>`)}
+function doAddRole(){const n=document.getElementById('rn').value.trim();if(!n){toast('Enter a role name','err');return}const c=CATALOG.find(x=>x.cat===S.rcat);if(c.roles.some(r=>r.n.toLowerCase()===n.toLowerCase())){toast('That role already exists in '+c.cat,'err');return}c.roles.push({n,lv:document.getElementById('rl').value,on:true,used:0});closeModal();render();toast('Role added')}
+function addCat(){modal('Add category',`<div class="field"><label for="cn">Category name</label><input class="in" id="cn" placeholder="For example, Data Governance"><span class="hint">Set its rates in the next rate card draft.</span></div>`,
+ `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="doAddCat()">Add category</button>`)}
+function doAddCat(){const n=document.getElementById('cn').value.trim();if(!n)return;CATALOG.push({cat:n,roles:[]});RATECARDS.forEach(r=>r.rates[n]=[null,null,null,null,null,null]);S.rcat=n;closeModal();render();toast('Category added')}
+function historyTab(){return `<div class="panel tw"><table class="t"><thead><tr><th>Rate card</th><th>Status</th><th>Effective from</th><th>Note</th><th>By</th><th class="r">Projects using it</th><th></th></tr></thead><tbody>
+ ${RATECARDS.slice().reverse().map(r=>`<tr><td><b>${r.v}</b></td><td>${pill(r.status==='Published'?'Won':r.status==='Draft'?'On hold':'Draft').replace(/>(Won|On hold|Draft)</,'>'+r.status+'<')}</td><td>${r.effective}</td><td class="muted">${esc(r.note)}</td><td>${r.by}</td><td class="r num">${PROJECTS.filter(p=>p.rateCard===r.v).length}</td><td class="r"><button class="btn ghost sm" onclick="S.rcv='${r.v}';S.rtab='matrix';render()">Open</button></td></tr>`).join('')}
+ </tbody></table></div>`}
+
+/* ======================= Users ======================= */
+let USERS=[{u:'srikar',n:'Srikar M.',r:'Admin',c:'12 Mar 2025'},{u:'venkatesh',n:'Venkatesh R.',r:'User',c:'4 Jun 2025'},{u:'dharma',n:'Dharma T.',r:'User',c:'4 Jun 2025'},{u:'rohit',n:'Rohit K.',r:'User',c:'19 Aug 2025'}];
+function usersView(){return `<div class="head"><div><h1>Users</h1><p>People who can sign in. Admins can manage users and publish rate cards.</p></div><div class="spacer"></div><button class="btn primary" onclick="addUser()">${ic('plus')}Add user</button></div>
+ <div class="panel tw"><table class="t"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Added</th><th></th></tr></thead><tbody>
+ ${USERS.map((x,i)=>`<tr><td><b>${x.n}</b></td><td class="muted">${x.u}</td><td>${x.r==='Admin'?'<span class="pill s-Submitted">Admin</span>':'<span class="pill s-Draft">User</span>'}</td><td class="faint">${x.c}</td>
+  <td class="r"><button class="btn ghost sm" onclick="resetPw('${x.n}')">${ic('key')}Reset password</button>${x.u!=='srikar'?`<button class="btn ghost sm danger" onclick="USERS.splice(${i},1);render();toast('User removed')">Remove</button>`:''}</td></tr>`).join('')}
+ </tbody></table></div>`}
+function addUser(){modal('Add user',`<div class="grid2"><div class="field"><label>Full name</label><input class="in" id="un"></div><div class="field"><label>Username</label><input class="in" id="uu"></div><div class="field"><label>Temporary password</label><input class="in" type="password"></div><div class="field"><label>Role</label><select class="in" id="ur"><option>User</option><option>Admin</option></select></div></div>`,
+ `<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="USERS.push({u:document.getElementById('uu').value,n:document.getElementById('un').value,r:document.getElementById('ur').value,c:'27 Nov 2026'});closeModal();render();toast('User added')">Add user</button>`)}
+function resetPw(n){modal('Reset password for '+n,`<div class="field"><label>New password</label><input class="in" type="password" autocomplete="new-password"><span class="hint">They'll be asked to change it at next sign-in.</span></div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('Password reset')">Reset password</button>`)}
+
+/* ======================= Modal + toast ======================= */
+function modal(title,body,foot,wide){closeModal();document.body.insertAdjacentHTML('beforeend',`<div class="scrim" id="scrim" onclick="if(event.target===this)closeModal()"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-h"><h2 style="flex:1">${title}</h2><button class="btn icon ghost" aria-label="Close" onclick="closeModal()">${ic('x')}</button></div><div class="modal-b">${body}</div><div class="modal-f">${foot}</div></div></div>`);setTimeout(()=>document.querySelector('#scrim input,#scrim select,#scrim .btn.primary')?.focus(),30)}
+function closeModal(){document.getElementById('scrim')?.remove()}
+function toast(t,a){const d=document.createElement('div');d.className='toast'+(a==='err'?' err':'');d.innerHTML=`<span>${esc(t)}</span>`;if(typeof a==='function'){const b=document.createElement('button');b.textContent='Undo';b.onclick=()=>{a();d.remove()};d.appendChild(b)}document.getElementById('toasts').appendChild(d);setTimeout(()=>d.remove(),a==='err'?6000:4000)}
+
+/* ======================= PnL assistant (mocked; real version calls /api/assistant) ======================= */
+function chatDrawer(){
+  const ctx=S.route==='project'&&work?`${work.customer}, version ${work.versions.length||'unsaved'}`:'All projects';
+  return `<div class="drawer ${S.chatOpen?'open':''}" id="chat" role="dialog" aria-label="PnL assistant">
+   <div class="drawer-h">${ic('spark')}<div style="flex:1"><h2>PnL assistant</h2><div class="faint" style="font-size:12.5px">Reads projects, versions and rate cards. Can't change saved data.</div></div><button class="btn icon ghost" aria-label="Close assistant" onclick="S.chatOpen=false;document.getElementById('chat').classList.remove('open')">${ic('x')}</button></div>
+   <div class="ctx">Looking at: <b>${esc(ctx)}</b></div>
+   <div class="chat" id="chatlog">${S.chat.length?S.chat.map(msgHtml).join(''):`<div class="msg a"><div class="body"><p>Ask about any project, version or rate. All numbers come from the same calculator the editor uses.</p></div></div>`}</div>
+   <div class="sugg">${['Which open projects are below 20% AX?','What changed across Northwind versions?','What if Crestline AX is 15% and discount 0?','Download the Atlas PnL'].map(s=>`<button onclick="ask(this.textContent)">${s}</button>`).join('')}</div>
+   <form class="composer" onsubmit="event.preventDefault();const t=this.q.value.trim();if(t){ask(t);this.q.value=''}"><textarea name="q" placeholder="Ask about projects, versions or rates" aria-label="Message" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit()}"></textarea><button class="btn primary icon" aria-label="Send">${ic('send')}</button></form></div>`;
+}
+function msgHtml(m){return m.role==='u'?`<div class="msg u">${esc(m.text)}</div>`:`<div class="msg a"><div class="body">${m.html}</div>${m.src?`<div class="src">${m.src.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}</div>`}
+function openChat(q){S.chatOpen=true;document.getElementById('chat')?.classList.add('open');if(q)ask(q)}
+function findProject(t){t=t.toLowerCase();return PROJECTS.find(p=>t.includes(p.customer.toLowerCase().split(' ')[0]))||(S.route==='project'?work:null)}
+function ask(text){
+  S.chat.push({role:'u',text});const log=document.getElementById('chatlog');
+  log.innerHTML=S.chat.map(msgHtml).join('')+'<div class="msg a"><div class="body typing"><span></span><span></span><span></span></div></div>';log.scrollTop=1e6;
+  setTimeout(()=>{S.chat.push(answer(text));log.innerHTML=S.chat.map(msgHtml).join('');log.scrollTop=1e6},650);
+}
+let pendingScenario=null;
+function answer(t){
+  const p=findProject(t),T=t.toLowerCase();
+  if(/download|export|excel/.test(T)&&p){const n=`${p.customer} PnL v${p.versions.length}.xlsx`;window._dl=p;
+    return{html:`<p>Here's the workbook for <b>${esc(p.customer)}</b>, version ${p.versions.length}, in the Benline layout.</p><div class="filecard"><div class="ico">XLS</div><div style="flex:1"><b style="font-size:13.5px">${esc(n)}</b><div class="faint" style="font-size:12.5px">Summary, Resources, Other costs</div></div><button class="btn sm" onclick="downloadXlsx(clone(window._dl),'${esc(n)}')">${ic('download')}Download</button></div>`,src:[p.customer+' v'+p.versions.length,'Rate card '+p.rateCard]}}
+  if(/what if|scenario|if .*(ax|margin|discount)/.test(T)&&p){
+    const s=clone(p);const ax=T.match(/ax[^0-9]*(\d+(\.\d+)?)/),c4=T.match(/(cloud4c|c4c)[^0-9]*(\d+(\.\d+)?)/),ds=T.match(/discount[^0-9]*(\d+(\.\d+)?)/);
+    if(ax)s.ax=+ax[1];if(c4)s.c4c=+c4[2];if(ds)s.disc=+ds[1];const a=calc(p),b=calc(s);pendingScenario={id:p.id,s};
+    const r=(l,x,y,f=$m)=>`<tr><td>${l}</td><td class="r">${f(x)}</td><td class="r"><b>${f(y)}</b></td></tr>`;
+    return{html:`<p>Scenario for <b>${esc(p.customer)}</b>. Nothing is saved.</p><table><tr><th></th><th class="r">Now</th><th class="r">Scenario</th></tr>${r('AX margin',p.ax,s.ax,pct)}${r('Discount',p.disc,s.disc,pct)}${r('List price',a.list,b.list)}${r('Contract value',a.tcv,b.tcv)}${r('AX after discount',a.axNetPct,b.axNetPct,pct)}</table><p>Contract value moves by <b>${$m(b.tcv-a.tcv)}</b>. ${b.axNetPct>=20?'This clears the 20% AX target.':'This is still below the 20% AX target.'}</p><button class="btn sm" onclick="applyScenario()">Open in editor as unsaved changes</button>`,src:[p.customer+' v'+p.versions.length,'PnL calculator']}}
+  if(/version|changed|history|diff/.test(T)&&p){
+    const vs=p.versions;const rows=vs.map((v,i)=>{const k=calc(clone(v.snap)),pk=i?calc(clone(vs[i-1].snap)):null;const ch=[];if(i){const a=vs[i-1].snap,b=v.snap;if(a.ax!==b.ax)ch.push(`AX ${a.ax}% to ${b.ax}%`);if(a.disc!==b.disc)ch.push(`discount ${a.disc}% to ${b.disc}%`);if(a.rateCard!==b.rateCard)ch.push(`rates ${a.rateCard} to ${b.rateCard}`);const dh=calc(clone(b)).hrs-calc(clone(a)).hrs;if(dh)ch.push(`${dh>0?'+':''}${dh} hours`)}
+      return `<tr><td>v${v.no}<div class="faint">${v.at}, ${v.by}</div></td><td>${i?ch.join(', ')||'details only':'first save'}</td><td class="r">${$k(k.tcv)}</td></tr>`}).join('');
+    return{html:`<p><b>${esc(p.customer)}</b> has ${vs.length} saved versions.</p><table><tr><th>Version</th><th>What changed</th><th class="r">Value</th></tr>${rows}</table><p>Open Versions in the project to compare any two side by side.</p>`,src:vs.map(v=>p.customer+' v'+v.no)}}
+  if(/below|risk|under|target/.test(T)){const r=PROJECTS.filter(x=>x.status!=='Lost').map(x=>({x,k:calc(x)})).filter(o=>o.k.axNetPct<20);
+    return{html:`<p>${r.length} open projects are below the 20% AX target (after discount):</p><table><tr><th>Project</th><th>Status</th><th class="r">AX</th></tr>${r.map(o=>`<tr><td><a href="#project/${o.x.id}">${esc(o.x.customer)}</a></td><td>${o.x.status}</td><td class="r">${pct(o.k.axNetPct)}</td></tr>`).join('')}</table>`,src:['All projects, latest versions']}}
+  if(/explain|how .*priced/.test(T)&&p){const k=calc(p);return{html:`<p><b>${esc(p.customer)}</b> starts from a cost basis of ${$m(k.basis)} (${$m(k.res)} of resources plus ${$m(k.one+k.addB)} of other margin-bearing costs).</p><p>Cloud4C ${pct(p.c4c)} and AX ${pct(p.ax)} give a gross margin of ${pct(k.gross)}, so list price is basis ÷ (1 − ${(k.gross/100).toFixed(3)}) = ${$m(k.list)}.</p><p>${k.disc?`A ${pct(p.disc)} discount removes ${$m(k.disc)}. `:''}Pass-through items add ${$m(k.pass)} at cost, for a contract value of <b>${$m(k.tcv)}</b>.</p>`,src:[p.customer+' v'+p.versions.length,'Rate card '+p.rateCard]}}
+  if(/rate|level|\$|per hour/.test(T)){const card=RATECARDS.find(r=>r.status==='Published');const cat=CATALOG.find(c=>T.includes(c.cat.toLowerCase().split(' ')[0]))||CATALOG[0];
+    return{html:`<p>${cat.cat} rates on published rate card ${card.v}:</p><table>${LEVELS.map((l,i)=>`<tr><td>${l}</td><td class="r">${card.rates[cat.cat][i]==null?'not offered':'$'+card.rates[cat.cat][i]+'/h'}</td></tr>`).join('')}</table>`,src:['Rate card '+card.v]}}
+  const q=T.split(/\s+/).filter(w=>w.length>3);const hits=PROJECTS.filter(x=>q.some(w=>[x.customer,x.name,x.owner,x.folder].join(' ').toLowerCase().includes(w)));
+  if(hits.length)return{html:`<p>Found ${hits.length} matching project${hits.length>1?'s':''}:</p><table>${hits.map(x=>`<tr><td><a href="#project/${x.id}">${esc(x.customer)}</a><div class="faint">${esc(x.name)}</div></td><td class="r">${$k(calc(x).tcv)}</td></tr>`).join('')}</table>`,src:['Project search']};
+  return{html:`<p>I couldn't match that to a project, version or rate. Try naming the customer, for example "versions of Atlas" or "what if Kestrel AX is 20".</p>`};
+}
+function applyScenario(){if(!pendingScenario)return;const p=PROJECTS.find(x=>x.id===pendingScenario.id);work=Object.assign(clone(p),{c4c:pendingScenario.s.c4c,ax:pendingScenario.s.ax,disc:pendingScenario.s.disc});S.dirty=true;S.pid=p.id;if(location.hash==='#project/'+p.id)render();else location.hash='project/'+p.id;toast('Scenario loaded as unsaved changes')}
+
+parseHash();
+</script>
+</body>
+</html>

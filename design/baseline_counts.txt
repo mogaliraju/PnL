@@ -1,0 +1,9 @@
+# Production row counts, 27 Nov 2026 (taken read-only from the Neon production database before the redesign).
+# verify_data.py requires every table to have at least this many rows; funnel_entries and order_bookings must match exactly.
+table,count
+app_state,2
+funnel_entries,0
+order_bookings,0
+project_versions,118
+projects,39
+users,1

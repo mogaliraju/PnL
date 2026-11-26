@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
-.claude/
+.claude/*
+.venv/
+.DS_Store
 .tmp-tests/
 test-runtime/
 tests/__pycache__/
@@ -13,3 +15,6 @@ users.json
 *.log
 projects/
 data/versions/
+
+# Claude Code guardrails are shared with the team (DESIGN.md 2.5)
+!.claude/settings.json
