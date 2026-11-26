@@ -282,8 +282,8 @@ class TestProjectCRUD(BaseTestCase):
         r2 = self.client.get('/api/projects/proj1')
         self.assertEqual(self._json(r2)['project']['status'], 'Won')
 
-    def test_delete_project(self):
-        # Create a project then delete it
+    def test_delete_project_archives_instead(self):
+        # DESIGN.md 2.3.1: projects are never deleted; DELETE archives
         create = self.client.post('/api/projects', json={
             'project': {'customer': 'To Delete'},
             'resources': [],
@@ -292,8 +292,14 @@ class TestProjectCRUD(BaseTestCase):
         pid = self._json(create)['id']
         r = self.client.delete(f'/api/projects/{pid}')
         self.assertEqual(r.status_code, 200)
-        r2 = self.client.get(f'/api/projects/{pid}')
-        self.assertEqual(r2.status_code, 404)
+        self.assertEqual(self._json(r)['status'], 'archived')
+        ids = [p['id'] for p in self._json(self.client.get('/api/projects'))]
+        self.assertNotIn(pid, ids)
+        archived = [p['id'] for p in self._json(self.client.get('/api/projects?archived=true'))]
+        self.assertIn(pid, archived)
+        self.assertEqual(self.client.get(f'/api/projects/{pid}').status_code, 200)   # still there
+        self.assertEqual(self.client.post(f'/api/projects/{pid}/restore').status_code, 200)
+        self.assertIn(pid, [p['id'] for p in self._json(self.client.get('/api/projects'))])
 
     def test_rename_project(self):
         r = self.client.post('/api/projects/proj1/rename', json={'name': 'Renamed', 'customer': 'ACME'})
@@ -492,15 +498,14 @@ class TestVersionHistory(BaseTestCase):
         self.assertIsNotNone(match)
         self.assertEqual(match['label'], 'Q2 Snapshot')
 
-    def test_delete_version(self):
+    def test_versions_cannot_be_deleted(self):
+        # DESIGN.md 2.3.2: history rows are never deleted
         from pnl.utils.storage import save_project_version
         save_project_version('proj1', 'v_del', SAMPLE_PROJECT)
-        save_project_version('proj1', 'v_keep', SAMPLE_PROJECT)
         r = self.client.delete('/api/projects/proj1/versions/v_del')
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 405)
         vids = [v['vid'] for v in self._json(self.client.get('/api/projects/proj1/versions'))]
-        self.assertNotIn('v_del', vids)
-        self.assertIn('v_keep', vids)
+        self.assertIn('v_del', vids)
 
 
 # ══════════════════════════════════════════════════════════════════

@@ -8,7 +8,6 @@
 {% block body_attrs %}data-editor-mode="{{ 'true' if editor_mode else 'false' }}" data-editor-pid="{{ editor_pid or '' }}" data-launch-new="{{ 'true' if launch_new else 'false' }}" data-initial-tab="{{ initial_tab|default('') }}" data-open-users="{{ 'true' if open_users else 'false' }}"{% endblock %}
 {% block top_actions %}
       <div id="active_project_pill" class="ax-project-pill d-none" title="Project open in the editor">{{ icon('folder') }}<span id="current_project_badge"></span></div>
-      <button class="ax-btn ax-btn--primary" type="button" onclick="newProject()">{{ icon('plus') }}New project</button>
 {% endblock %}
 {% block content %}
 
@@ -548,7 +547,7 @@
             <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="applyFxRateInline()" title="Apply">
               <i class="bi bi-check-lg"></i>
             </button>
-            <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="loadExchangeRate()" title="Refresh live rate">
+            <button class="btn btn-outline-secondary ratecard-fx-btn" onclick="loadExchangeRate(true)" title="Refresh live rate">
               <i class="bi bi-arrow-repeat"></i>
             </button>
           </div>
@@ -1280,4 +1279,5 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="/static/js/app.js?v=20261127"></script>
+<script src="{{ url_for('static', filename='js/projects.js') }}"></script>
 {% endblock %}

@@ -1,10 +1,15 @@
 """Project CRUD routes and version comparison."""
+import json
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify, session
 from pnl.utils.storage import (
-    delete_project_record,
-    delete_project_version,
+    FeatureUnavailable,
+    archive_project_record,
+    get_user_pref,
+    project_archive_info,
+    restore_project_record,
+    set_user_pref,
     label_project_version,
     list_project_versions,
     load_project_record,
@@ -29,9 +34,10 @@ log = get_logger(__name__)
 @login_required
 def list_projects():
     summary = request.args.get('summary', 'false').lower() == 'true'
+    archived = request.args.get('archived', 'false').lower() == 'true'
     from pnl.utils.storage import list_projects as list_project_rows
 
-    return jsonify(list_project_rows(summary=summary))
+    return jsonify(list_project_rows(summary=summary, archived=archived))
 
 
 # ── Folders ─────────────────────────────────────────────────
@@ -114,11 +120,68 @@ def update_project(pid):
     return jsonify({'status': 'ok', 'id': pid, 'name': meta.get('name', pid)})
 
 
+def _archive(pid):
+    if load_project_record(pid) is None:
+        return jsonify({'error': 'That project no longer exists.'}), 404
+    try:
+        changed = archive_project_record(pid, session.get('user', ''))
+    except FeatureUnavailable as e:
+        return jsonify({'error': str(e)}), 503
+    log.info(f"Project '{pid}' archived by '{session.get('user')}'")
+    return jsonify({'status': 'archived' if changed else 'already archived', 'id': pid})
+
+
+@bp.route('/api/projects/<pid>/archive', methods=['POST'])
+@login_required
+def archive_project(pid):
+    return _archive(pid)
+
+
 @bp.route('/api/projects/<pid>', methods=['DELETE'])
 @login_required
 def delete_project(pid):
-    delete_project_record(pid)
-    log.info(f"Project '{pid}' deleted by '{session.get('user')}'")
+    # Projects are never deleted (DESIGN.md 2.3.1): an old client's delete archives instead.
+    return _archive(pid)
+
+
+@bp.route('/api/projects/<pid>/restore', methods=['POST'])
+@login_required
+def restore_project(pid):
+    info = project_archive_info(pid)
+    if info is None:
+        return jsonify({'error': 'That project is not in the archive.'}), 404
+    # Admins can restore anything; anyone can undo their own archive.
+    if session.get('role') != 'admin' and info['archived_by'] != session.get('user'):
+        return jsonify({'error': 'Only an admin can restore a project someone else archived.'}), 403
+    restore_project_record(pid)
+    log.info(f"Project '{pid}' restored by '{session.get('user')}'")
+    return jsonify({'status': 'restored', 'id': pid})
+
+
+# ── Per-user preferences (list columns, filters, saved view) ─────────────────
+PREF_KEYS = {'projects_list'}
+
+
+@bp.route('/api/prefs/<key>', methods=['GET'])
+@login_required
+def get_pref(key):
+    if key not in PREF_KEYS:
+        return jsonify({'error': 'Unknown preference.'}), 404
+    return jsonify(get_user_pref(session['user'], key, {}))
+
+
+@bp.route('/api/prefs/<key>', methods=['PUT'])
+@login_required
+def put_pref(key):
+    if key not in PREF_KEYS:
+        return jsonify({'error': 'Unknown preference.'}), 404
+    value = request.get_json(silent=True)
+    if not isinstance(value, dict) or len(json.dumps(value)) > 20000:
+        return jsonify({'error': 'Preferences must be a JSON object under 20 KB.'}), 400
+    try:
+        set_user_pref(session['user'], key, value)
+    except FeatureUnavailable as e:
+        return jsonify({'error': str(e)}), 503
     return jsonify({'status': 'ok'})
 
 
@@ -181,8 +244,8 @@ def set_version_label(pid, vid):
 @bp.route('/api/projects/<pid>/versions/<vid>', methods=['DELETE'])
 @login_required
 def remove_version(pid, vid):
-    delete_project_version(pid, vid)
-    return jsonify({'status': 'ok'})
+    # Versions are never deleted (DESIGN.md 2.3.2).
+    return jsonify({'error': 'Saved versions are kept permanently and cannot be deleted.'}), 405
 
 
 @bp.route('/api/compare', methods=['POST'])

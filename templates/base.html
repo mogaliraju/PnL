@@ -73,6 +73,14 @@
 </div>
 {% block modals %}{% endblock %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div hidden>{% for n in ['plus', 'search', 'columns', 'archive', 'x', 'download', 'history', 'alert', 'save', 'check', 'lock', 'copy', 'compare', 'back', 'key', 'trash', 'spark', 'upload'] %}<template id="ax-icon-{{ n }}">{{ icon(n) }}</template>{% endfor %}</div>
+<script>
+  window.AX = {
+    thresholds: {{ ax_thresholds|tojson }},
+    user: {{ {'username': session.get('user', ''), 'name': session.get('name', ''), 'role': session.get('role', '')}|tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/ax-ui.js') }}"></script>
 {% block scripts %}{% endblock %}
 <script src="{{ url_for('static', filename='js/ax-shell.js') }}"></script>
 </body>

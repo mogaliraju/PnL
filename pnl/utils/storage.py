@@ -225,6 +225,18 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         if 'label' not in existing_ver:
             conn.execute("ALTER TABLE project_versions ADD COLUMN label TEXT DEFAULT ''")
 
+        # Mirror of pnl/migrations/0001 for the SQLite test/dev path (Postgres uses scripts/migrate.py)
+        existing_proj = {row['name'] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
+        for col in ('archived_at', 'archived_by'):
+            if col not in existing_proj:
+                conn.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_pref (
+                username TEXT NOT NULL, pref_key TEXT NOT NULL, value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (username, pref_key))
+        """)
+
     conn.commit()
 
 
@@ -340,6 +352,32 @@ def _migrate_json_files(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+_FEATURES: dict | None = None
+
+
+def _features() -> dict:
+    """Which redesign migrations this database has. Code checks this instead of assuming,
+    so a deploy that runs before its migration keeps working (without the new feature)."""
+    global _FEATURES
+    if _FEATURES is None:
+        _ensure_db()
+        with _connect() as conn:
+            if _USE_POSTGRES:
+                cols = {r['column_name'] for r in conn.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='projects'").fetchall()}
+                tables = {r['table_name'] for r in conn.execute(
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()}
+            else:
+                cols = {r['name'] for r in conn.execute("PRAGMA table_info(projects)").fetchall()}
+                tables = {r['name'] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        _FEATURES = {'archive': 'archived_at' in cols, 'prefs': 'user_pref' in tables}
+    return _FEATURES
+
+
+class FeatureUnavailable(RuntimeError):
+    """The database hasn't had the migration this feature needs."""
+
+
 def _ensure_db() -> None:
     global _DB_READY
     if _DB_READY:
@@ -453,16 +491,28 @@ def save_users(users: dict):
         conn.commit()
 
 
-def list_projects(summary: bool = False) -> list[dict]:
+def list_projects(summary: bool = False, archived: bool = False) -> list[dict]:
+    """Projects for the list. Archived projects are left out unless archived=True,
+    which returns only the archived ones."""
     _ensure_db()
+    has_archive = _features()['archive']
+    if archived and not has_archive:
+        return []
+    archive_cols = ", archived_at, archived_by" if has_archive else ""
+    where = ("WHERE archived_at IS NOT NULL" if archived else "WHERE archived_at IS NULL") if has_archive else ""
     with _connect() as conn:
         rows = conn.execute(
-            _sql("""
-            SELECT pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload
+            _sql(f"""
+            SELECT pid, name, customer, location, duration, proposal_date, saved_at, saved_by, folder, payload{archive_cols}
             FROM projects
+            {where}
             ORDER BY saved_at DESC, pid DESC
             """)
         ).fetchall()
+        version_counts = {}
+        if summary:
+            version_counts = {r['pid']: int(r['n']) for r in conn.execute(
+                "SELECT pid, COUNT(*) AS n FROM project_versions GROUP BY pid").fetchall()}
 
     projects = []
     for row in rows:
@@ -477,6 +527,9 @@ def list_projects(summary: bool = False) -> list[dict]:
             'saved_by': row['saved_by'] or '',
             'folder': row['folder'] or '',
         }
+        if has_archive:
+            entry['archived_at'] = str(row['archived_at'] or '')
+            entry['archived_by'] = row['archived_by'] or ''
         if summary:
             payload = _json_loads(row['payload'], {})
             project = payload.get('project', {})
@@ -526,6 +579,9 @@ def list_projects(summary: bool = False) -> list[dict]:
                 'business_unit': project.get('business_unit', ''),
                 'next_action': project.get('next_action', ''),
                 'next_follow_up_date': project.get('next_follow_up_date', ''),
+                'risks': project.get('risks', ''),
+                'dependencies': project.get('dependencies', ''),
+                'internal_notes': project.get('internal_notes', ''),
                 'discount_pct': discount_pct,
                 'travel_cost': _to_float(project.get('travel_cost')),
                 'infra_cost': _to_float(project.get('infra_cost')),
@@ -537,6 +593,9 @@ def list_projects(summary: bool = False) -> list[dict]:
                 'fx_rate': _to_float(payload.get('fx_rate')),
                 'costs': costs,
                 'profit_amount': _to_float(costs.get('markup')),
+                'version_count': version_counts.get(row['pid'], 0),
+                'calc_mode': payload.get('calc_mode') or 'legacy',
+                'pnl': _engine_summary(payload),
             })
         projects.append(entry)
     return projects
@@ -589,12 +648,53 @@ def load_project_record(pid: str) -> dict | None:
     return _json_loads(row['payload'], {})
 
 
-def delete_project_record(pid: str) -> None:
-    _ensure_db()
+def _engine_summary(payload: dict) -> dict:
+    """Headline figures from pnl/engine.py for list views."""
+    from pnl import engine
+    try:
+        r = engine.calculate(payload)
+    except engine.EngineInputError as e:
+        return {'error': str(e)}
+    return {k: round(float(getattr(r, k)), 2) for k in
+            ('cost_basis', 'list_price', 'contract_value', 'ax_pct', 'c4c_pct', 'gross_pct',
+             'ax_net_pct', 'discount_pct', 'pass_through', 'hours')}
+
+
+def archive_project_record(pid: str, username: str) -> bool:
+    """Move a project to the archive. Nothing is deleted: the row and all its versions stay."""
+    if not _features()['archive']:
+        raise FeatureUnavailable('Archiving needs database migration 0001. Run scripts/migrate.py.')
     with _connect() as conn:
-        _execute(conn, "DELETE FROM projects WHERE pid = ?", (pid,))
-        _execute(conn, "DELETE FROM project_versions WHERE pid = ?", (pid,))
+        cur = _execute(conn, "UPDATE projects SET archived_at = CURRENT_TIMESTAMP, archived_by = ? "
+                             "WHERE pid = ? AND archived_at IS NULL", (username, pid))
         conn.commit()
+        return cur.rowcount > 0
+
+
+def restore_project_record(pid: str) -> bool:
+    if not _features()['archive']:
+        raise FeatureUnavailable('Archiving needs database migration 0001. Run scripts/migrate.py.')
+    with _connect() as conn:
+        cur = _execute(conn, "UPDATE projects SET archived_at = NULL, archived_by = NULL "
+                             "WHERE pid = ? AND archived_at IS NOT NULL", (pid,))
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def project_archive_info(pid: str) -> dict | None:
+    if not _features()['archive']:
+        return None
+    with _connect() as conn:
+        row = _execute(conn, "SELECT archived_at, archived_by FROM projects WHERE pid = ?", (pid,)).fetchone()
+    if not row or not row['archived_at']:
+        return None
+    return {'archived_at': str(row['archived_at']), 'archived_by': row['archived_by'] or ''}
+
+
+def delete_project_record(pid: str, username: str = 'system') -> None:
+    """Kept for old callers. Projects are never deleted (DESIGN.md 2.3.1): this archives."""
+    log.warning(f"delete_project_record('{pid}') called: archiving instead of deleting")
+    archive_project_record(pid, username)
 
 
 def rename_project_record(pid: str, new_name: str, new_customer: str = '') -> bool:
@@ -648,10 +748,8 @@ def label_project_version(pid: str, vid: str, label: str) -> bool:
 
 
 def delete_project_version(pid: str, vid: str) -> None:
-    _ensure_db()
-    with _connect() as conn:
-        _execute(conn, "DELETE FROM project_versions WHERE pid = ? AND vid = ?", (pid, vid))
-        conn.commit()
+    """Versions are never deleted (DESIGN.md 2.3.2)."""
+    raise PermissionError('Saved versions are kept permanently and cannot be deleted.')
 
 
 def list_project_versions(pid: str) -> list[dict]:
@@ -975,4 +1073,25 @@ def save_column_labels(module: str, labels: dict) -> None:
     _ensure_db()
     with _connect() as conn:
         _set_state(conn, f'column_labels_{module}', labels)
+        conn.commit()
+
+
+# ── per-user preferences (Projects list columns, filters, view) ──────────────
+
+def get_user_pref(username: str, key: str, default=None):
+    if not _features()['prefs']:
+        return default
+    with _connect() as conn:
+        row = _execute(conn, "SELECT value FROM user_pref WHERE username = ? AND pref_key = ?", (username, key)).fetchone()
+    return _json_loads(row['value'], default) if row else default
+
+
+def set_user_pref(username: str, key: str, value) -> None:
+    if not _features()['prefs']:
+        raise FeatureUnavailable('Saved preferences need database migration 0001. Run scripts/migrate.py.')
+    with _connect() as conn:
+        _execute(conn, """
+            INSERT INTO user_pref(username, pref_key, value, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(username, pref_key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        """, (username, key, json.dumps(value)))
         conn.commit()

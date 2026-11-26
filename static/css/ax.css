@@ -275,3 +275,47 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
   .ax-kbd, .ax-project-pill { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ── Overlays: dialog, toast, popover (ax-ui.js) ─────────────────────── */
+.ax-scrim { position: fixed; inset: 0; z-index: 1080; background: rgba(16, 15, 38, .45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.ax-dialog { width: min(520px, 100%); max-height: 90vh; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); margin: 0; }
+.ax-dialog-h { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.ax-dialog-h h2 { flex: 1; }
+.ax-dialog-b { padding: 20px; overflow: auto; display: grid; gap: 14px; }
+.ax-dialog-b p { margin: 0; }
+.ax-dialog-f { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.ax-toasts { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1090; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.ax-toast { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-radius: var(--radius-md); background: var(--navy); color: #fff; box-shadow: var(--shadow-pop); font-size: 14px; }
+.ax-toast--error { background: var(--bad); }
+.ax-toast button { border: 0; background: none; color: #F7B4EF; font-weight: 700; cursor: pointer; padding: 0; }
+.ax-pop { position: absolute; z-index: 1070; min-width: 230px; max-width: 320px; max-height: 360px; overflow: auto; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); }
+.ax-pop label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
+.ax-pop label:hover { background: var(--sunk); }
+.ax-pop .ax-pop-count { margin-left: auto; color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.ax-pop .ax-pop-head { font-size: 12.5px; color: var(--ink-3); padding: 4px 8px 6px; }
+.ax-pop input[type="checkbox"], .ax-panel input[type="checkbox"] { accent-color: var(--magenta); width: 16px; height: 16px; }
+@media (max-width: 860px) { .ax-toasts { bottom: 84px; } }
+
+/* ── Projects list (Phase 4) ──────────────────────────────────────────── */
+.ax-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px; border-bottom: 1px solid var(--line); }
+.ax-filter-search { flex: 0 1 320px; border-radius: var(--radius-control); }
+.ax-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px dashed var(--line-strong); border-radius: var(--radius-pill); background: none;
+  color: var(--ink-2); font-size: 13.5px; cursor: pointer;
+}
+.ax-chip:hover { border-color: var(--ink-3); color: var(--ink); }
+.ax-chip.is-set { border-style: solid; border-color: var(--magenta); background: var(--magenta-soft); color: var(--ink); }
+.ax-chip b { color: var(--magenta); }
+.ax-mark { background: var(--magenta-soft); color: inherit; border-radius: 3px; padding: 0 1px; }
+.ax-table-wrap { overflow-x: auto; }
+.ax-table--list th { position: sticky; top: 0; background: var(--surface); }
+.ax-table--list th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.ax-table--list th button[aria-sort="ascending"]::after { content: "↑"; }
+.ax-table--list th button[aria-sort="descending"]::after { content: "↓"; }
+.ax-table--list tbody tr { cursor: pointer; }
+.ax-table--list tbody tr:hover td, .ax-table--list tbody tr:focus-visible td { background: var(--sunk); }
+.ax-table--list tbody tr:focus-visible { outline: none; box-shadow: inset 3px 0 0 var(--magenta); }
+.ax-two-line b { display: block; font-weight: 700; }
+.ax-two-line span { display: block; font-size: 12.5px; color: var(--ink-3); }
+.ax-faint { color: var(--ink-3); }

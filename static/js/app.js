@@ -919,8 +919,15 @@ async function fetchExchangeRate() {
   throw lastError || new Error('Could not fetch exchange rate');
 }
 
-async function loadExchangeRate() {
+// manual = the user pressed refresh. On page load a project's saved rate is kept
+// (DESIGN.md 5.3: the rate is stored with the project); the live rate only fills a gap.
+async function loadExchangeRate(manual = false) {
   const inlineEl = document.getElementById('fx_rate_inline');
+  if (!manual && typeof appData.fx_rate === 'number' && appData.fx_rate > 0) {
+    _usdToInr = appData.fx_rate;
+    if (inlineEl) inlineEl.value = _usdToInr.toFixed(2);
+    return;
+  }
   if (inlineEl) inlineEl.placeholder = 'Fetching…';
   try {
     _usdToInr = await fetchExchangeRate();
@@ -928,10 +935,10 @@ async function loadExchangeRate() {
     if (inlineEl) inlineEl.value = _usdToInr.toFixed(2);
     renderRateCard();
     updateSummary();
-    showToast(`Live USD → INR refreshed to ₹${_usdToInr.toFixed(2)}`, 'success');
+    if (manual) showToast(`USD to INR updated to the live rate, ₹${_usdToInr.toFixed(2)}`, 'success');
   } catch (e) {
-    if (inlineEl) inlineEl.placeholder = 'Unavailable — enter manually';
-    showToast('Could not refresh INR rate right now. You can still enter it manually.', 'danger');
+    if (inlineEl) inlineEl.placeholder = 'Unavailable, enter it by hand';
+    if (manual) showToast("The live rate isn't available right now. Enter the rate by hand.", 'danger');
   }
 }
 

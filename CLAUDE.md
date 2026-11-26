@@ -30,6 +30,10 @@ gunicorn app:app                              # production entry (Render)
 .venv/bin/python -m pytest tests/test_pnl_suite.py
 .venv/bin/python -m pytest tests/test_pnl_suite.py::TestAuthentication::test_login_page_loads
 
+# schema changes: numbered additive SQL in pnl/migrations/, applied by the runner (refuses non-local DBs)
+.venv/bin/python scripts/migrate.py --database-url postgresql://localhost/pnl_dev [--dry-run]
+PNL_TEST_PG_URL=postgresql://localhost/pnl_migtest .venv/bin/python -m pytest tests/test_projects_list.py   # also dry-runs migrations on Postgres
+
 # data safety scripts (read-only; take --sqlite PATH or --database-url / $DATABASE_URL)
 .venv/bin/python scripts/count_rows.py
 .venv/bin/python scripts/verify_data.py --baseline-figures ~/pnl-backups/baseline_YYYYMMDD/baseline_figures.json
@@ -45,6 +49,9 @@ Bootstrapping a first admin on an empty DB: set `PNL_BOOTSTRAP_ADMIN_PASSWORD` (
 
 - `templates/base.html` is the AX shell: navy rail, top bar with global search, account menu. Pages extend it. `templates/index.html` still holds the legacy screens as Bootstrap tab panes. On home pages the rail drives them through hidden tab links (`static/js/ax-shell.js`, `axShell.show(route)`), so `app.js` loaders keep working. In the editor (`/projects/<id>`, `/projects/new`) the tabs are visible. The old `/project-editor/...` URLs redirect.
 - Colours, type and sizes come from `design/figma-tokens.json`. `scripts/build_tokens.py` generates `static/css/ax-tokens.css`; never edit that file by hand, and a test fails if it's stale. `static/css/ax.css` holds the shell and components and also reskins Bootstrap for screens not yet rebuilt. `style.css` is legacy.
+- Schema changes go in `pnl/migrations/NNNN_*.sql`. They must be additive: `pnl/migrate.py` rejects DROP, DELETE, UPDATE, TRUNCATE, RENAME and type changes, runs in one transaction, and rolls back if any row count drops. `storage._features()` checks whether a migration has been applied, so code deployed before its migration degrades gracefully (`FeatureUnavailable` -> HTTP 503). The SQLite test path mirrors simple portable additions in `_create_schema`. New Postgres-only tables (Phase 5+) don't.
+- Projects are archived (`archived_at`), never deleted. Saved versions are never deleted. `DELETE /api/projects/<id>` archives, and the version DELETE returns 405.
+- Projects list: `static/js/projects.js` (replaces the legacy renderer in `app.js` by reassigning `window.loadAllProjects`). Dialogs, toasts and popovers come from `static/js/ax-ui.js` (`axUI.dialog/toast/popover`); don't use native `confirm`/`prompt` in new code. Per-user list settings: `/api/prefs/projects_list` -> `user_pref` table.
 - Components are Jinja macros in `templates/components/ui.html` (`{% import "components/ui.html" as ui %}`). `/design/components` shows them all. Icons come from `icon(name)` in `pnl/ui.py`. Margin health thresholds live in `pnl/config.py` (`AX_MARGIN_GOOD`, `AX_MARGIN_WARN`), never in templates or JS.
 
 
