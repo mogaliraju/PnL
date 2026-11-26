@@ -73,11 +73,11 @@ def save_project():
     }
 
     save_project_record(pid, data)
-    _snapshot_version(pid, data)
+    vid = _snapshot_version(pid, data)
 
     save_working_data(data)
     log.info(f"Project '{name}' saved as '{pid}' by '{session.get('user')}'")
-    return jsonify({'status': 'ok', 'id': pid, 'name': name})
+    return jsonify({'status': 'ok', 'id': pid, 'name': name, 'vid': vid, 'saved_at': data['_meta']['saved_at']})
 
 
 @bp.route('/api/projects/<pid>', methods=['GET'])
@@ -107,6 +107,10 @@ def update_project(pid):
     meta = existing.get('_meta', {})
     meta['saved_at'] = datetime.now().isoformat(timespec='seconds')
     meta['saved_by'] = session.get('user', '')
+    # The workspace edits the project name in Details
+    incoming_name = str((data.get('_meta') or {}).get('name') or '').strip()
+    if incoming_name:
+        meta['name'] = incoming_name[:200]
     # Allow folder to be updated from incoming data
     incoming_folder = (data.get('_meta') or {}).get('folder', '')
     if incoming_folder or 'folder' in (data.get('_meta') or {}):
@@ -114,10 +118,10 @@ def update_project(pid):
     data['_meta'] = meta
 
     save_project_record(pid, data)
-    _snapshot_version(pid, data)
+    vid = _snapshot_version(pid, data)
     save_working_data(data)
     log.info(f"Project '{pid}' updated by '{session.get('user')}'")
-    return jsonify({'status': 'ok', 'id': pid, 'name': meta.get('name', pid)})
+    return jsonify({'status': 'ok', 'id': pid, 'name': meta.get('name', pid), 'vid': vid, 'saved_at': meta['saved_at']})
 
 
 def _archive(pid):
@@ -271,7 +275,7 @@ def compare():
 def _snapshot_version(pid: str, data: dict):
     """Save a timestamped snapshot under versions/<pid>/."""
     vid = datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_project_version(pid, vid, data)
+    return save_project_version(pid, vid, data)
 
 
 def _load_version_or_project(pid: str, vid: str | None) -> dict | None:

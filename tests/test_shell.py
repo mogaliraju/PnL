@@ -48,11 +48,13 @@ class TestShellRoutes(BaseTestCase):
                 self.assertIn(f'data-initial-tab="{tab}"', html)
                 self.assertIn('ax-legacy-tabs', html)          # rail drives the old tabs
 
-    def test_editor_shows_workspace_tabs(self):
+    def test_project_pages_render_the_workspace(self):
         html = self.client.get('/projects/proj1').data.decode()
-        self.assertIn('data-editor-pid="proj1"', html)
-        self.assertNotIn('ax-legacy-tabs', html)
+        self.assertIn('id="ax-ws" data-pid="proj1"', html)
+        self.assertIn('js/workspace.js', html)
+        self.assertNotIn('id="mainTabs"', html)           # the legacy editor is gone
         self.assertIn('data-ax-route="projects" class="is-active"', html)
+        self.assertIn('id="ax-ws" data-pid=""', self.client.get('/projects/new').data.decode())
 
     def test_admin_sees_users_and_user_does_not(self):
         self.assertIn('href="/admin/users"', self.client.get('/').data.decode())
@@ -117,9 +119,8 @@ class TestExportDialog(BaseTestCase):
         return {**SAMPLE_PROJECT, **extra}
 
     def test_export_screen_replaced_by_dialog(self):
-        html = self.client.get('/projects/proj1').data.decode()
+        html = self.client.get('/').data.decode()
         self.assertNotIn('id="tab-export"', html)
-        self.assertIn('onclick="openExportDialog()"', html)
         self.assertNotIn('Export settings', html)
 
     def test_download_name_from_dialog(self):

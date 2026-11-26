@@ -76,7 +76,9 @@ def main():
                 problems.append(f"{t}: {have} rows, baseline {n}")
         report.check('Row counts are equal or higher', problems)
 
-        projects = {r['pid']: r['payload'] for r in db.rows('projects')} if 'projects' in tables else {}
+        project_rows = db.rows('projects') if 'projects' in tables else []
+        projects = {r['pid']: r['payload'] for r in project_rows}
+        saved_at = {r['pid']: str(r.get('saved_at') or '') for r in project_rows}
         versions = ({f"{r['pid']}|{r['vid']}": r['payload'] for r in db.rows('project_versions')}
                     if 'project_versions' in tables else {})
     finally:
@@ -110,11 +112,16 @@ def main():
         problems += [f"version {k} is gone" for k in base['versions'] if k not in versions]
         report.check('Every baseline project and version still exists', problems)
 
-        # 4. calc parity
+        # 4. calc parity. Saved versions never change, so every one is checked. A project's
+        # current figures legitimately change when someone saves it after the baseline was
+        # taken; those projects are listed, not failed (their earlier versions are still checked).
+        from datetime import datetime
+        taken = datetime.fromisoformat(base['meta']['taken_at']).astimezone().replace(tzinfo=None).isoformat(timespec='seconds')
+        edited = sorted(pid for pid in base['projects'] if saved_at.get(pid, '') > taken)
         problems = []
         for kind, items, parsed in (('project', base['projects'], parsed_p), ('version', base['versions'], parsed_v)):
             for key, b in items.items():
-                if key not in parsed or 'error' in b:
+                if key not in parsed or 'error' in b or (kind == 'project' and key in edited):
                     continue
                 try:
                     now = figures_from_engine(parsed[key], engine)
@@ -123,6 +130,8 @@ def main():
                     continue
                 problems += [f"{kind} {key}: {p}" for p in compare(b, now)]
         report.check('Calculation parity within USD 1 (pnl/engine.py, legacy mode)', problems)
+        if edited:
+            print(f"INFO  {len(edited)} project(s) saved since the baseline; their earlier versions were checked: {', '.join(edited[:5])}{' ...' if len(edited) > 5 else ''}")
 
         # 5. excel parity
         problems = []
@@ -130,6 +139,8 @@ def main():
         for pid, cells in base.get('excel', {}).items():
             if pid not in parsed_p:
                 problems.append(f"sample project {pid} is gone")
+                continue
+            if pid in edited:
                 continue
             p = parsed_p[pid]
             c4c, ax = resolve_margin_inputs(p)

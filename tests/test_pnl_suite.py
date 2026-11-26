@@ -714,10 +714,10 @@ class TestUIRoutes(BaseTestCase):
         self.assertIn(b'tab-pnl-roles', r.data)
 
     def test_way_home_present_in_project_editor(self):
-        # The breadcrumb and the Projects rail item replace the old house icon
+        # The workspace renders a breadcrumb in JS; the Projects rail item is always there
         r = self.client.get('/projects/proj1')
-        self.assertIn(b'class="ax-crumb"><a href="/">Projects</a>', r.data)
-        self.assertIn(b'data-ax-route="projects"', r.data)
+        self.assertIn(b'data-ax-route="projects" class="is-active"', r.data)
+        self.assertIn(b'id="ax-ws" data-pid="proj1"', r.data)
 
     def test_export_settings_removed_from_tab_bar(self):
         r = self.client.get('/')

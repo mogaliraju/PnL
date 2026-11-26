@@ -809,12 +809,13 @@ def delete_project_version(pid: str, vid: str) -> None:
 def list_project_versions(pid: str) -> list[dict]:
     _ensure_db()
     with _connect() as conn:
+        numbered = _features()['rate_cards']
         rows = conn.execute(
-            _sql("""
-            SELECT vid, saved_at, saved_by, label, payload
+            _sql(f"""
+            SELECT vid, saved_at, saved_by, label, payload{', version_no' if numbered else ''}
             FROM project_versions
             WHERE pid = ?
-            ORDER BY vid DESC
+            ORDER BY saved_at DESC, vid DESC
             """),
             (pid,),
         ).fetchall()
@@ -846,8 +847,16 @@ def list_project_versions(pid: str) -> list[dict]:
             'cloud4c_margin_pct': round(costs.get('cloud4c_margin', 0) * 100, 1),
             'ax_margin_pct': round(costs.get('ax_margin', 0) * 100, 1),
             'gross_margin_pct': round(costs.get('gross_margin', 0) * 100, 1),
+            'version_no': row['version_no'] if numbered else None,
+            'rate_card_version': payload.get('rate_card_version'),
+            'calc_mode': payload.get('calc_mode') or 'legacy',
+            'pnl': _engine_summary(payload),
         })
         result.append(entry)
+    # Number versions oldest = 1 where the database doesn't store numbers.
+    for i, entry in enumerate(reversed(result), start=1):
+        if entry['version_no'] is None:
+            entry['version_no'] = i
     return result
 
 

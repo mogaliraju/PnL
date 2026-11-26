@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{#- Project workspace (DESIGN.md 5.3). Everything inside #ax-ws is rendered by static/js/workspace.js. -#}
+{% block title %}{{ 'New project' if not pid else 'Project' }}{% endblock %}
+{% block body_attrs %}data-page="workspace"{% endblock %}
+{% block content %}
+<div id="ax-ws" data-pid="{{ pid or '' }}">
+  <div class="ax-empty" style="padding:60px 0">Loading the project…</div>
+</div>
+<noscript><p>The project workspace needs JavaScript.</p></noscript>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workspace.js') }}"></script>
+{% endblock %}

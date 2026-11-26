@@ -274,8 +274,10 @@ def calculate(snapshot: dict, mode: str | None = None) -> PnLResult:
 
 
 def legacy_costs_dict(result: PnLResult) -> dict:
-    """The dict shape the pre-redesign `compute_costs` returned, from a legacy result.
-    Keeps every existing caller (list, dashboard, versions, Excel) unchanged."""
+    """The dict shape the pre-redesign `compute_costs` returned (list, dashboard, versions,
+    Excel template). For a legacy result the values are exactly what they always were; for a
+    v2 result the same keys carry the v2 figures (pass-through includes add-ons passed through,
+    margin-bearing one-time costs include add-ons priced with margin)."""
     def r2(d):
         return round(float(d), 2)
 
@@ -288,8 +290,8 @@ def legacy_costs_dict(result: PnLResult) -> dict:
         'input_cost':             r2(result.cost_basis),
         'total_cost':             r2(result.total_cost),
         'resource_input_cost':    r2(result.resources),
-        'one_time_input_cost':    r2(result.one_time),
-        'non_margin_cost':        r2(result.licenses),
+        'one_time_input_cost':    r2(result.one_time + result.addons_margin),
+        'non_margin_cost':        r2(result.pass_through),
         'margin_basis_sell_cost': r2(result.list_price),
         'sell_cost':              r2(result.contract_value),
         'markup':                 r2(result.markup),

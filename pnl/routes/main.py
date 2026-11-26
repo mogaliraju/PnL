@@ -122,16 +122,23 @@ def users_page():
     return _render_shell(active_nav='users', initial_tab='projects', page_title='Users', open_users=True)
 
 
+def _render_workspace(pid=''):
+    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
+    return render_template('workspace.html', active_nav='projects', pid=pid,
+                           app_refreshed_at_iso=refreshed_at_ist.isoformat(),
+                           app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'))
+
+
 @bp.route('/projects/new')
 @login_required
 def project_new():
-    return _render_shell(active_nav='projects', editor_mode=True, launch_new=True)
+    return _render_workspace()
 
 
 @bp.route('/projects/<pid>')
 @login_required
 def project_page(pid):
-    return _render_shell(active_nav='projects', editor_mode=True, editor_pid=pid)
+    return _render_workspace(pid)
 
 
 @bp.route('/project-editor')
