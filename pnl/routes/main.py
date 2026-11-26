@@ -1,7 +1,7 @@
 """Main routes: index page, current-project data, global settings."""
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, abort, redirect, render_template, request, jsonify, session, url_for
 from pnl.utils.storage import (
     load_all_project_records,
     load_working_data,
@@ -9,7 +9,8 @@ from pnl.utils.storage import (
     load_global_settings,
     save_global_settings,
 )
-from pnl.utils.auth import login_required
+from pnl import config
+from pnl.utils.auth import admin_required, login_required
 from pnl.utils.logger import get_logger
 from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
 
@@ -47,52 +48,95 @@ def exchange_rate():
     })
 
 
-@bp.route('/')
-@login_required
-def index():
+def _render_shell(*, active_nav='projects', initial_tab='', page_title=None,
+                  editor_mode=False, editor_pid='', launch_new=False, open_users=False):
     refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
     return render_template(
         'index.html',
-        editor_mode=False,
-        editor_pid='',
+        active_nav=active_nav,
+        initial_tab=initial_tab,
+        page_title=page_title,
+        editor_mode=editor_mode,
+        editor_pid=editor_pid,
         editor_project_name='',
-        launch_new=False,
+        launch_new=launch_new,
+        open_users=open_users,
         home_href='/',
         app_refreshed_at_iso=refreshed_at_ist.isoformat(),
         app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
     )
+
+
+@bp.route('/')
+@login_required
+def index():
+    return _render_shell(active_nav='projects', initial_tab='projects', page_title='Projects')
+
+
+@bp.route('/dashboard')
+@login_required
+def dashboard_page():
+    return _render_shell(active_nav='dashboard', initial_tab='dashboard', page_title='Dashboard')
+
+
+@bp.route('/rates')
+@login_required
+def rates_page():
+    return _render_shell(active_nav='rates', initial_tab='rates', page_title='Rates and roles')
+
+
+@bp.route('/rates/roles')
+@login_required
+def roles_page():
+    return _render_shell(active_nav='rates', initial_tab='roles', page_title='Rates and roles')
+
+
+@bp.route('/bookings')
+@login_required
+def bookings_page():
+    if not config.FEATURE_BOOKINGS_FUNNEL:
+        abort(404)
+    return _render_shell(active_nav='bookings', initial_tab='bookings', page_title='Order bookings')
+
+
+@bp.route('/funnel')
+@login_required
+def funnel_page():
+    if not config.FEATURE_BOOKINGS_FUNNEL:
+        abort(404)
+    return _render_shell(active_nav='funnel', initial_tab='funnel', page_title='Funnel report')
+
+
+@bp.route('/admin/users')
+@login_required
+@admin_required
+def users_page():
+    # Phase 7 replaces this with the Users screen; until then it opens the users dialog.
+    return _render_shell(active_nav='users', initial_tab='projects', page_title='Users', open_users=True)
+
+
+@bp.route('/projects/new')
+@login_required
+def project_new():
+    return _render_shell(active_nav='projects', editor_mode=True, launch_new=True)
+
+
+@bp.route('/projects/<pid>')
+@login_required
+def project_page(pid):
+    return _render_shell(active_nav='projects', editor_mode=True, editor_pid=pid)
 
 
 @bp.route('/project-editor')
 @login_required
 def project_editor_new():
-    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
-    return render_template(
-        'index.html',
-        editor_mode=True,
-        editor_pid='',
-        editor_project_name='',
-        launch_new=True,
-        home_href='/',
-        app_refreshed_at_iso=refreshed_at_ist.isoformat(),
-        app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
-    )
+    return redirect(url_for('main.project_new'))
 
 
 @bp.route('/project-editor/<pid>')
 @login_required
 def project_editor_existing(pid):
-    refreshed_at_ist = APP_REFRESHED_AT.astimezone(IST)
-    return render_template(
-        'index.html',
-        editor_mode=True,
-        editor_pid=pid,
-        editor_project_name='',
-        launch_new=False,
-        home_href='/',
-        app_refreshed_at_iso=refreshed_at_ist.isoformat(),
-        app_refreshed_at_display=refreshed_at_ist.strftime('%d %b %Y %H:%M IST'),
-    )
+    return redirect(url_for('main.project_page', pid=pid))
 
 
 @bp.route('/api/data', methods=['GET'])
@@ -322,3 +366,10 @@ def dashboard_data():
         'projects_summary': sorted(projects_summary, key=lambda p: p['ax_margin']),
         'at_risk': sorted(at_risk, key=lambda p: p['ax_margin']),
     })
+
+
+@bp.route('/design/components')
+@login_required
+def component_gallery():
+    """Every AX component in one page, for checking against the Figma components."""
+    return render_template('design/components.html', active_nav='')

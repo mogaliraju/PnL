@@ -268,8 +268,14 @@ Seeding (DESIGN.md 8.2) then copies from `app_state.global_settings` and from ev
 
 `app_state.global_settings` stays exactly as it is. It becomes the frozen backup listed in `DEPRECATED.md`.
 
-### Questions for you before Phase 5
+### Decisions for Phase 5 (agreed 27 Nov 2026)
 
-1. **SQLite.** Local development and the 100 existing tests use SQLite, but `serial`, `timestamptz` and partial indexes are Postgres syntax. I recommend running the new tables on Postgres only, with local development against a restored Postgres copy, and keeping SQLite only for the old tests until they're ported. The alternative is maintaining both SQL dialects.
-2. **Version numbers.** Versions have text ids, not numbers, so the backfill numbers them by `saved_at`. Two versions with the same `saved_at` are ordered by `vid`. Is that acceptable?
-3. **Legacy rates.** Old payloads keep their own rate-card copy, and legacy mode keeps using it, so old numbers never move. A project picks up rate card v1 only when someone presses Update in the rate card banner. Confirm that's the intended behaviour.
+1. **Postgres only.** New tables and migrations are written for Postgres only. Local development runs against the restored copy (`pnl_prod_copy_20261127_020914`), and tests move to a throwaway local Postgres database as their areas are rebuilt. The SQLite code path stays untouched until then, but nothing new is built for it.
+2. **Unique version numbers.** `version_no` is backfilled with `ROW_NUMBER() OVER (PARTITION BY pid ORDER BY saved_at, vid)`. This gives 1…N per project with no gaps and no ties, because `(pid, vid)` is already the primary key. A `UNIQUE (pid, version_no)` index enforces it from then on, and new saves take `max(version_no) + 1` inside the same transaction as the insert. On the production copy no project has two versions saved in the same second, every `vid` is a timestamp (`YYYYMMDD_HHMMSS`), and every version belongs to an existing project. So the numbers follow the real save order.
+3. **Legacy rates confirmed.** Existing projects keep calculating with the rate card stored in each saved payload, so their numbers never move. They move to a versioned rate card only when someone presses Update in the rate card banner.
+
+The proposed migration above gains one line for decision 2:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS project_versions_pid_version_no ON project_versions (pid, version_no);
+```

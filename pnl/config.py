@@ -29,3 +29,11 @@ _SEED = os.path.join(BASE_DIR, 'data.json')
 if not os.path.exists(DATA_FILE) and os.path.exists(_SEED) and DATA_DIR != BASE_DIR:
     import shutil
     shutil.copy(_SEED, DATA_FILE)
+
+# Margin health (DESIGN.md 3.2): AX margin after discount at or above GOOD is green,
+# at or above WARN is amber, below WARN is red. Kept here, not in templates or JS.
+AX_MARGIN_GOOD = float(os.environ.get('PNL_AX_MARGIN_GOOD', 20))
+AX_MARGIN_WARN = float(os.environ.get('PNL_AX_MARGIN_WARN', 10))
+
+# Order Bookings and Funnel Report are hidden from the UI from Phase 3 (DESIGN.md 2.4).
+FEATURE_BOOKINGS_FUNNEL = os.environ.get('FEATURE_BOOKINGS_FUNNEL', 'true').lower() in ('1', 'true', 'yes')

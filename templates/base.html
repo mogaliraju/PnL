@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Presales PnL{% endblock %} | AutomatonsX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+  {#- Bootstrap stays until the last screen is rebuilt (DESIGN.md 14, phase 2) #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  {% block head_css %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ax-tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ax.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/logo.svg') }}">
+</head>
+{%- set nav = active_nav|default('projects') %}
+{%- set is_admin = session.get('role') == 'admin' %}
+<body {% block body_attrs %}{% endblock %}>
+<div class="ax-app">
+  <aside class="ax-rail" aria-label="Main navigation">
+    <a class="ax-brand" href="/">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="">
+      <div><b>Presales PnL</b><small>AutomatonsX</small></div>
+    </a>
+    <nav class="ax-nav">
+      <a href="/" data-ax-route="projects" class="{{ 'is-active' if nav == 'projects' }}">{{ icon('folder') }}<span>Projects</span></a>
+      <a href="/dashboard" data-ax-route="dashboard" class="{{ 'is-active' if nav == 'dashboard' }}">{{ icon('chart') }}<span>Dashboard</span></a>
+      <a href="/rates" data-ax-route="rates" class="{{ 'is-active' if nav == 'rates' }}">{{ icon('grid') }}<span>Rates and roles</span></a>
+      {%- if feature_bookings_funnel %}
+      <div class="ax-nav-sep">Tracking</div>
+      <a href="/bookings" data-ax-route="bookings" class="{{ 'is-active' if nav == 'bookings' }}">{{ icon('receipt') }}<span>Order bookings</span></a>
+      <a href="/funnel" data-ax-route="funnel" class="{{ 'is-active' if nav == 'funnel' }}">{{ icon('funnel') }}<span>Funnel report</span></a>
+      {%- endif %}
+      <div id="nav_admin_link" class="{{ '' if is_admin else 'd-none' }}" {% if not is_admin %}hidden{% endif %}>
+        <div class="ax-nav-sep">Admin</div>
+        <a href="/admin/users" data-ax-route="users" class="{{ 'is-active' if nav == 'users' }}">{{ icon('users') }}<span>Users</span></a>
+      </div>
+    </nav>
+    <div class="ax-me dropup">
+      <button class="ax-me-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+        <span class="ax-avatar">{{ initials(session.get('name') or session.get('user')) }}</span>
+        <div><b id="nav_username">{{ session.get('name') or session.get('user') }}</b><span id="nav_role_label">{{ 'Admin' if is_admin else 'User' }}</span></div>
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change password</a></li>
+        {% block account_menu_extra %}{% endblock %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="/logout">Sign out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <div class="ax-main">
+    <header class="ax-top">
+      <label class="ax-search">
+        {{ icon('search') }}
+        <input id="ax-global-search" type="search" placeholder="Search projects" aria-label="Search projects" autocomplete="off" value="{{ request.args.get('q', '') }}">
+        <span class="ax-kbd" aria-hidden="true">/</span>
+      </label>
+      <div class="ax-spacer"></div>
+      {% block top_actions %}{% endblock %}
+    </header>
+    <main class="ax-page" id="ax-page">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="ax-footer app-footer">
+      <span class="app-footer-label">Application deployment refresh</span>
+      {% if app_refreshed_at_display %}<time datetime="{{ app_refreshed_at_iso }}"><b>{{ app_refreshed_at_display }}</b></time>{% endif %}
+    </footer>
+  </div>
+</div>
+{% block modals %}{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='js/ax-shell.js') }}"></script>
+</body>
+</html>

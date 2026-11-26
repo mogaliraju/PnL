@@ -79,7 +79,7 @@ async function loadSession() {
   currentUser = await res.json();
   document.getElementById('nav_username').textContent = currentUser.name || currentUser.username;
   document.getElementById('nav_role_label').textContent =
-    currentUser.role === 'admin' ? '👑 Administrator' : '👤 User';
+    currentUser.role === 'admin' ? 'Admin' : 'User';
   if (currentUser.role === 'admin') {
     document.getElementById('nav_admin_link').classList.remove('d-none');
     // Load users modal on open
@@ -260,10 +260,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     populateAll();
     loadExchangeRate();
-  // Open All Projects tab on first load — no active project yet
+  // Open the screen the URL asks for (the AX shell routes /, /dashboard, /rates ...)
   updateProjectBadge(null);
-  document.querySelector('[href="#tab-all-projects"]')?.click();
-  loadAllProjects();
+  if (window.axShell) {
+    window.axShell.openInitialTab();
+  } else {
+    document.querySelector('[href="#tab-all-projects"]')?.click();
+    loadAllProjects();
+  }
   }
 
   // Clear validation state when user types in customer field
@@ -1768,7 +1772,7 @@ function loadAllProjectsSearch() {
 
 function saveAllProjectsSearch(value) {
   _allProjectsSearch = String(value || '');
-  localStorage.setItem(ALL_PROJECTS_SEARCH_STORAGE_KEY, _allProjectsSearch);
+  try { localStorage.setItem(ALL_PROJECTS_SEARCH_STORAGE_KEY, _allProjectsSearch); } catch { /* private mode */ }
 }
 
 function toggleAllProjectsColumnPicker() {
@@ -2457,7 +2461,7 @@ async function deleteProjectFromAllProjects(id, name, btn) {
 }
 
 function goToProjectEditor(pid = '') {
-  const url = pid ? `/project-editor/${encodeURIComponent(pid)}` : '/project-editor';
+  const url = pid ? `/projects/${encodeURIComponent(pid)}` : '/projects/new';
   window.location.href = url;
 }
 
@@ -2641,6 +2645,8 @@ function updateProjectBadge(name) {
   const badge = document.getElementById('current_project_badge');
   const pill  = document.getElementById('active_project_pill');
   const lbl   = document.getElementById('proj-savebar-label');
+  const crumb = document.getElementById('ax-crumb-name');
+  if (crumb) crumb.textContent = name || 'New project';
   if (!name) {
     pill?.classList.add('d-none');
     if (lbl) lbl.textContent = 'New project — fill in details below';

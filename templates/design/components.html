@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% import "components/ui.html" as ui %}
+{% block title %}Components{% endblock %}
+{% block content %}
+{% call ui.page_header("Components", "Every AX component in its states. Figma components carry the same names (DESIGN.md 6).") %}
+  {{ ui.button("Secondary") }}{{ ui.button("Primary", variant="primary", icon_name="save") }}
+{% endcall %}
+<div style="display:grid;gap:18px">
+{% call ui.panel() %}
+  <div class="ax-section">{{ ui.section_header("Buttons", "Primary, default, ghost, danger, small and icon-only.") }}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      {{ ui.button("Save version", variant="primary", icon_name="save") }}
+      {{ ui.button("Export Excel", icon_name="download") }}
+      {{ ui.button("Versions", variant="ghost", icon_name="history") }}
+      {{ ui.button("Archive project", variant="danger", icon_name="archive") }}
+      {{ ui.button("Add resource", size="small", icon_name="plus") }}
+      {{ ui.button("", icon_name="x", aria_label="Close") }}
+      {{ ui.button("Disabled", variant="primary", attrs="disabled") }}
+    </div>
+  </div>
+  <div class="ax-section">{{ ui.section_header("Status and margin health") }}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      {% for s in ["Draft", "Submitted", "Won", "Lost", "On hold"] %}{{ ui.status_pill(s) }}{% endfor %}
+      {{ ui.health(24.0) }}{{ ui.health(12.5) }}{{ ui.health(6.0) }}
+      <span class="ax-caption">Good at {{ ax_thresholds.good|int }}% or more, warn from {{ ax_thresholds.warn|int }}%.</span>
+    </div>
+  </div>
+  <div class="ax-section">{{ ui.section_header("Fields") }}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 18px">
+      {{ ui.field("Customer name", "demo_customer", value="Northwind Logistics", required=True) }}
+      {{ ui.field("Cloud4C margin %", "demo_c4c", type="number", value="40", number=True, hint="0 to 95") }}
+      {{ ui.field("Discount %", "demo_disc", type="number", value="60", number=True, error="Discount must be between 0% and 50%.") }}
+      {{ ui.select("Status", "demo_status", ["Draft", "Submitted", "Won", "Lost", "On hold"], value="Submitted") }}
+      {{ ui.field("Risks", "demo_risks", type="textarea") }}
+    </div>
+  </div>
+{% endcall %}
+{% call ui.banner("This project prices with rate card v3. Rate card v4 was published on 2 Nov 2026. Rates only change if you choose to update.") %}{{ ui.button("Review changes", size="small") }}{% endcall %}
+{% call ui.panel() %}
+  {{ ui.tabs([("resources", "Resources", 5), ("costs", "Other costs", 2), ("details", "Details", None)], "resources") }}
+  {% call ui.empty_state("No resources yet", "Add the first role to start building the cost basis.") %}{{ ui.button("Add resource", icon_name="plus") }}{% endcall %}
+{% endcall %}
+{% call ui.panel() %}
+  <table class="ax-table"><thead><tr><th>Category</th><th>Role</th><th class="r">Hours</th><th class="r">Cost</th></tr></thead>
+  <tbody><tr><td>Data Engineering</td><td>Data architect</td><td class="r">480</td><td class="r">$28,800</td></tr>
+  <tr><td>Delivery</td><td>Project manager</td><td class="r">360</td><td class="r">$14,400</td></tr></tbody>
+  <tfoot><tr><td colspan="2">Total</td><td class="r">840</td><td class="r">$43,200</td></tr></tfoot></table>
+{% endcall %}
+</div>
+{% endblock %}

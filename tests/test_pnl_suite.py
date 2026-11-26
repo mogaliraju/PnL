@@ -679,16 +679,21 @@ class TestUIRoutes(BaseTestCase):
         self.assertEqual(r.status_code, 200)
 
     def test_project_editor_new_returns_200(self):
+        # Old URL redirects to the new route (DESIGN.md 4.5)
         r = self.client.get('/project-editor')
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers['Location'].endswith('/projects/new'))
+        self.assertEqual(self.client.get('/projects/new').status_code, 200)
 
     def test_project_editor_with_pid_returns_200(self):
         r = self.client.get('/project-editor/proj1')
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers['Location'].endswith('/projects/proj1'))
+        self.assertEqual(self.client.get('/projects/proj1').status_code, 200)
 
     def test_project_editor_nonexistent_pid_returns_200(self):
         # App loads editor then JS handles the 404 gracefully
-        r = self.client.get('/project-editor/no-such-project')
+        r = self.client.get('/projects/no-such-project')
         self.assertEqual(r.status_code, 200)
 
     def test_index_contains_all_projects_tab(self):
@@ -703,9 +708,11 @@ class TestUIRoutes(BaseTestCase):
         r = self.client.get('/')
         self.assertIn(b'tab-pnl-roles', r.data)
 
-    def test_home_icon_present_in_project_editor(self):
-        r = self.client.get('/project-editor/proj1')
-        self.assertIn(b'bi-house-door', r.data)
+    def test_way_home_present_in_project_editor(self):
+        # The breadcrumb and the Projects rail item replace the old house icon
+        r = self.client.get('/projects/proj1')
+        self.assertIn(b'class="ax-crumb"><a href="/">Projects</a>', r.data)
+        self.assertIn(b'data-ax-route="projects"', r.data)
 
     def test_export_settings_removed_from_tab_bar(self):
         r = self.client.get('/')
@@ -713,9 +720,10 @@ class TestUIRoutes(BaseTestCase):
         html = r.data.decode()
         self.assertNotIn('href="#tab-export"', html)
 
-    def test_inter_font_loaded(self):
+    def test_brand_font_loaded(self):
+        # DESIGN.md 3.3: Carlito (Calibri metrics) replaces Inter
         r = self.client.get('/')
-        self.assertIn(b'Inter', r.data)
+        self.assertIn(b'family=Carlito', r.data)
 
 
 # ══════════════════════════════════════════════════════════════════

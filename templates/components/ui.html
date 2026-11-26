@@ -1,0 +1,76 @@
+{#- AX components (DESIGN.md 6). One macro per component; Figma components share the names.
+    Usage: {% import "components/ui.html" as ui %} then {{ ui.button("Save version", variant="primary", icon_name="save") }} -#}
+
+{% macro button(label, variant="default", icon_name=None, size=None, type="button", href=None, attrs="", aria_label=None) -%}
+{%- set cls = "ax-btn" ~ (" ax-btn--" ~ variant if variant != "default" else "") ~ (" ax-btn--small" if size == "small" else "") ~ (" ax-btn--icon" if not label else "") -%}
+{%- if href -%}
+<a class="{{ cls }}" href="{{ href }}" {{ attrs|safe }}{% if aria_label %} aria-label="{{ aria_label }}"{% endif %}>{% if icon_name %}{{ icon(icon_name) }}{% endif %}{{ label }}</a>
+{%- else -%}
+<button class="{{ cls }}" type="{{ type }}" {{ attrs|safe }}{% if aria_label %} aria-label="{{ aria_label }}"{% endif %}>{% if icon_name %}{{ icon(icon_name) }}{% endif %}{{ label }}</button>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro field(label, id, type="text", value="", hint=None, error=None, required=False, attrs="", number=False) -%}
+<div class="ax-field">
+  <label for="{{ id }}">{{ label }}</label>
+  {%- if type == "textarea" %}
+  <textarea class="ax-input" id="{{ id }}" name="{{ id }}" rows="3" {{ attrs|safe }}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-err"{% endif %}{% if required %} required{% endif %}>{{ value }}</textarea>
+  {%- else %}
+  <input class="ax-input{{ ' num' if number }}" id="{{ id }}" name="{{ id }}" type="{{ type }}" value="{{ value }}" {{ attrs|safe }}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-err"{% endif %}{% if required %} required{% endif %}>
+  {%- endif %}
+  {%- if error %}<span class="ax-error" id="{{ id }}-err">{{ error }}</span>{% elif hint %}<span class="ax-hint">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro select(label, id, options, value=None, hint=None, attrs="") -%}
+<div class="ax-field">
+  <label for="{{ id }}">{{ label }}</label>
+  <select class="ax-input" id="{{ id }}" name="{{ id }}" {{ attrs|safe }}>
+    {%- for opt in options %}
+    {%- set ov = opt[0] if opt is not string else opt %}{% set ol = opt[1] if opt is not string else opt %}
+    <option value="{{ ov }}"{% if ov == value %} selected{% endif %}>{{ ol }}</option>
+    {%- endfor %}
+  </select>
+  {%- if hint %}<span class="ax-hint">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro status_pill(status) -%}
+<span class="ax-pill ax-pill--{{ status_slug(status) }}">{{ status or "Draft" }}</span>
+{%- endmacro %}
+
+{% macro health(value) -%}
+<span class="ax-health ax-health--{{ health_class(value) }}">{{ "%.1f"|format(value|float) }}%</span>
+{%- endmacro %}
+
+{% macro page_header(title, description=None) -%}
+<div class="ax-page-head">
+  <div><h1 class="ax-h1">{{ title }}</h1>{% if description %}<p>{{ description }}</p>{% endif %}</div>
+  {%- if caller %}<div class="ax-actions">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro section_header(title, description=None) -%}
+<div class="ax-section-head"><div><h2 class="ax-h2">{{ title }}</h2>{% if description %}<p>{{ description }}</p>{% endif %}</div></div>
+{%- endmacro %}
+
+{% macro panel(cls="") -%}
+<section class="ax-panel {{ cls }}">{{ caller() }}</section>
+{%- endmacro %}
+
+{% macro banner(text, variant=None) -%}
+<div class="ax-banner{{ ' ax-banner--' ~ variant if variant }}" role="status">{{ icon("alert") }}<span>{{ text }}</span>{% if caller %}{{ caller() }}{% endif %}</div>
+{%- endmacro %}
+
+{% macro empty_state(title, body) -%}
+<div class="ax-empty"><b>{{ title }}</b>{{ body }}{% if caller %}<div>{{ caller() }}</div>{% endif %}</div>
+{%- endmacro %}
+
+{% macro tabs(items, active) -%}
+{#- items: list of (key, label, count or None) -#}
+<div class="ax-tabs" role="tablist">
+  {%- for key, label, count in items %}
+  <button type="button" role="tab" data-tab="{{ key }}" class="{{ 'is-active' if key == active }}" aria-selected="{{ 'true' if key == active else 'false' }}">{{ label }}{% if count is not none %}<span class="ax-count">{{ count }}</span>{% endif %}</button>
+  {%- endfor %}
+</div>
+{%- endmacro %}

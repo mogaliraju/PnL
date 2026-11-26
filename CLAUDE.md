@@ -41,6 +41,13 @@ Bootstrapping a first admin on an empty DB: set `PNL_BOOTSTRAP_ADMIN_PASSWORD` (
 
 ## Architecture
 
+### UI shell (redesign Phase 2)
+
+- `templates/base.html` is the AX shell: navy rail, top bar with global search, account menu. Pages extend it. `templates/index.html` still holds the legacy screens as Bootstrap tab panes. On home pages the rail drives them through hidden tab links (`static/js/ax-shell.js`, `axShell.show(route)`), so `app.js` loaders keep working. In the editor (`/projects/<id>`, `/projects/new`) the tabs are visible. The old `/project-editor/...` URLs redirect.
+- Colours, type and sizes come from `design/figma-tokens.json`. `scripts/build_tokens.py` generates `static/css/ax-tokens.css`; never edit that file by hand, and a test fails if it's stale. `static/css/ax.css` holds the shell and components and also reskins Bootstrap for screens not yet rebuilt. `style.css` is legacy.
+- Components are Jinja macros in `templates/components/ui.html` (`{% import "components/ui.html" as ui %}`). `/design/components` shows them all. Icons come from `icon(name)` in `pnl/ui.py`. Margin health thresholds live in `pnl/config.py` (`AX_MARGIN_GOOD`, `AX_MARGIN_WARN`), never in templates or JS.
+
+
 - `app.py` → `pnl.create_app()` (app factory in `pnl/__init__.py`), which registers blueprints from `pnl/routes/` (`auth`, `main`, `projects`, `export`, `import_excel`, `funnel`, `bookings`). A global error handler forces JSON error bodies for any `/api/*` path.
 - `pnl/config.py` resolves all paths from `DATA_DIR` (defaults to repo root) and enforces `SECRET_KEY` when `PNL_ENV=production`. It runs side effects at import (creates dirs).
 - `pnl/utils/storage.py` is the **only** persistence layer, and every route goes through it:
