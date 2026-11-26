@@ -1,0 +1,1701 @@
+{
+ "description": "Ten production projects (27 Nov 2026), anonymised: names, notes and item labels removed. expected = figures from the pre-redesign code (tag pre-redesign-2026).",
+ "fixtures": [
+  {
+   "name": "production project 1",
+   "tags": [
+    "category_rate_card",
+    "high_margin",
+    "no_resources",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 5000,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.58335,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.28335,
+    "fx_rate": 95.252751,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 5000.0,
+    "total_cost": 5000.0,
+    "resource_input_cost": 0,
+    "one_time_input_cost": 5000.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 12000.48,
+    "sell_cost": 12000.48,
+    "markup": 7000.48,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.2833,
+    "gross_margin": 0.5834,
+    "revenue_after_discount": 12000.48,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 0,
+    "resource_count": 0
+   }
+  },
+  {
+   "name": "production project 2",
+   "tags": [
+    "flat_rate_card",
+    "high_margin",
+    "licenses"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 270
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Junior Data Engineer",
+      "level": "L1",
+      "hours": 400
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Senior Data Engineer",
+      "level": "L2",
+      "hours": 560
+     },
+     {
+      "group": "Data Engineering",
+      "role": "AXConnect Engineer",
+      "level": "L2",
+      "hours": 120
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Engineer",
+      "level": "L3",
+      "hours": 120
+     },
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L3",
+      "hours": 200
+     },
+     {
+      "group": "Data Engineering",
+      "role": "QA Engineer",
+      "level": "L1",
+      "hours": 80
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rate": 7
+     },
+     {
+      "level": "L2",
+      "rate": 20
+     },
+     {
+      "level": "L3",
+      "rate": 25
+     },
+     {
+      "level": "L4",
+      "rate": 29
+     },
+     {
+      "level": "L5",
+      "rate": 35
+     },
+     {
+      "level": "L6",
+      "rate": 48
+     },
+     {
+      "level": "L7",
+      "rate": 55
+     },
+     {
+      "level": "L8",
+      "rate": 65
+     },
+     {
+      "level": "Onsite",
+      "rate": 100
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 1000,
+      "category": "license",
+      "exclude_from_margin": true
+     }
+    ],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 95.40519,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 37920.0,
+    "total_cost": 38920.0,
+    "resource_input_cost": 37920.0,
+    "one_time_input_cost": 0.0,
+    "non_margin_cost": 1000.0,
+    "margin_basis_sell_cost": 94800.0,
+    "sell_cost": 95800.0,
+    "markup": 56880.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 95800.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 1750.0,
+    "resource_count": 7
+   }
+  },
+  {
+   "name": "production project 3",
+   "tags": [
+    "category_rate_card",
+    "no_ax",
+    "zero_margin"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Data Engineering",
+      "role": "AI Engineer",
+      "level": "L2",
+      "hours": 606
+     },
+     {
+      "group": "Data Engineering",
+      "role": "AI Engineer",
+      "level": "L3",
+      "hours": 406
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 69
+     },
+     {
+      "group": "Data Engineering",
+      "role": "AI Engineer",
+      "level": "L5",
+      "hours": 44
+     },
+     {
+      "group": "Data Engineering",
+      "role": "QA Engineer",
+      "level": "L2",
+      "hours": 144
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [],
+    "target_margin": 0,
+    "cloud4c_margin": 0,
+    "ax_margin": 0,
+    "fx_rate": 92.753491,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 30002.0,
+    "total_cost": 30002.0,
+    "resource_input_cost": 30002.0,
+    "one_time_input_cost": 0.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 30002.0,
+    "sell_cost": 30002.0,
+    "markup": 0.0,
+    "cloud4c_margin": 0.0,
+    "ax_margin": 0.0,
+    "gross_margin": 0.0,
+    "revenue_after_discount": 30002.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 1269.0,
+    "resource_count": 5
+   }
+  },
+  {
+   "name": "production project 4",
+   "tags": [
+    "category_rate_card",
+    "many_resources",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L4",
+      "hours": 2000
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 2000
+     },
+     {
+      "group": "Project & Product",
+      "role": "Functional Consultant",
+      "level": "L3",
+      "hours": 2000
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Lead Data Engineer",
+      "level": "L4",
+      "hours": 2000
+     },
+     {
+      "group": "Project & Product",
+      "role": "Delivery Manager",
+      "level": "L6",
+      "hours": 400
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Cloud Data Engineer",
+      "level": "L1",
+      "hours": 2000
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "L2",
+      "hours": 2000
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Power BI Developer",
+      "level": "L2",
+      "hours": 2000
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "BI Developer",
+      "level": "L1",
+      "hours": 1200
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Lead",
+      "level": "L3",
+      "hours": 2000
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Junior Data Engineer",
+      "level": "L1",
+      "hours": 2400
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Junior Data Engineer",
+      "level": "L1",
+      "hours": 7200
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 500000,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.3,
+    "cloud4c_margin": 0,
+    "ax_margin": 0.3,
+    "fx_rate": 96.46757,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 1035600.0,
+    "total_cost": 1035600.0,
+    "resource_input_cost": 535600.0,
+    "one_time_input_cost": 500000.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 1479428.57,
+    "sell_cost": 1479428.57,
+    "markup": 443828.57,
+    "cloud4c_margin": 0.0,
+    "ax_margin": 0.3,
+    "gross_margin": 0.3,
+    "revenue_after_discount": 1479428.57,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 27200.0,
+    "resource_count": 12
+   }
+  },
+  {
+   "name": "production project 5",
+   "tags": [
+    "category_rate_card",
+    "discount",
+    "high_margin"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Data Engineering",
+      "role": "AI Engineer",
+      "level": "L8",
+      "hours": 100
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [],
+    "target_margin": 0.5680000000000001,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.268,
+    "fx_rate": 96.46757,
+    "project": {
+     "discount_pct": 10,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 6500.0,
+    "total_cost": 6500.0,
+    "resource_input_cost": 6500.0,
+    "one_time_input_cost": 0.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 15046.3,
+    "sell_cost": 15046.3,
+    "markup": 8546.3,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.268,
+    "gross_margin": 0.568,
+    "revenue_after_discount": 13541.67,
+    "discount_pct": 10.0,
+    "add_on_cost": 0.0,
+    "total_hours": 100.0,
+    "resource_count": 1
+   }
+  },
+  {
+   "name": "production project 6",
+   "tags": [
+    "category_rate_card",
+    "high_margin",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L4",
+      "hours": 300
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 320
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Devops Engineer",
+      "level": "L2",
+      "hours": 160
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Senior Data Engineer",
+      "level": "L3",
+      "hours": 2000
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "L2",
+      "hours": 900
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Power BI Developer",
+      "level": "L1",
+      "hours": 580
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Lead",
+      "level": "L2",
+      "hours": 300
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Senior Power BI Developer",
+      "level": "L3",
+      "hours": 300
+     },
+     {
+      "group": "Data Engineering",
+      "role": "QA Engineer",
+      "level": "L1",
+      "hours": 180
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 300,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 93.929192,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 114920.0,
+    "total_cost": 114920.0,
+    "resource_input_cost": 114620.0,
+    "one_time_input_cost": 300.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 287300.0,
+    "sell_cost": 287300.0,
+    "markup": 172380.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 287300.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 5040.0,
+    "resource_count": 9
+   }
+  },
+  {
+   "name": "production project 7",
+   "tags": [
+    "category_rate_card",
+    "high_margin",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L4",
+      "hours": 300
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 320
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Devops Engineer",
+      "level": "L2",
+      "hours": 160
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Senior Data Engineer",
+      "level": "L4",
+      "hours": 2000
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "L2",
+      "hours": 900
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Power BI Developer",
+      "level": "L2",
+      "hours": 580
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Lead",
+      "level": "L3",
+      "hours": 300
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Senior Power BI Developer",
+      "level": "L3",
+      "hours": 300
+     },
+     {
+      "group": "Data Engineering",
+      "role": "QA Engineer",
+      "level": "L1",
+      "hours": 180
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 300,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 95.292116,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 131960.0,
+    "total_cost": 131960.0,
+    "resource_input_cost": 131660.0,
+    "one_time_input_cost": 300.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 329900.0,
+    "sell_cost": 329900.0,
+    "markup": 197940.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 329900.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 5040.0,
+    "resource_count": 9
+   }
+  },
+  {
+   "name": "production project 8",
+   "tags": [
+    "category_rate_card",
+    "high_margin",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L4",
+      "hours": 80
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 100
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Devops Engineer",
+      "level": "L2",
+      "hours": 120
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Senior Data Engineer",
+      "level": "L4",
+      "hours": 200
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "L2",
+      "hours": 200
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "Power BI Developer",
+      "level": "L3",
+      "hours": 100
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Lead",
+      "level": "L3",
+      "hours": 160
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 200,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 95.29615,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 26020.0,
+    "total_cost": 26020.0,
+    "resource_input_cost": 25820.0,
+    "one_time_input_cost": 200.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 65050.0,
+    "sell_cost": 65050.0,
+    "markup": 39030.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 65050.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 960.0,
+    "resource_count": 7
+   }
+  },
+  {
+   "name": "production project 9",
+   "tags": [
+    "flat_rate_card",
+    "high_margin"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "Onsite",
+      "hours": 1600
+     },
+     {
+      "group": "Data Engineering",
+      "role": "AI Engineer",
+      "level": "Onsite",
+      "hours": 1600
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "BI Developer",
+      "level": "Onsite",
+      "hours": 600
+     },
+     {
+      "group": "Power BI & Analytics",
+      "role": "BI Analyst",
+      "level": "Onsite",
+      "hours": 600
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "Onsite",
+      "hours": 1000
+     },
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "Onsite",
+      "hours": 1000
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rate": 7
+     },
+     {
+      "level": "L2",
+      "rate": 20
+     },
+     {
+      "level": "L3",
+      "rate": 25
+     },
+     {
+      "level": "L4",
+      "rate": 29
+     },
+     {
+      "level": "L5",
+      "rate": 35
+     },
+     {
+      "level": "L6",
+      "rate": 48
+     },
+     {
+      "level": "L7",
+      "rate": 55
+     },
+     {
+      "level": "L8",
+      "rate": 65
+     },
+     {
+      "level": "Onsite",
+      "rate": 100
+     }
+    ],
+    "one_time_costs": [],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 95.78469,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 640000.0,
+    "total_cost": 640000.0,
+    "resource_input_cost": 640000.0,
+    "one_time_input_cost": 0.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 1600000.0,
+    "sell_cost": 1600000.0,
+    "markup": 960000.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 1600000.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 6400.0,
+    "resource_count": 6
+   }
+  },
+  {
+   "name": "production project 10",
+   "tags": [
+    "category_rate_card",
+    "high_margin",
+    "one_time"
+   ],
+   "snapshot": {
+    "resources": [
+     {
+      "group": "Project & Product",
+      "role": "Project Manager",
+      "level": "L4",
+      "hours": 80
+     },
+     {
+      "group": "Architecture & Leadership",
+      "role": "Solution Architect",
+      "level": "L6",
+      "hours": 80
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Devops Engineer",
+      "level": "L1",
+      "hours": 120
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Senior Data Engineer",
+      "level": "L4",
+      "hours": 150
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Data Engineer",
+      "level": "L1",
+      "hours": 150
+     },
+     {
+      "group": "Data Engineering",
+      "role": "Purview Lead",
+      "level": "L1",
+      "hours": 150
+     }
+    ],
+    "rate_card": [
+     {
+      "level": "L1",
+      "rates": {
+       "Architecture & Leadership": 7,
+       "Data Engineering": 10,
+       "Platform": 10,
+       "Power BI & Analytics": 7,
+       "Project & Product": 7,
+       "Support & Pre-Sales": 7
+      }
+     },
+     {
+      "level": "L2",
+      "rates": {
+       "Architecture & Leadership": 20,
+       "Data Engineering": 20,
+       "Platform": 20,
+       "Power BI & Analytics": 20,
+       "Project & Product": 20,
+       "Support & Pre-Sales": 20
+      }
+     },
+     {
+      "level": "L3",
+      "rates": {
+       "Architecture & Leadership": 25,
+       "Data Engineering": 25,
+       "Platform": 20,
+       "Power BI & Analytics": 25,
+       "Project & Product": 25,
+       "Support & Pre-Sales": 25
+      }
+     },
+     {
+      "level": "L4",
+      "rates": {
+       "Architecture & Leadership": 29,
+       "Data Engineering": 29,
+       "Platform": 30,
+       "Power BI & Analytics": 29,
+       "Project & Product": 29,
+       "Support & Pre-Sales": 29
+      }
+     },
+     {
+      "level": "L5",
+      "rates": {
+       "Architecture & Leadership": 35,
+       "Data Engineering": 35,
+       "Platform": 40,
+       "Power BI & Analytics": 35,
+       "Project & Product": 35,
+       "Support & Pre-Sales": 35
+      }
+     },
+     {
+      "level": "L6",
+      "rates": {
+       "Architecture & Leadership": 48,
+       "Data Engineering": 48,
+       "Platform": 50,
+       "Power BI & Analytics": 48,
+       "Project & Product": 48,
+       "Support & Pre-Sales": 48
+      }
+     },
+     {
+      "level": "L7",
+      "rates": {
+       "Architecture & Leadership": 55,
+       "Data Engineering": 55,
+       "Platform": 60,
+       "Power BI & Analytics": 55,
+       "Project & Product": 55,
+       "Support & Pre-Sales": 55
+      }
+     },
+     {
+      "level": "L8",
+      "rates": {
+       "Architecture & Leadership": 65,
+       "Data Engineering": 65,
+       "Platform": 70,
+       "Power BI & Analytics": 65,
+       "Project & Product": 65,
+       "Support & Pre-Sales": 65
+      }
+     },
+     {
+      "level": "Onsite",
+      "rates": {
+       "Architecture & Leadership": 100,
+       "Data Engineering": 100,
+       "Platform": 100,
+       "Power BI & Analytics": 100,
+       "Project & Product": 100,
+       "Support & Pre-Sales": 100
+      }
+     }
+    ],
+    "one_time_costs": [
+     {
+      "label": "Item 1",
+      "amount": 200,
+      "category": "general",
+      "exclude_from_margin": false
+     }
+    ],
+    "target_margin": 0.6,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "fx_rate": 94.047485,
+    "project": {
+     "discount_pct": null,
+     "travel_cost": null,
+     "infra_cost": null,
+     "third_party_cost": null
+    }
+   },
+   "expected": {
+    "input_cost": 14910.0,
+    "total_cost": 14910.0,
+    "resource_input_cost": 14710.0,
+    "one_time_input_cost": 200.0,
+    "non_margin_cost": 0.0,
+    "margin_basis_sell_cost": 37275.0,
+    "sell_cost": 37275.0,
+    "markup": 22365.0,
+    "cloud4c_margin": 0.3,
+    "ax_margin": 0.3,
+    "gross_margin": 0.6,
+    "revenue_after_discount": 37275.0,
+    "discount_pct": 0.0,
+    "add_on_cost": 0.0,
+    "total_hours": 730.0,
+    "resource_count": 6
+   }
+  }
+ ]
+}

@@ -48,17 +48,19 @@ Bootstrapping a first admin on an empty DB: set `PNL_BOOTSTRAP_ADMIN_PASSWORD` (
   - Schema is created lazily by `_ensure_db()`. On a fresh DB it also migrates legacy JSON files (`data.json`, `settings.json`, `users.json`, `projects/`, `versions/`). Tables: `app_state` (key/JSON blobs: `working_data`, `global_settings`, custom fields, column labels), `users`, `projects`, `project_versions`, `funnel_entries`, `order_bookings`.
   - Projects are stored as whole JSON payloads (`_meta`, `project`, `resources`, `rate_card`, `one_time_costs`, margins, …). Global settings (`rate_card`, `role_catalog`, `business_units`) are injected into each project on load via `merge_settings()`, so editing the global rate card affects every project. `save_working_data()` also writes those keys back to global settings.
   - Every project save creates a version snapshot (`project_versions`). The Compare feature diffs two snapshots.
-- `pnl/services/pnl_service.py` holds the cost math (`compute_costs`, `compare_versions`). `pnl/services/excel_service.py` builds the export workbook (`build_workbook`) in the Benline PnL template layout.
+- `pnl/engine.py` is the only place that computes costs, prices and margins: `calculate(snapshot, mode) -> PnLResult`, Decimal maths, modes `legacy` and `v2` (DESIGN.md section 7). `pnl/services/pnl_service.py` is a thin wrapper (`compute_costs`, `legacy_version_revenue`, `compare_versions`) that runs the engine in legacy mode and returns the old dict shape for existing callers. `pnl/services/excel_service.py` builds the export workbook (`build_workbook`) in the Benline PnL template layout.
 - `pnl/routes/import_excel.py`, `funnel.py` and `bookings.py` each have their own fuzzy header-matching parsers for importing user spreadsheets.
 
 ### Cost model (the README's formula is out of date)
+
+Every existing project is `legacy` mode. A snapshot without `calc_mode` is legacy, and legacy must reproduce the pre-redesign numbers exactly. `tests/test_engine.py` checks this against 10 anonymised production fixtures, and `scripts/verify_data.py` checks every production project and version. `v2` (add-ons with an Apply margin / Pass through treatment, discount taken off list price, lever limits) is described in DESIGN.md 7.2. Legacy rules:
 
 - Resource cost = `hours × rate`, where the rate comes from the rate card entry matching `level`, using `rates[group]` (or the legacy flat `rate` field).
 - `one_time_costs` items are added to the input cost, **except** non-margin items (`exclude_from_margin: true` or `category == 'license'`), which are passed through at cost.
 - Margins: `cloud4c_margin + ax_margin` = combined margin, each clamped to [0, 0.99]. Legacy projects that only have `target_margin` treat it as the Cloud4C margin with AX = 0 (`resolve_margin_inputs`).
 - `margin_basis_sell_cost = input_cost / (1 − combined_margin)`. Then `sell_cost = margin_basis_sell_cost + non_margin_cost`.
 
-**This logic is duplicated in `static/js/app.js`** (live summary panel, around the `_isNonMarginCost` / sell-cost calculation) and is recomputed server-side in `storage.py` (project list and version summaries), `routes/main.py` (dashboard) and `routes/export.py`. When you change the cost rules, update both the Python and the JS versions.
+All server-side callers (`storage.py` list and version summaries, `routes/main.py` dashboard, `routes/export.py`, compare) go through the engine. **The live summary in `static/js/app.js` still has its own copy** (around `_isNonMarginCost`) until the Phase 6 workspace replaces it with engine output from the API. Until then, legacy rule changes must be mirrored there, and nothing should be added to it.
 
 ## Deployment
 

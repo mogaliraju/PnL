@@ -5,7 +5,7 @@ Checks:
      Bookings and Funnel tables (hidden from the UI) must match exactly.
   2. Nothing went missing: every project and every saved version in the baseline still exists.
   3. Every project and version payload still parses and has its core sections.
-  4. Calculation parity: the figures computed now match the baseline within USD 1.
+  4. Calculation parity: pnl/engine.py in legacy mode matches the baseline within USD 1.
   5. Excel parity: the sample workbooks contain the same values as the baseline.
 
 Usage:
@@ -23,7 +23,7 @@ import json
 
 from _pnl_db import (FROZEN_TABLES, REPO_ROOT, ReadOnlyDB, add_source_args, import_pnl_services,
                      load_payload, read_counts_file)
-from _pnl_figures import compare, compare_cells, figures, workbook_cells
+from _pnl_figures import compare, compare_cells, figures_from_engine, workbook_cells
 
 
 class Report:
@@ -103,6 +103,7 @@ def main():
     if not args.counts_only:
         base = json.loads(Path(args.baseline_figures).expanduser().read_text(encoding='utf-8'))
         compute_costs, resolve_margin_inputs, build_workbook = import_pnl_services()
+        from pnl import engine
 
         # 2. nothing missing
         problems = [f"project {pid} is gone" for pid in base['projects'] if pid not in projects]
@@ -116,12 +117,12 @@ def main():
                 if key not in parsed or 'error' in b:
                     continue
                 try:
-                    now = figures(parsed[key], compute_costs, resolve_margin_inputs)
+                    now = figures_from_engine(parsed[key], engine)
                 except Exception as e:
                     problems.append(f"{kind} {key}: {e}")
                     continue
                 problems += [f"{kind} {key}: {p}" for p in compare(b, now)]
-        report.check('Calculation parity within USD 1', problems)
+        report.check('Calculation parity within USD 1 (pnl/engine.py, legacy mode)', problems)
 
         # 5. excel parity
         problems = []

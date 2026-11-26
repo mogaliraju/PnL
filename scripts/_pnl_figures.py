@@ -95,3 +95,19 @@ def compare_cells(base: dict, now: dict, ignore_values: set) -> list[str]:
             elif bv != nv:
                 problems.append(f"{sheet}!{ref}: baseline {bv!r} now {nv!r}")
     return problems
+
+
+def figures_from_engine(payload: dict, engine) -> dict:
+    """The same figures, computed by pnl/engine.py in legacy mode (Phase 1 onwards)."""
+    r = engine.calculate(payload, engine.LEGACY)
+    d = engine.legacy_costs_dict(r)
+    project = payload.get('project', {}) or {}
+    out = {k: d.get(k) for k in MONEY_FIELDS + RATIO_FIELDS if k in d}
+    out.update({
+        'revenue_after_discount': round(float(r.legacy_discounted_revenue), 2),
+        'discount_pct': _f(project.get('discount_pct')),
+        'add_on_cost': _f(project.get('travel_cost')) + _f(project.get('infra_cost')) + _f(project.get('third_party_cost')),
+        'total_hours': float(r.hours),
+        'resource_count': len(payload.get('resources', []) or []),
+    })
+    return out

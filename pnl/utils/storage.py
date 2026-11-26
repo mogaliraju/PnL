@@ -666,7 +666,7 @@ def list_project_versions(pid: str) -> list[dict]:
             """),
             (pid,),
         ).fetchall()
-    from pnl.services.pnl_service import compute_costs, resolve_margin_inputs
+    from pnl.services.pnl_service import compute_costs, legacy_version_revenue, resolve_margin_inputs
     result = []
     for row in rows:
         entry = {
@@ -686,13 +686,10 @@ def list_project_versions(pid: str) -> list[dict]:
             ax_margin=ax_margin,
             one_time_costs=payload.get('one_time_costs', []),
         )
-        discount_pct = _to_float(project.get('discount_pct'))
-        sell_cost = costs.get('sell_cost', 0)
-        revenue = sell_cost * (1 - discount_pct / 100) if discount_pct else sell_cost
         entry.update({
             'customer': project.get('customer', ''),
             'currency': project.get('currency', 'USD') or 'USD',
-            'revenue': round(revenue, 2),
+            'revenue': legacy_version_revenue(payload),
             'input_cost': costs.get('input_cost', 0),
             'cloud4c_margin_pct': round(costs.get('cloud4c_margin', 0) * 100, 1),
             'ax_margin_pct': round(costs.get('ax_margin', 0) * 100, 1),
