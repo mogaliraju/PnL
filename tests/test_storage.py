@@ -192,7 +192,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(summary[0]['fx_rate'], 83.25)
         self.assertEqual(summary[0]['costs']['input_cost'], 2500.0)
 
-    def test_save_project_version_postgres_sql_qualifies_label_column(self):
+    def test_save_project_version_is_insert_only(self):
+        # DESIGN.md 2.3.2: a version row is never overwritten (only its label may change)
         class FakeConn:
             def __init__(self):
                 self.sql = []
@@ -212,11 +213,22 @@ class StorageTests(unittest.TestCase):
         payload = {'_meta': {'saved_at': '2026-05-06T00:00:00', 'saved_by': 'admin'}, 'project': {'customer': 'X'}}
 
         with patch.object(self.storage, '_connect', return_value=fake_conn), \
-             patch.object(self.storage, '_DB_READY', True):
+             patch.object(self.storage, '_DB_READY', True), \
+             patch.object(self.storage, '_FEATURES', {'archive': False, 'prefs': False, 'rate_cards': False}):
             self.storage.save_project_version('pid1', 'vid1', payload, label='')
 
         statements = [sql for sql, _ in fake_conn.sql]
-        self.assertTrue(any('project_versions.label' in sql for sql in statements))
+        self.assertTrue(any('DO NOTHING' in sql for sql in statements))
+        self.assertFalse(any('DO UPDATE' in sql for sql in statements))
+
+    def test_same_second_saves_keep_both_versions(self):
+        payload = {'_meta': {'saved_at': '2026-05-06T00:00:00', 'saved_by': 'admin'}, 'project': {'customer': 'X'}}
+        first = self.storage.save_project_version('pid1', 'v1', payload)
+        second = self.storage.save_project_version('pid1', 'v1', {**payload, 'project': {'customer': 'Y'}})
+        self.assertEqual(first, 'v1')
+        self.assertEqual(second, 'v1_2')
+        self.assertEqual(self.storage.load_project_version('pid1', 'v1')['project']['customer'], 'X')
+        self.assertEqual(self.storage.load_project_version('pid1', 'v1_2')['project']['customer'], 'Y')
 
 
 if __name__ == '__main__':

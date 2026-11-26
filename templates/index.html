@@ -62,23 +62,17 @@
     {% if editor_mode %}
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-project"><i class="bi bi-info-circle me-1"></i>Project</a></li>
     {% endif %}
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-ratecard"><i class="bi bi-currency-dollar me-1"></i>Rate Card</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-pnl-roles"><i class="bi bi-journals me-1"></i>Role Catalog</a></li>
+    {#- Rate card and roles moved to Rates and roles (Phase 5). The old panes below stay hidden: app.js still renders into them. #}
+    {% if not editor_mode %}
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-rates">Rates and roles</a></li>
+    {% endif %}
 
     {% if not editor_mode and feature_bookings_funnel %}
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bookings" onclick="loadBookingsOverview()"><i class="bi bi-receipt me-1"></i>Order Bookings &amp; Commits</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-funnel" onclick="loadFunnelOverview()"><i class="bi bi-funnel me-1"></i>Funnel Report</a></li>
     {% endif %}
   </ul>
-  {% if not editor_mode %}
-  <div id="ax-rates-head" hidden>
-    <div class="ax-page-head"><div><h1 class="ax-h1">Rates and roles</h1><p>Hourly rates per level and the roles projects can use. Changes here apply to every project.</p></div></div>
-    <div class="ax-subtabs" role="tablist">
-      <button type="button" role="tab" data-ax-route="rates">Rate card</button>
-      <button type="button" role="tab" data-ax-route="roles">Roles</button>
-    </div>
-  </div>
-  {% endif %}
+
 
   <div class="tab-content">
 
@@ -530,7 +524,12 @@
 
     </div>
 
-    <!-- ===== RATE CARD ===== -->
+    {% if not editor_mode %}
+    <!-- ===== RATES AND ROLES (Phase 5, rendered by static/js/rates.js) ===== -->
+    <div class="tab-pane fade" id="tab-rates"><div id="ax-rates-root"></div></div>
+    {% endif %}
+
+    <!-- ===== RATE CARD (legacy, hidden) ===== -->
     <div class="tab-pane fade" id="tab-ratecard">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -1280,4 +1279,5 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="/static/js/app.js?v=20261127"></script>
 <script src="{{ url_for('static', filename='js/projects.js') }}"></script>
+<script src="{{ url_for('static', filename='js/rates.js') }}"></script>
 {% endblock %}

@@ -10,8 +10,9 @@
   const ROUTES = {
     projects:  { path: '/',            tab: '#tab-all-projects', rail: 'projects',  title: 'Projects' },
     dashboard: { path: '/dashboard',   tab: '#tab-dashboard',    rail: 'dashboard', title: 'Dashboard' },
-    rates:     { path: '/rates',       tab: '#tab-ratecard',     rail: 'rates',     title: 'Rates and roles' },
-    roles:     { path: '/rates/roles', tab: '#tab-pnl-roles',    rail: 'rates',     title: 'Rates and roles' },
+    rates:     { path: '/rates',         tab: '#tab-rates', rail: 'rates', title: 'Rates and roles', sub: 'matrix' },
+    roles:     { path: '/rates/roles',   tab: '#tab-rates', rail: 'rates', title: 'Rates and roles', sub: 'roles' },
+    history:   { path: '/rates/history', tab: '#tab-rates', rail: 'rates', title: 'Rates and roles', sub: 'history' },
     bookings:  { path: '/bookings',    tab: '#tab-bookings',     rail: 'bookings',  title: 'Order bookings' },
     funnel:    { path: '/funnel',      tab: '#tab-funnel',       rail: 'funnel',    title: 'Funnel report' },
   };
@@ -42,15 +43,7 @@
     current = route;
     legacyLink(r.tab).click();                     // runs the legacy loader + Bootstrap tab switch
     setRailActive(r.rail);
-    const ratesHead = document.getElementById('ax-rates-head');
-    if (ratesHead) {
-      ratesHead.hidden = r.rail !== 'rates';
-      ratesHead.querySelectorAll('[data-ax-route]').forEach(b => {
-        const on = b.dataset.axRoute === route;
-        b.classList.toggle('is-active', on);
-        b.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-    }
+    if (r.sub && window.axRates) window.axRates.open(r.sub);
     document.title = `${r.title} | AutomatonsX`;
     if (push && window.location.pathname !== r.path) history.pushState({ route }, '', r.path);
   }

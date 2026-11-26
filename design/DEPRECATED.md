@@ -4,6 +4,6 @@ Tables, columns and JSON keys the redesigned UI stops reading. They stay in plac
 
 | Item | Replaced by | Since phase | Notes |
 |---|---|---|---|
-| _(none yet)_ | | | |
+| `app_state.global_settings` → `rate_card`, `role_catalog` | Tables `rate_card`, `rate_card_rate`, `level`, `role_category`, `role` | 5 | Read by nothing once migration 0003 has run; the app never writes these keys again. `business_units` in the same blob is still live. |
 
-Candidates once their phases land: `app_state.global_settings` rate card and role catalog (Phase 5); `app_state.working_data` (Phase 6); payload keys `approvals`, `attachments`, `funding`, `releases`, `pnl_roles`, `export_path` (already unused by the UI).
+Candidates once their phases land: `app_state.working_data` (Phase 6); payload keys `approvals`, `attachments`, `funding`, `releases`, `pnl_roles`, `export_path` (already unused by the UI).

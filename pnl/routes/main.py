@@ -92,6 +92,12 @@ def roles_page():
     return _render_shell(active_nav='rates', initial_tab='roles', page_title='Rates and roles')
 
 
+@bp.route('/rates/history')
+@login_required
+def rates_history_page():
+    return _render_shell(active_nav='rates', initial_tab='history', page_title='Rates and roles')
+
+
 @bp.route('/bookings')
 @login_required
 def bookings_page():

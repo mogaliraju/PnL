@@ -370,7 +370,8 @@ def _features() -> dict:
             else:
                 cols = {r['name'] for r in conn.execute("PRAGMA table_info(projects)").fetchall()}
                 tables = {r['name'] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        _FEATURES = {'archive': 'archived_at' in cols, 'prefs': 'user_pref' in tables}
+        _FEATURES = {'archive': 'archived_at' in cols, 'prefs': 'user_pref' in tables,
+                     'rate_cards': _USE_POSTGRES and 'rate_card' in tables}
     return _FEATURES
 
 
@@ -388,16 +389,31 @@ def _ensure_db() -> None:
     _DB_READY = True
 
 
+def _frozen_settings_keys() -> tuple:
+    """Settings now kept in the rate-card tables. app_state.global_settings keeps its copy
+    of them unchanged as a frozen backup (design/DEPRECATED.md)."""
+    return ('rate_card', 'role_catalog') if _features()['rate_cards'] else ()
+
+
 def load_global_settings() -> dict:
     _ensure_db()
     with _connect() as conn:
-        return _get_state(conn, 'global_settings', {})
+        settings = _get_state(conn, 'global_settings', {})
+    if _features()['rate_cards']:
+        from pnl import rates
+        version, card = rates.card_as_payload()
+        settings = dict(settings, rate_card=card, role_catalog=rates.catalog_as_settings(), rate_card_version=version)
+    return settings
 
 
 def save_global_settings(settings: dict):
     _ensure_db()
+    frozen = _frozen_settings_keys()
     with _connect() as conn:
-        _set_state(conn, 'global_settings', settings)
+        current = _get_state(conn, 'global_settings', {})
+        merged = dict(current)
+        merged.update({k: v for k, v in settings.items() if k not in frozen and k != 'rate_card_version'})
+        _set_state(conn, 'global_settings', merged)
         conn.commit()
     log.info("Settings saved")
 
@@ -406,8 +422,11 @@ def load_working_data() -> dict:
     _ensure_db()
     with _connect() as conn:
         data = _get_state(conn, 'working_data', {})
-        settings = _get_state(conn, 'global_settings', {})
-    return _merge_global_settings(data, settings)
+    settings = load_global_settings()
+    merged = _merge_global_settings(data, settings)
+    if settings.get('rate_card_version'):
+        merged['rate_card_version'] = settings['rate_card_version']
+    return merged
 
 
 def save_working_data(data: dict):
@@ -415,9 +434,10 @@ def save_working_data(data: dict):
     with _connect() as conn:
         _set_state(conn, 'working_data', data)
         settings = _get_state(conn, 'global_settings', {})
-        if data.get('rate_card'):
+        frozen = _frozen_settings_keys()
+        if data.get('rate_card') and 'rate_card' not in frozen:
             settings['rate_card'] = data['rate_card']
-        if data.get('role_catalog'):
+        if data.get('role_catalog') and 'role_catalog' not in frozen:
             settings['role_catalog'] = data['role_catalog']
         if data.get('business_units'):
             settings['business_units'] = data['business_units']
@@ -427,8 +447,33 @@ def save_working_data(data: dict):
 
 
 def merge_settings(data: dict) -> dict:
-    """Inject current global rate card + catalog into a project dict."""
-    return _merge_global_settings(data, load_global_settings())
+    """Settings a project needs in the editor.
+
+    With versioned rate cards a saved project keeps the rate card stored in it, so its
+    numbers never move by themselves (Phase 5 decision 3). Only the role catalog and
+    business units come from the shared settings. Without them, the old behaviour.
+    """
+    settings = load_global_settings()
+    if not _features()['rate_cards']:
+        return _merge_global_settings(data, settings)
+    merged = dict(data)
+    if settings.get('role_catalog'):
+        merged['role_catalog'] = settings['role_catalog']
+    if settings.get('business_units'):
+        merged['business_units'] = settings['business_units']
+    if not merged.get('rate_card'):
+        merged['rate_card'] = settings.get('rate_card', [])
+        merged['rate_card_version'] = settings.get('rate_card_version')
+    if not merged.get('rate_card_version'):
+        pid = (data.get('_meta') or {}).get('id')
+        if pid:
+            with _connect() as conn:
+                row = _execute(conn, "SELECT rc.version FROM projects p JOIN rate_card rc ON rc.id = p.rate_card_id WHERE p.pid = ?",
+                               (pid,)).fetchone()
+            if row:
+                merged['rate_card_version'] = row['version']
+    merged['published_rate_card_version'] = settings.get('rate_card_version')
+    return merged
 
 
 def load_users() -> dict:
@@ -636,6 +681,10 @@ def save_project_record(pid: str, data: dict) -> None:
                 _json_dumps(data),
             ),
         )
+        if _features()['rate_cards'] and data.get('rate_card_version'):
+            _execute(conn, "UPDATE projects SET rate_card_id = (SELECT id FROM rate_card WHERE version = ?) "
+                           "WHERE pid = ? AND EXISTS (SELECT 1 FROM rate_card WHERE version = ?)",
+                     (data['rate_card_version'], pid, data['rate_card_version']))
         conn.commit()
 
 
@@ -708,31 +757,36 @@ def rename_project_record(pid: str, new_name: str, new_customer: str = '') -> bo
     return True
 
 
-def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> None:
+def save_project_version(pid: str, vid: str, data: dict, label: str = '') -> str:
+    """Add a version. History rows are never overwritten (DESIGN.md 2.3.2): if `vid` is
+    already taken (two saves in the same second) a suffix is added. Returns the vid used."""
     _ensure_db()
     meta = data.get('_meta', {})
+    numbered = _features()['rate_cards']
     with _connect() as conn:
-        _execute(
-            conn,
-            """
-            INSERT INTO project_versions(pid, vid, saved_at, saved_by, label, payload)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(pid, vid) DO UPDATE SET
-                saved_at=excluded.saved_at,
-                saved_by=excluded.saved_by,
-                label=CASE WHEN excluded.label != '' THEN excluded.label ELSE project_versions.label END,
-                payload=excluded.payload
-            """,
-            (
-                pid,
-                vid,
-                meta.get('saved_at', ''),
-                meta.get('saved_by', ''),
-                label,
-                _json_dumps(data),
-            ),
-        )
-        conn.commit()
+        for attempt in range(20):
+            candidate = vid if attempt == 0 else f"{vid}_{attempt + 1}"
+            if numbered:
+                rc = data.get('rate_card_version')
+                cur = _execute(conn, """
+                    INSERT INTO project_versions(pid, vid, saved_at, saved_by, label, payload, version_no, rate_card_id)
+                    SELECT ?, ?, ?, ?, ?, ?,
+                           (SELECT COALESCE(MAX(version_no), 0) + 1 FROM project_versions WHERE pid = ?),
+                           (SELECT id FROM rate_card WHERE version = ?)
+                    ON CONFLICT(pid, vid) DO NOTHING
+                """, (pid, candidate, meta.get('saved_at', ''), meta.get('saved_by', ''), label, _json_dumps(data),
+                      pid, rc if rc else -1))
+            else:
+                cur = _execute(conn, """
+                    INSERT INTO project_versions(pid, vid, saved_at, saved_by, label, payload)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(pid, vid) DO NOTHING
+                """, (pid, candidate, meta.get('saved_at', ''), meta.get('saved_by', ''), label, _json_dumps(data)))
+            if cur.rowcount:
+                conn.commit()
+                return candidate
+        conn.rollback()
+    raise RuntimeError(f"Could not find a free version id for {pid}/{vid}")
 
 
 def label_project_version(pid: str, vid: str, label: str) -> bool:

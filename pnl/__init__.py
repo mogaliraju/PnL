@@ -14,7 +14,7 @@ def create_app() -> Flask:
     from pnl import ui
     ui.register(app)
 
-    from pnl.routes import auth, main, projects, export, import_excel, funnel, bookings
+    from pnl.routes import auth, main, projects, export, import_excel, funnel, bookings, rates
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
     app.register_blueprint(projects.bp)
@@ -22,6 +22,7 @@ def create_app() -> Flask:
     app.register_blueprint(import_excel.bp)
     app.register_blueprint(funnel.bp)
     app.register_blueprint(bookings.bp)
+    app.register_blueprint(rates.bp)
 
     @app.errorhandler(Exception)
     def handle_api_error(err):

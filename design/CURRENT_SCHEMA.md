@@ -279,3 +279,15 @@ The proposed migration above gains one line for decision 2:
 ```sql
 CREATE UNIQUE INDEX IF NOT EXISTS project_versions_pid_version_no ON project_versions (pid, version_no);
 ```
+
+
+## As built in Phase 5 (27 Nov 2026)
+
+Migrations `0002_rate_cards_and_roles.sql` and `0003_seed_rate_cards_and_roles.py` implement the proposal above, with these differences:
+
+* **`calc_mode` lives in the project payload, not a column.** Every saved version is a full snapshot, so the payload is the only place that records which calculation a version used. A missing `calc_mode` means `legacy`.
+* **`export_filename` stays in the payload**, where the app already kept it. No column was added.
+* **Roles are referenced by name on resource lines.** Saved payloads store role names, so renaming a role doesn't change projects saved earlier, and the Roles screen says so. The Phase 6 workspace stores `role_id` on new lines.
+* **Seeding fills every category × level cell with the rate the app charged on the day.** That includes a category missing from a level entry, where the app used to fall back to that level's first rate. So nothing a project could be charged changes. With no rate card in use (a fresh install), v1 isn't created.
+* **Runner guard:** besides refusing destructive SQL, `pnl/migrate.py` fingerprints every existing table's original columns and rolls back if any value changed. `.py` migrations may only `UPDATE` the new columns they declare in `BACKFILL`.
+* **Version saves are insert-only.** A clash on `vid` (two saves in the same second) gets a suffix instead of overwriting, and new versions get `max(version_no) + 1`.
