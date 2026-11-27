@@ -30,14 +30,30 @@ class ToolError(Exception):
 
 # ── read-only data access ─────────────────────────────────────────────────
 
+_RO_POOL = None
+
+
+def _ro_pool():
+    """Pooled read-only connections: every session runs with default_transaction_read_only=on."""
+    global _RO_POOL
+    if _RO_POOL is None:
+        from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
+        url = (os.environ.get('ASSISTANT_DATABASE_URL') or storage._DATABASE_URL).replace('postgres://', 'postgresql://', 1)
+        _RO_POOL = ConnectionPool(url, min_size=0, max_size=4, max_idle=240, open=True,
+                                  kwargs={'row_factory': dict_row, 'prepare_threshold': None,
+                                          'options': '-c default_transaction_read_only=on'},
+                                  check=ConnectionPool.check_connection)
+    return _RO_POOL
+
+
 @contextlib.contextmanager
 def _ro():
     if storage._USE_POSTGRES:
-        import psycopg
-        from psycopg.rows import dict_row
-        url = (os.environ.get('ASSISTANT_DATABASE_URL') or storage._DATABASE_URL).replace('postgres://', 'postgresql://', 1)
-        conn = psycopg.connect(url, row_factory=dict_row, options='-c default_transaction_read_only=on')
-        conn.read_only = True
+        with _ro_pool().connection() as conn:
+            conn.read_only = True
+            yield conn
+        return
     else:
         conn = sqlite3.connect(f"file:{storage.DB_FILE}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row

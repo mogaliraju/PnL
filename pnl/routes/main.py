@@ -29,10 +29,10 @@ def exchange_rate():
     today = date.today().isoformat()
     if _fx_cache['date'] != today:
         try:
-            import requests as _req
-            r = _req.get('https://open.er-api.com/v6/latest/USD', timeout=6)
-            r.raise_for_status()
-            body = r.json()
+            import json as _json
+            import urllib.request as _url
+            with _url.urlopen('https://open.er-api.com/v6/latest/USD', timeout=6) as r:   # stdlib: no extra dependency
+                body = _json.loads(r.read().decode('utf-8'))
             _fx_cache['date']    = today
             _fx_cache['rate']    = body['rates']['INR']
             _fx_cache['updated'] = body.get('time_last_update_utc', '')

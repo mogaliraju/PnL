@@ -127,6 +127,7 @@ def create_draft(username: str, note: str = '') -> dict:
                             SELECT %s, category_id, level_id, rate_usd FROM rate_card_rate WHERE rate_card_id = %s""",
                          (new_id, pub['id']))
         conn.commit()
+    storage.invalidate_settings_cache()
     return get_matrix(version)
 
 
@@ -165,6 +166,7 @@ def set_rates(version: int, cells: list[dict], note: str | None = None) -> dict:
         if note is not None:
             conn.execute("UPDATE rate_card SET note = %s WHERE id = %s AND status = 'draft'", (note[:500], card['id']))
         conn.commit()
+    storage.invalidate_settings_cache()
     return get_matrix(version)
 
 
@@ -197,6 +199,7 @@ def publish(version: int, effective_from: str | None, username: str) -> dict:
         conn.execute("""UPDATE rate_card SET status = 'published', effective_from = %s,
                         published_by = %s, published_at = now() WHERE id = %s""", (eff, username, card['id']))
         conn.commit()
+    storage.invalidate_settings_cache()
     out = get_matrix(version)
     out['changes'] = changes
     return out
@@ -255,13 +258,16 @@ def diff(from_version: int, to_version: int, project_id: str | None = None) -> d
 
 # ── roles and categories ───────────────────────────────────────────────────
 
-def list_roles() -> dict:
+def list_roles(usage_counts: bool = True) -> dict:
+    """Categories, levels and roles. usage_counts reads every open project to count which roles
+    it uses (the Roles screen shows it); pickers skip that."""
     _require()
     with storage._connect() as conn:
         cats = categories(conn)
         lv = levels(conn)
         usage = {}
-        for row in conn.execute("SELECT payload FROM projects WHERE archived_at IS NULL").fetchall():
+        rows = conn.execute("SELECT payload FROM projects WHERE archived_at IS NULL").fetchall() if usage_counts else []
+        for row in rows:
             p = json.loads(row['payload'])
             for key in {(r.get('group'), r.get('role')) for r in (p.get('resources') or []) if isinstance(r, dict)}:
                 usage[key] = usage.get(key, 0) + 1
@@ -284,6 +290,7 @@ def add_category(name: str) -> dict:
         order = conn.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM role_category").fetchone()['n']
         row = conn.execute("INSERT INTO role_category(name, sort_order) VALUES (%s, %s) RETURNING id", (name, order)).fetchone()
         conn.commit()
+    storage.invalidate_settings_cache()
     return {'id': row['id'], 'name': name}
 
 
@@ -302,6 +309,7 @@ def update_category(cid: int, name: str | None = None, active: bool | None = Non
         if active is not None:
             conn.execute("UPDATE role_category SET active = %s WHERE id = %s", (bool(active), cid))
         conn.commit()
+    storage.invalidate_settings_cache()
 
 
 def add_role(category_id: int, name: str, default_level_id: int | None = None) -> dict:
@@ -318,6 +326,7 @@ def add_role(category_id: int, name: str, default_level_id: int | None = None) -
         row = conn.execute("INSERT INTO role(category_id, name, default_level_id) VALUES (%s, %s, %s) RETURNING id",
                            (category_id, name, default_level_id)).fetchone()
         conn.commit()
+    storage.invalidate_settings_cache()
     return {'id': row['id'], 'name': name}
 
 
@@ -341,16 +350,41 @@ def update_role(role_id: int, name: str | None = None, default_level_id=..., act
         if active is not None:
             conn.execute("UPDATE role SET active = %s WHERE id = %s", (bool(active), role_id))
         conn.commit()
+    storage.invalidate_settings_cache()
 
 
 def catalog_as_settings() -> list[dict]:
-    """Active roles in the legacy settings shape [{group, roles: [...]}] for screens not yet rebuilt."""
+    """Active categories and their active roles, [{group, roles: [...]}], in one query."""
     if not available():
         return []
-    data = list_roles()
-    out = []
-    for c in data['categories']:
-        if not c['active']:
-            continue
-        out.append({'group': c['name'], 'roles': [r['name'] for r in data['roles'] if r['category_id'] == c['id'] and r['active']]})
+    with storage._connect() as conn:
+        rows = conn.execute("""
+            SELECT c.name AS cat, r.name AS role FROM role_category c
+            LEFT JOIN role r ON r.category_id = c.id AND r.active
+            WHERE c.active ORDER BY c.sort_order, c.id, lower(r.name)""").fetchall()
+    out, index = [], {}
+    for row in rows:
+        if row['cat'] not in index:
+            index[row['cat']] = {'group': row['cat'], 'roles': []}
+            out.append(index[row['cat']])
+        if row['role']:
+            index[row['cat']]['roles'].append(row['role'])
     return out
+
+
+def published_card_payload() -> tuple[int | None, list[dict]]:
+    """The published card in payload format, in one query (used on nearly every page)."""
+    if not available():
+        return None, []
+    with storage._connect() as conn:
+        rows = conn.execute("""
+            SELECT rc.version, l.code, c.name, r.rate_usd FROM rate_card rc
+            JOIN rate_card_rate r ON r.rate_card_id = rc.id AND r.rate_usd IS NOT NULL
+            JOIN level l ON l.id = r.level_id JOIN role_category c ON c.id = r.category_id
+            WHERE rc.status = 'published' ORDER BY l.sort_order, l.id, c.sort_order, c.id""").fetchall()
+    if not rows:
+        return None, []
+    levels = {}
+    for row in rows:
+        levels.setdefault(row['code'], {})[row['name']] = _num(row['rate_usd'])
+    return rows[0]['version'], [{'level': k, 'rates': v} for k, v in levels.items()]

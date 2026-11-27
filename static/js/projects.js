@@ -15,6 +15,9 @@
     view: 'all', q: '',
     filters: { status: [], business_unit: [], owner: [], folder: [] },
     cols: null, sort: { key: 'updated', dir: 'desc' },
+    group: true,                 // one row per customer with 2+ projects, expandable
+    expanded: new Set(),         // customer keys opened in this visit
+    storedPrefs: {},             // keys other screens keep in the same preference (dashboard dates)
   };
 
   // ── formatting ─────────────────────────────────────────────────────────
@@ -102,6 +105,8 @@
       const res = await fetch('/api/prefs/projects_list');
       if (res.ok) {
         const p = await res.json();
+        state.storedPrefs = p || {};
+        if (typeof p.group === 'boolean') state.group = p.group;
         if (Array.isArray(p.cols)) state.cols = p.cols.filter(k => colByKey[k]);
         if (p.view && VIEWS.some(v => v[0] === p.view)) state.view = p.view;
         if (p.sort && colByKey[p.sort.key]) state.sort = p.sort;
@@ -118,7 +123,8 @@
       try {
         const res = await fetch('/api/prefs/projects_list', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cols: state.cols, view: state.view, sort: state.sort, filters: state.filters }),
+          body: JSON.stringify({ ...state.storedPrefs, cols: state.cols, view: state.view, sort: state.sort,
+                                 filters: { ...(state.storedPrefs.filters || {}), ...state.filters }, group: state.group }),
         });
         if (res.status === 503) prefsWritable = false;      // database not migrated yet: keep for this visit only
       } catch { /* offline: the choice still applies on this page */ }
@@ -157,6 +163,55 @@
   // Shares the query with the top-bar search (kept by app.js in this browser).
   const rememberSearch = () => { if (typeof saveAllProjectsSearch === 'function') saveAllProjectsSearch(state.q); };
 
+  // ── grouping by customer ───────────────────────────────────────────────
+  const customerKey = p => (p.customer || '').trim().toLowerCase() || '__' + p.id;
+  function groups(sortedList) {
+    const map = new Map();
+    sortedList.forEach(p => {                                   // groups keep the sort order of their first project
+      const k = customerKey(p);
+      if (!map.has(k)) map.set(k, { key: k, customer: p.customer || p.name, items: [] });
+      map.get(k).items.push(p);
+    });
+    return [...map.values()];
+  }
+  function groupCell(g, c) {
+    const items = g.items;
+    switch (c.key) {
+      case 'project':
+        return `<div class="ax-group-name">${icon('back').replace('ax-i', 'ax-i ax-chev')}<div class="ax-two-line"><b>${mark(g.customer)}</b>
+          <span>${items.length} projects</span></div></div>`;
+      case 'status': {
+        const counts = {};
+        items.forEach(p => { const s = statusName(p.status); counts[s] = (counts[s] || 0) + 1; });
+        return Object.entries(counts).map(([s, n]) => `<span class="ax-pill ax-pill--${statusSlug(s)}">${n} ${esc(s)}</span>`).join(' ');
+      }
+      case 'contract_value':
+        return `<b>${money(items.reduce((t, p) => t + n(p, 'contract_value'), 0))}</b><span class="ax-caption ax-block">total</span>`;
+      case 'ax_margin': {
+        const vals = items.filter(p => !p.pnl?.error && n(p, 'contract_value') > 0).map(p => n(p, 'ax_net_pct'));
+        if (!vals.length) return '';
+        const lo = Math.min(...vals), hi = Math.max(...vals);
+        return `<span class="ax-health ax-health--${health(lo)}">${lo === hi ? pct(lo) : pct(lo) + '–' + pct(hi)}</span>`;
+      }
+      case 'version':
+        return `<span class="ax-faint">${items.reduce((t, p) => t + (p.version_count || 0), 0)} saved</span>`;
+      case 'updated': {
+        const latest = items.reduce((a, p) => ((p.saved_at || '') > (a.saved_at || '') ? p : a), items[0]);
+        return `<div class="ax-two-line"><span style="color:var(--ink)">${fmtDate(latest.saved_at)}</span><span>latest</span></div>`;
+      }
+      default: {
+        const vals = [...new Set(items.map(p => String(c.sort(p) ?? '')).filter(Boolean))];
+        return vals.length === 1 && !c.num ? c.cell(items[0]) : '';
+      }
+    }
+  }
+  function groupRow(g, cols, open) {
+    return `<tr class="ax-group-row${open ? ' is-open' : ''}" data-group="${esc(g.key)}" tabindex="0" aria-expanded="${open}"
+        title="${open ? 'Hide' : 'Show'} the ${g.items.length} projects for ${esc(g.customer)}">
+      ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${groupCell(g, c)}</td>`).join('')}<td></td></tr>`;
+  }
+  const childCell = p => `<div class="ax-two-line ax-child-cell"><b>${mark(p.name)}</b><span>${esc(p.folder || p.stage || '')}</span></div>`;
+
   // ── render ─────────────────────────────────────────────────────────────
   const root = () => document.getElementById('all-projects-container');
   const anyFilter = () => !!state.q || FILTERS.some(([k]) => state.filters[k].length);
@@ -181,6 +236,7 @@
           ${FILTERS.map(([k, l]) => `<button type="button" class="ax-chip" data-filter="${k}" aria-haspopup="true" aria-expanded="false">${l}</button>`).join('')}
           <button type="button" class="ax-btn ax-btn--ghost ax-btn--small" data-act="clear" hidden>Clear</button>
           <div class="ax-spacer"></div>
+          <button type="button" class="ax-chip" data-act="group" aria-pressed="false">Group by customer</button>
           <button type="button" class="ax-btn ax-btn--small" data-act="columns" aria-haspopup="true" aria-expanded="false">${icon('columns')}Columns</button>
         </div>
         <div class="ax-table-wrap" id="ax-proj-table"></div>
@@ -207,6 +263,9 @@
       b.innerHTML = `${label}${c ? ` <b>${c}</b>` : ''}`;
     });
     el.querySelector('[data-act="clear"]').hidden = !anyFilter();
+    const gb = el.querySelector('[data-act="group"]');
+    gb.classList.toggle('is-set', state.group);
+    gb.setAttribute('aria-pressed', String(state.group));
     const list = sorted(filtered());
     const cols = state.cols.map(k => colByKey[k]).filter(Boolean);
     const table = el.querySelector('#ax-proj-table');
@@ -220,10 +279,15 @@
         const on = state.sort.key === c.key;
         return `<th class="${c.num ? 'r' : ''}" aria-sort="${on ? (state.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${c.label}</button></th>`;
       }).join('');
-      const rows = list.map(p => `<tr tabindex="0" data-id="${esc(p.id)}">
-          ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${c.cell(p)}</td>`).join('')}
+      const row = (p, child) => `<tr tabindex="0" data-id="${esc(p.id)}" class="${child ? 'ax-child-row' : ''}">
+          ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${child && c.key === 'project' ? childCell(p) : c.cell(p)}</td>`).join('')}
           <td class="r"><button type="button" class="ax-btn ax-btn--ghost ax-btn--small ax-btn--icon" data-archive="${esc(p.id)}" aria-label="Archive ${esc(p.customer || p.name)}" title="Archive">${icon('archive')}</button></td>
-        </tr>`).join('');
+        </tr>`;
+      const rows = !state.group ? list.map(p => row(p, false)).join('') : groups(list).map(g => {
+        if (g.items.length === 1) return row(g.items[0], false);
+        const open = state.expanded.has(g.key) || !!state.q;      // a search opens matching groups
+        return groupRow(g, cols, open) + (open ? g.items.map(p => row(p, true)).join('') : '');
+      }).join('');
       table.innerHTML = `<table class="ax-table ax-table--list"><thead><tr>${head}<th><span class="ax-sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     const note = el.querySelector('#ax-proj-archive-note');
@@ -274,6 +338,12 @@
     });
   }
 
+  function toggleGroup(key) {
+    if (state.expanded.has(key)) state.expanded.delete(key); else state.expanded.add(key);
+    renderBody();
+    root().querySelector(`tr[data-group="${CSS.escape(key)}"]`)?.focus();
+  }
+
   async function archive(id) {
     const p = state.list.find(x => x.id === id);
     if (!p) return;
@@ -304,7 +374,7 @@
     if (!el || el.dataset.bound) return;
     el.dataset.bound = '1';
     el.addEventListener('click', e => {
-      const t = e.target.closest('button, tr[data-id]');
+      const t = e.target.closest('button, tr[data-id], tr[data-group]');
       if (!t) return;
       if (t.dataset.view) { state.view = t.dataset.view; renderBody(); savePrefs(); return; }
       if (t.dataset.filter) { openFilter(t); return; }
@@ -318,13 +388,17 @@
       const act = t.dataset.act;
       if (act === 'clear') { state.q = ''; rememberSearch(); FILTERS.forEach(([k]) => state.filters[k] = []); el.querySelector('#ax-proj-q').value = ''; renderBody(); savePrefs(); return; }
       if (act === 'columns') { openColumns(t); return; }
+      if (act === 'group') { state.group = !state.group; renderBody(); savePrefs(); return; }
       if (act === 'new') { window.location.href = '/projects/new'; return; }
+      if (t.matches('tr[data-group]')) { toggleGroup(t.dataset.group); return; }
       if (t.matches('tr[data-id]')) {
         const url = '/projects/' + encodeURIComponent(t.dataset.id);
         if (e.metaKey || e.ctrlKey) window.open(url, '_blank'); else window.location.href = url;
       }
     });
     el.addEventListener('keydown', e => {
+      const gr = e.target.closest('tr[data-group]');
+      if (gr && (e.key === 'Enter' || e.key === ' ') && e.target === gr) { e.preventDefault(); toggleGroup(gr.dataset.group); return; }
       const tr = e.target.closest('tr[data-id]');
       if (tr && e.key === 'Enter' && e.target === tr) window.location.href = '/projects/' + encodeURIComponent(tr.dataset.id);
     });
@@ -335,6 +409,12 @@
     if (!el) return;
     if (state.loading) return;
     state.loading = true;
+    // Start the list requests now; preferences load at the same time.
+    const lists = Promise.all([
+      fetch('/api/projects?summary=true', { cache: 'no-store' }),
+      fetch('/api/projects?archived=true', { cache: 'no-store' }),
+    ]);
+    lists.catch(() => {});
     await loadPrefs();
     if (!el.querySelector('#ax-proj-table')) renderShell();
     bind();
@@ -345,10 +425,7 @@
       if (q !== state.q) { state.q = q; el.querySelector('#ax-proj-q').value = q; }
     }
     try {
-      const [res, arch] = await Promise.all([
-        fetch('/api/projects?summary=true', { cache: 'no-store' }),
-        fetch('/api/projects?archived=true', { cache: 'no-store' }),
-      ]);
+      const [res, arch] = await lists;
       if (!res.ok) throw new Error(await errorMessage(res, `The server answered ${res.status}.`));
       state.list = await res.json();
       state.archivedCount = arch.ok ? (await arch.json()).length : null;

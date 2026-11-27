@@ -52,9 +52,9 @@
   };
 
   // ── catalog: roles and levels ─────────────────────────────────────────
-  async function loadCatalog(settings) {
+  async function loadCatalog(settings, rolesPromise) {
     try {
-      const r = await api('/api/roles');
+      const r = await rolesPromise;
       const lv = Object.fromEntries(r.levels.map(l => [l.id, l.code]));
       W.cat = r.categories.map(c => ({
         name: c.name, active: c.active,
@@ -118,18 +118,24 @@
   }
 
   async function load() {
+    // Everything the page needs, requested at once (each request costs a round trip to the database).
+    const rolesP = api('/api/roles?usage=0');
+    rolesP.catch(() => {});
+    const projectP = W.pid ? api(`/api/projects/${encodeURIComponent(W.pid)}`) : null;
+    const versionsP = W.pid ? api(`/api/projects/${encodeURIComponent(W.pid)}/versions`).catch(() => []) : null;
+    projectP && projectP.catch(() => {});
     const [opts, settings] = await Promise.all([api('/api/workspace/options'), api('/api/data')]);
     W.opts = opts;
     W.publishedVersion = settings.rate_card_version || null;
     W.publishedCard = settings.rate_card || [];
-    await loadCatalog(settings);
+    await loadCatalog(settings, rolesP);
     if (W.pid) {
-      const p = await api(`/api/projects/${encodeURIComponent(W.pid)}`);
+      const p = await projectP;
       W.meta = p._meta || {};
       if (p.published_rate_card_version) W.publishedVersion = p.published_rate_card_version;
       delete p.published_rate_card_version;
       W.p = normalise(p);
-      await loadVersions();
+      W.versions = await versionsP;
     } else {
       W.p = normalise({
         _meta: { name: '', folder: '' },

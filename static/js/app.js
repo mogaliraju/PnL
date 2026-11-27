@@ -234,6 +234,8 @@ function showToast(msg, type = 'success') {
 // ---------- Load data on page ready ----------
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSession();
+  // Home screens load their own data: open the requested screen now, don't wait for /api/data.
+  if (!EDITOR_MODE && window.axShell) { updateProjectBadge(null); window.axShell.openInitialTab(); }
   // Verify session is valid (will redirect to /login if not)
   const res = await fetch('/api/data');
   if (!res.ok) { window.location.href = '/login'; return; }
@@ -262,11 +264,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     populateAll();
     loadExchangeRate();
-  // Open the screen the URL asks for (the AX shell routes /, /dashboard, /rates ...)
-  updateProjectBadge(null);
-  if (window.axShell) {
-    window.axShell.openInitialTab();
-  } else {
+  // Without the AX shell, fall back to the old All Projects tab.
+  if (!window.axShell) {
+    updateProjectBadge(null);
     document.querySelector('[href="#tab-all-projects"]')?.click();
     loadAllProjects();
   }

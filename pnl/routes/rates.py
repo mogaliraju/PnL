@@ -77,7 +77,7 @@ def diff():
 @bp.route('/api/roles', methods=['GET'])
 @login_required
 def list_roles():
-    return jsonify(rates.list_roles())
+    return jsonify(rates.list_roles(usage_counts=request.args.get('usage', '1') != '0'))
 
 
 @bp.route('/api/roles', methods=['POST'])

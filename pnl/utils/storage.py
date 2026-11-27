@@ -63,11 +63,35 @@ def _sql(sql: str) -> str:
     return sql.replace('?', '%s')
 
 
+_POOL = None
+
+
+def _pool():
+    """One pool of open Postgres connections per process. Opening a new connection to Neon
+    (TLS + sign-in) costs several round trips; reusing one costs none."""
+    global _POOL
+    if _POOL is None:
+        from psycopg_pool import ConnectionPool
+        _POOL = ConnectionPool(
+            _as_db_url(_DATABASE_URL),
+            min_size=1,
+            max_size=int(os.environ.get('PNL_DB_POOL_MAX', '10')),
+            max_idle=240,                      # Neon drops idle connections; recycle before it does
+            kwargs={'row_factory': dict_row,
+                    'prepare_threshold': None},  # Neon's pooler (PgBouncer) can't keep prepared statements
+            check=ConnectionPool.check_connection,
+            open=True,
+        )
+    return _POOL
+
+
 def _connect():
+    """A connection to use in `with _connect() as conn:`. On Postgres it comes from the pool and
+    goes back when the block ends (committed on success, rolled back on an error)."""
     if _USE_POSTGRES:
         if psycopg is None:
             raise RuntimeError("Postgres mode requested but psycopg is not installed")
-        return psycopg.connect(_as_db_url(_DATABASE_URL), row_factory=dict_row)
+        return _pool().connection()
 
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
@@ -405,14 +429,31 @@ def _frozen_settings_keys() -> tuple:
     return ('rate_card', 'role_catalog') if _features()['rate_cards'] else ()
 
 
+_SETTINGS_CACHE = {'value': None, 'at': 0.0}
+SETTINGS_TTL = 60.0
+
+
+def invalidate_settings_cache() -> None:
+    """Call after anything that changes rates, roles, categories or business units."""
+    _SETTINGS_CACHE['value'] = None
+
+
 def load_global_settings() -> dict:
+    """Shared settings (rate card, role catalog, business units). Read on nearly every page,
+    so kept in memory for up to a minute and dropped whenever this process changes them."""
+    import copy
+    import time as _time
+    cached = _SETTINGS_CACHE['value']
+    if cached is not None and _time.monotonic() - _SETTINGS_CACHE['at'] < SETTINGS_TTL:
+        return copy.deepcopy(cached)
     _ensure_db()
     with _connect() as conn:
         settings = _get_state(conn, 'global_settings', {})
     if _features()['rate_cards']:
         from pnl import rates
-        version, card = rates.card_as_payload()
+        version, card = rates.published_card_payload()
         settings = dict(settings, rate_card=card, role_catalog=rates.catalog_as_settings(), rate_card_version=version)
+    _SETTINGS_CACHE.update(value=copy.deepcopy(settings), at=_time.monotonic())
     return settings
 
 
@@ -425,6 +466,7 @@ def save_global_settings(settings: dict):
         merged.update({k: v for k, v in settings.items() if k not in frozen and k != 'rate_card_version'})
         _set_state(conn, 'global_settings', merged)
         conn.commit()
+    invalidate_settings_cache()
     log.info("Settings saved")
 
 
@@ -453,6 +495,7 @@ def save_working_data(data: dict):
             settings['business_units'] = data['business_units']
         _set_state(conn, 'global_settings', settings)
         conn.commit()
+    invalidate_settings_cache()
     log.info("Working data saved")
 
 

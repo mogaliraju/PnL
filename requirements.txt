@@ -2,5 +2,5 @@ flask
 openpyxl
 gunicorn
 werkzeug
-psycopg[binary]
+psycopg[binary,pool]   # pool: reuse Neon connections instead of reconnecting per query
 boto3>=1.39          # Bedrock Converse for the PnL assistant; 1.39+ reads AWS_BEARER_TOKEN_BEDROCK
