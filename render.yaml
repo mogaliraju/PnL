@@ -19,12 +19,14 @@ services:
         value: admin
       - key: PNL_BOOTSTRAP_ADMIN_PASSWORD
         sync: false          # Only used when there are no users. Set it in the dashboard, never in git.
-      # PnL assistant (GPT OSS 120B on Amazon Bedrock, served in Mumbai)
+      # PnL assistant: Claude Sonnet 4.5 on Amazon Bedrock (global profile from Mumbai), GPT OSS 120B fallback
       - key: AWS_BEARER_TOKEN_BEDROCK
         sync: false          # Bedrock API key
       - key: AWS_REGION
         value: ap-south-1
       - key: BEDROCK_MODEL_ID
+        value: global.anthropic.claude-sonnet-4-5-20250929-v1:0
+      - key: BEDROCK_FALLBACK_MODEL_ID
         value: openai.gpt-oss-120b-1:0
       - key: ASSISTANT_DATABASE_URL
         sync: false          # optional: a SELECT-only Postgres role for the assistant's tools

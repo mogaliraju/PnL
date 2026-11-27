@@ -1,4 +1,4 @@
-"""Phase 8: PnL assistant (GPT OSS 120B on Bedrock Converse) with a scripted fake model client."""
+"""Phase 8: PnL assistant (Claude Sonnet 4.5, GPT OSS 120B fallback, on Bedrock Converse) with a scripted fake model client."""
 import contextlib
 import json
 import os
@@ -44,6 +44,24 @@ class FakeBedrock:
         return {'stream': iter(turn)}
 
 
+class FailingModel(FakeBedrock):
+    """Raises for the listed model ids (optionally after some output), answers for the others."""
+    def __init__(self, down, *turns, after=None):
+        super().__init__(*turns)
+        self.down, self.after = set(down), after
+
+    def converse_stream(self, **kw):
+        if kw['modelId'] in self.down:
+            self.calls.append({'modelId': kw['modelId'], 'failed': True})
+            if self.after is None:
+                raise RuntimeError('AccessDeniedException: model access not granted')
+            def broken():
+                yield from self.after
+                raise RuntimeError('stream dropped')
+            return {'stream': broken()}
+        return super().converse_stream(**kw)
+
+
 class AssistantCase(PgAppTestCase):
     def setUp(self):
         super().setUp()
@@ -64,6 +82,7 @@ class AssistantCase(PgAppTestCase):
     def tearDown(self):
         self._ro.stop()
         self.agent.set_client(None)
+        self.agent._primary_down_until = 0.0
         os.environ.pop('PNL_ASSISTANT_FAKE', None)
         super().tearDown()
 
@@ -96,6 +115,44 @@ class TestAssistant(AssistantCase):
         self.assertEqual([m['role'] for m in hist], ['user', 'assistant'])
         calls = self.q("SELECT tool, ok FROM assistant_tool_call").fetchall()
         self.assertEqual([(c['tool'], c['ok']) for c in calls], [('search_projects', True)])
+
+    def test_main_model_is_claude_with_gpt_fallback(self):
+        fake = FakeBedrock(answer('Hello there.'))
+        self.ask(fake, 'Hi')
+        self.assertEqual(fake.calls[0]['modelId'], 'global.anthropic.claude-sonnet-4-5-20250929-v1:0')
+        self.assertEqual(self.agent.fallback_model_id(), 'openai.gpt-oss-120b-1:0')
+
+    def test_falls_back_when_main_model_fails(self):
+        main, fb = self.agent.model_id(), self.agent.fallback_model_id()
+        fake = FailingModel({main}, tool_call('search_projects', {'query': 'acme'}), answer('ACME is fine.'))
+        ev = self.ask(fake, 'How is ACME?')
+        self.assertNotIn('error', [e['type'] for e in ev])
+        self.assertEqual(''.join(e['text'] for e in ev if e['type'] == 'text'), 'ACME is fine.')
+        self.assertEqual([c['modelId'] for c in fake.calls], [main, fb, fb])   # later rounds stay on the fallback
+        # for the next few minutes the fallback goes first
+        fake2 = FailingModel({main}, answer('Again.'))
+        self.ask(fake2, 'Again?')
+        self.assertEqual([c['modelId'] for c in fake2.calls], [fb])
+
+    def test_no_switch_after_output_started(self):
+        main = self.agent.model_id()
+        fake = FailingModel({main}, after=[{'messageStart': {'role': 'assistant'}},
+                                          {'contentBlockDelta': {'delta': {'text': 'Half an'}, 'contentBlockIndex': 0}}])
+        ev = self.ask(fake, 'Hi')
+        self.assertEqual([c['modelId'] for c in fake.calls], [main])
+        self.assertIn('error', [e['type'] for e in ev])
+
+    def test_both_models_down(self):
+        fake = FailingModel({self.agent.model_id(), self.agent.fallback_model_id()})
+        ev = self.ask(fake, 'Hi')
+        self.assertEqual(len(fake.calls), 2)
+        self.assertIn('reference', [e for e in ev if e['type'] == 'error'][0]['message'])
+
+    def test_fallback_can_be_turned_off(self):
+        with patch.dict(os.environ, {'BEDROCK_FALLBACK_MODEL_ID': 'none'}):
+            fake = FailingModel({self.agent.model_id()})
+            self.ask(fake, 'Hi')
+            self.assertEqual(len(fake.calls), 1)
 
     def test_follow_up_sends_earlier_turns(self):
         self.ask(FakeBedrock(answer('First answer.')), 'First question')

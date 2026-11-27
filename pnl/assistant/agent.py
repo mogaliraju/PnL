@@ -1,4 +1,4 @@
-"""PnL assistant: GPT OSS 120B on Amazon Bedrock (Converse API) with read-only tools (DESIGN.md 9).
+"""PnL assistant: Claude Sonnet 4.5 on Amazon Bedrock, falling back to GPT OSS 120B (Converse API) with read-only tools (DESIGN.md 9).
 
 Flow for one question:
   user message -> converse_stream(messages, tools) -> stream text to the browser
@@ -7,8 +7,11 @@ Flow for one question:
 
 Configuration (environment):
   AWS_BEARER_TOKEN_BEDROCK  Bedrock API key (or normal AWS credentials)
-  AWS_REGION                default ap-south-1 (gpt-oss-120b is served in-region in Mumbai)
-  BEDROCK_MODEL_ID          default openai.gpt-oss-120b-1:0
+  AWS_REGION                default ap-south-1 (Mumbai)
+  BEDROCK_MODEL_ID          default global.anthropic.claude-sonnet-4-5-20250929-v1:0
+                            (Sonnet 4.5 is reached from Mumbai through the global cross-Region profile)
+  BEDROCK_FALLBACK_MODEL_ID default openai.gpt-oss-120b-1:0 (served in Mumbai); 'none' turns it off.
+                            Used when the main model fails before it has said anything.
   ASSISTANT_DATABASE_URL    optional SELECT-only Postgres role for the tools
 """
 from __future__ import annotations
@@ -26,7 +29,9 @@ from pnl.utils.logger import get_logger
 
 log = get_logger(__name__)
 
-MODEL_ID_DEFAULT = 'openai.gpt-oss-120b-1:0'
+MODEL_ID_DEFAULT = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
+FALLBACK_MODEL_ID_DEFAULT = 'openai.gpt-oss-120b-1:0'
+PRIMARY_COOLDOWN = 300                    # after the main model fails, go straight to the fallback for 5 minutes
 REGION_DEFAULT = 'ap-south-1'
 MAX_ROUNDS = 6
 MAX_OUTPUT_TOKENS = 4096                  # per model call; the model's own ceiling is 16K
@@ -73,6 +78,28 @@ def configured() -> bool:
 
 def model_id() -> str:
     return os.environ.get('BEDROCK_MODEL_ID') or MODEL_ID_DEFAULT
+
+
+def fallback_model_id() -> str | None:
+    v = os.environ.get('BEDROCK_FALLBACK_MODEL_ID', FALLBACK_MODEL_ID_DEFAULT).strip()
+    return None if v.lower() in ('', 'none', 'off') or v == model_id() else v
+
+
+_primary_down_until = 0.0
+
+
+def models_to_try() -> list[str]:
+    """Main model first, then the fallback. While the main model is cooling down after a failure,
+    the fallback goes first so every question doesn't wait for a call that will fail again."""
+    main, fb = model_id(), fallback_model_id()
+    if not fb:
+        return [main]
+    return [fb, main] if time.monotonic() < _primary_down_until else [main, fb]
+
+
+def _primary_failed() -> None:
+    global _primary_down_until
+    _primary_down_until = time.monotonic() + PRIMARY_COOLDOWN
 
 
 class DemoClient:
@@ -217,9 +244,9 @@ def _context_note(context: dict | None) -> str:
     return ''
 
 
-def _converse_stream(messages):
+def _converse_stream(messages, model):
     resp = get_client().converse_stream(
-        modelId=model_id(),
+        modelId=model,
         system=[{'text': SYSTEM_PROMPT}],
         messages=messages,
         toolConfig=tools.tool_config(),
@@ -257,48 +284,64 @@ def chat(username: str, text: str, context: dict | None = None, sid: str | None 
 
     shown, sources, files, scenario = [], [], [], None
     tokens = 0
+    models = models_to_try()
+    failed = False
     for round_no in range(1, MAX_ROUNDS + 1):
-        content, stop, usage = [], None, {}
-        block = None
-        try:
-            for ev in _converse_stream(messages):
-                if 'contentBlockStart' in ev:
-                    start = ev['contentBlockStart'].get('start', {})
-                    if 'toolUse' in start:
-                        block = {'toolUse': {'toolUseId': start['toolUse']['toolUseId'], 'name': start['toolUse']['name'], 'input': ''}}
-                        yield {'type': 'tool', 'name': start['toolUse']['name'], 'status': 'running'}
-                elif 'contentBlockDelta' in ev:
-                    delta = ev['contentBlockDelta'].get('delta', {})
-                    if 'text' in delta:
-                        if block is None or 'text' not in block:
-                            if block is not None:
-                                content.append(block)
-                            block = {'text': ''}
-                        block['text'] += delta['text']
-                        shown.append(delta['text'])
-                        yield {'type': 'text', 'text': delta['text']}
-                    elif 'toolUse' in delta and block is not None and 'toolUse' in block:
-                        block['toolUse']['input'] += delta['toolUse'].get('input', '')
-                    # reasoningContent deltas are the model's private reasoning: not shown, not kept
-                elif 'contentBlockStop' in ev:
-                    if block is not None:
-                        content.append(block)
-                    block = None
-                elif 'messageStop' in ev:
-                    stop = ev['messageStop'].get('stopReason')
-                elif 'metadata' in ev:
-                    usage = ev['metadata'].get('usage', {})
-            if block is not None:
-                content.append(block)
-        except AssistantUnavailable:
-            raise
-        except Exception as e:                                       # network, throttling, model errors
-            ref = uuid.uuid4().hex[:8]
-            log.exception(f"Assistant model call failed [ref {ref}]")
-            name = type(e).__name__
-            msg = ("The assistant is busy right now. Try again in a minute." if 'Throttl' in name or 'Throttl' in str(e)
-                   else f"The assistant couldn't answer (reference {ref}). Try again, and quote the reference if it keeps happening.")
-            yield {'type': 'error', 'message': msg}
+        while True:                      # one attempt per model, until one answers or none is left
+            content, stop, usage = [], None, {}
+            block = None
+            emitted = False                # once the browser has seen output, switching models would garble it
+            try:
+                for ev in _converse_stream(messages, models[0]):
+                    if 'contentBlockStart' in ev:
+                        start = ev['contentBlockStart'].get('start', {})
+                        if 'toolUse' in start:
+                            block = {'toolUse': {'toolUseId': start['toolUse']['toolUseId'], 'name': start['toolUse']['name'], 'input': ''}}
+                            emitted = True
+                            yield {'type': 'tool', 'name': start['toolUse']['name'], 'status': 'running'}
+                    elif 'contentBlockDelta' in ev:
+                        delta = ev['contentBlockDelta'].get('delta', {})
+                        if 'text' in delta:
+                            if block is None or 'text' not in block:
+                                if block is not None:
+                                    content.append(block)
+                                block = {'text': ''}
+                            block['text'] += delta['text']
+                            shown.append(delta['text'])
+                            emitted = True
+                            yield {'type': 'text', 'text': delta['text']}
+                        elif 'toolUse' in delta and block is not None and 'toolUse' in block:
+                            block['toolUse']['input'] += delta['toolUse'].get('input', '')
+                        # reasoningContent deltas are the model's private reasoning: not shown, not kept
+                    elif 'contentBlockStop' in ev:
+                        if block is not None:
+                            content.append(block)
+                        block = None
+                    elif 'messageStop' in ev:
+                        stop = ev['messageStop'].get('stopReason')
+                    elif 'metadata' in ev:
+                        usage = ev['metadata'].get('usage', {})
+                if block is not None:
+                    content.append(block)
+            except AssistantUnavailable:
+                raise
+            except Exception as e:                                       # network, throttling, model errors
+                ref = uuid.uuid4().hex[:8]
+                if not emitted and len(models) > 1:
+                    log.warning(f"Assistant model {models[0]} failed, switching to {models[1]} [ref {ref}]: "
+                                f"{type(e).__name__}: {str(e)[:300]}")
+                    if models[0] == model_id():
+                        _primary_failed()
+                    models = models[1:]
+                    continue
+                log.exception(f"Assistant model call failed ({models[0]}) [ref {ref}]")
+                name = type(e).__name__
+                msg = ("The assistant is busy right now. Try again in a minute." if 'Throttl' in name or 'Throttl' in str(e)
+                       else f"The assistant couldn't answer (reference {ref}). Try again, and quote the reference if it keeps happening.")
+                yield {'type': 'error', 'message': msg}
+                failed = True
+            break
+        if failed:
             break
         tokens += int(usage.get('inputTokens', 0)) + int(usage.get('outputTokens', 0))
 
