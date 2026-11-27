@@ -1,4 +1,4 @@
-"""Phase 8: PnL assistant (Claude Sonnet 4.5, GPT OSS 120B fallback, on Bedrock Converse) with a scripted fake model client."""
+"""Phase 8: PnL assistant (Claude Opus 4.6, then Sonnet 4.5 and GPT OSS 120B as fallbacks, on Bedrock Converse) with a scripted fake model client."""
 import contextlib
 import json
 import os
@@ -82,7 +82,7 @@ class AssistantCase(PgAppTestCase):
     def tearDown(self):
         self._ro.stop()
         self.agent.set_client(None)
-        self.agent._primary_down_until = 0.0
+        self.agent._down_until.clear()
         os.environ.pop('PNL_ASSISTANT_FAKE', None)
         super().tearDown()
 
@@ -116,43 +116,53 @@ class TestAssistant(AssistantCase):
         calls = self.q("SELECT tool, ok FROM assistant_tool_call").fetchall()
         self.assertEqual([(c['tool'], c['ok']) for c in calls], [('search_projects', True)])
 
-    def test_main_model_is_claude_with_gpt_fallback(self):
+    OPUS, SONNET, GPT = ('global.anthropic.claude-opus-4-6-v1', 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
+                         'openai.gpt-oss-120b-1:0')
+
+    def test_main_model_is_opus_then_sonnet_then_gpt(self):
         fake = FakeBedrock(answer('Hello there.'))
         self.ask(fake, 'Hi')
-        self.assertEqual(fake.calls[0]['modelId'], 'global.anthropic.claude-sonnet-4-5-20250929-v1:0')
-        self.assertEqual(self.agent.fallback_model_id(), 'openai.gpt-oss-120b-1:0')
+        self.assertEqual(fake.calls[0]['modelId'], self.OPUS)
+        self.assertEqual(self.agent.models_to_try(), [self.OPUS, self.SONNET, self.GPT])
 
     def test_falls_back_when_main_model_fails(self):
-        main, fb = self.agent.model_id(), self.agent.fallback_model_id()
-        fake = FailingModel({main}, tool_call('search_projects', {'query': 'acme'}), answer('ACME is fine.'))
+        fake = FailingModel({self.OPUS}, tool_call('search_projects', {'query': 'acme'}), answer('ACME is fine.'))
         ev = self.ask(fake, 'How is ACME?')
         self.assertNotIn('error', [e['type'] for e in ev])
         self.assertEqual(''.join(e['text'] for e in ev if e['type'] == 'text'), 'ACME is fine.')
-        self.assertEqual([c['modelId'] for c in fake.calls], [main, fb, fb])   # later rounds stay on the fallback
-        # for the next few minutes the fallback goes first
-        fake2 = FailingModel({main}, answer('Again.'))
+        self.assertEqual([c['modelId'] for c in fake.calls], [self.OPUS, self.SONNET, self.SONNET])  # later rounds stay put
+        # for the next few minutes Opus goes to the back of the line
+        fake2 = FailingModel({self.OPUS}, answer('Again.'))
         self.ask(fake2, 'Again?')
-        self.assertEqual([c['modelId'] for c in fake2.calls], [fb])
+        self.assertEqual([c['modelId'] for c in fake2.calls], [self.SONNET])
+        self.assertEqual(self.agent.models_to_try(), [self.SONNET, self.GPT, self.OPUS])
+
+    def test_both_claude_models_down_uses_gpt(self):
+        fake = FailingModel({self.OPUS, self.SONNET}, answer('From GPT.'))
+        ev = self.ask(fake, 'Hi')
+        self.assertEqual([c['modelId'] for c in fake.calls], [self.OPUS, self.SONNET, self.GPT])
+        self.assertEqual(''.join(e['text'] for e in ev if e['type'] == 'text'), 'From GPT.')
 
     def test_no_switch_after_output_started(self):
-        main = self.agent.model_id()
-        fake = FailingModel({main}, after=[{'messageStart': {'role': 'assistant'}},
-                                          {'contentBlockDelta': {'delta': {'text': 'Half an'}, 'contentBlockIndex': 0}}])
+        fake = FailingModel({self.OPUS}, after=[{'messageStart': {'role': 'assistant'}},
+                                               {'contentBlockDelta': {'delta': {'text': 'Half an'}, 'contentBlockIndex': 0}}])
         ev = self.ask(fake, 'Hi')
-        self.assertEqual([c['modelId'] for c in fake.calls], [main])
+        self.assertEqual([c['modelId'] for c in fake.calls], [self.OPUS])
         self.assertIn('error', [e['type'] for e in ev])
 
-    def test_both_models_down(self):
-        fake = FailingModel({self.agent.model_id(), self.agent.fallback_model_id()})
+    def test_all_models_down(self):
+        fake = FailingModel({self.OPUS, self.SONNET, self.GPT})
         ev = self.ask(fake, 'Hi')
-        self.assertEqual(len(fake.calls), 2)
+        self.assertEqual(len(fake.calls), 3)
         self.assertIn('reference', [e for e in ev if e['type'] == 'error'][0]['message'])
 
-    def test_fallback_can_be_turned_off(self):
+    def test_fallback_list_from_environment(self):
         with patch.dict(os.environ, {'BEDROCK_FALLBACK_MODEL_ID': 'none'}):
-            fake = FailingModel({self.agent.model_id()})
+            fake = FailingModel({self.OPUS})
             self.ask(fake, 'Hi')
             self.assertEqual(len(fake.calls), 1)
+        with patch.dict(os.environ, {'BEDROCK_FALLBACK_MODEL_ID': f' {self.GPT} , {self.OPUS},{self.GPT}'}):
+            self.assertEqual(self.agent.models_to_try(), [self.OPUS, self.GPT])
 
     def test_follow_up_sends_earlier_turns(self):
         self.ask(FakeBedrock(answer('First answer.')), 'First question')

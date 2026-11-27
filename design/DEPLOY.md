@@ -20,8 +20,8 @@ Sign in at http://127.0.0.1:5050 with your normal production username and passwo
 
 ## 2. Prepare Bedrock for the assistant (can be done later; the app works without it)
 
-1. In the AWS console, Amazon Bedrock, region **Asia Pacific (Mumbai) `ap-south-1`**: enable model access for **Claude Sonnet 4.5** (Anthropic asks for a short use-case form the first time) and **gpt-oss-120b** (the fallback).
-   Sonnet 4.5 is reached from Mumbai through the global cross-Region profile, so prompts and tool results may be processed in another AWS Region. GPT OSS runs in Mumbai. Set `BEDROCK_MODEL_ID=openai.gpt-oss-120b-1:0` and `BEDROCK_FALLBACK_MODEL_ID=none` if data must stay in India.
+1. In the AWS console, Amazon Bedrock, region **Asia Pacific (Mumbai) `ap-south-1`**: enable model access for **Claude Opus 4.6** (main), **Claude Sonnet 4.5** and **gpt-oss-120b** (fallbacks, in that order). Anthropic asks for a short use-case form the first time.
+   Claude is reached from Mumbai through the global cross-Region profile, so prompts and tool results may be processed in another AWS Region. GPT OSS runs in Mumbai. Set `BEDROCK_MODEL_ID=openai.gpt-oss-120b-1:0` and `BEDROCK_FALLBACK_MODEL_ID=none` if data must stay in India.
 2. Create a Bedrock API key (long-term, or a short-term key for a trial).
 3. Optional but recommended: create a SELECT-only Postgres role in Neon for the assistant's tools, and grant it `INSERT` on the assistant tables only:
 
@@ -54,8 +54,8 @@ In the Render dashboard for `pnl-automatonsx`, Environment:
 | `PNL_ENV` | `production` |
 | `AWS_BEARER_TOKEN_BEDROCK` | the Bedrock API key (step 2) |
 | `AWS_REGION` | `ap-south-1` |
-| `BEDROCK_MODEL_ID` | `global.anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| `BEDROCK_FALLBACK_MODEL_ID` | `openai.gpt-oss-120b-1:0` (used when Claude fails before answering; `none` turns it off) |
+| `BEDROCK_MODEL_ID` | `global.anthropic.claude-opus-4-6-v1` |
+| `BEDROCK_FALLBACK_MODEL_ID` | `global.anthropic.claude-sonnet-4-5-20250929-v1:0,openai.gpt-oss-120b-1:0` (tried in order when a model fails before answering; `none` turns fallback off) |
 | `ASSISTANT_DATABASE_URL` | the SELECT-only role's URL (step 2.3), optional |
 | `PNL_BOOTSTRAP_ADMIN_PASSWORD` | leave empty unless the users table is empty |
 

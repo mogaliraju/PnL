@@ -1,4 +1,4 @@
-"""PnL assistant: Claude Sonnet 4.5 on Amazon Bedrock, falling back to GPT OSS 120B (Converse API) with read-only tools (DESIGN.md 9).
+"""PnL assistant: Claude Opus 4.6 on Amazon Bedrock, falling back to Claude Sonnet 4.5, then GPT OSS 120B (Converse API) with read-only tools (DESIGN.md 9).
 
 Flow for one question:
   user message -> converse_stream(messages, tools) -> stream text to the browser
@@ -8,10 +8,11 @@ Flow for one question:
 Configuration (environment):
   AWS_BEARER_TOKEN_BEDROCK  Bedrock API key (or normal AWS credentials)
   AWS_REGION                default ap-south-1 (Mumbai)
-  BEDROCK_MODEL_ID          default global.anthropic.claude-sonnet-4-5-20250929-v1:0
-                            (Sonnet 4.5 is reached from Mumbai through the global cross-Region profile)
-  BEDROCK_FALLBACK_MODEL_ID default openai.gpt-oss-120b-1:0 (served in Mumbai); 'none' turns it off.
-                            Used when the main model fails before it has said anything.
+  BEDROCK_MODEL_ID          default global.anthropic.claude-opus-4-6-v1
+                            (Claude is reached from Mumbai through the global cross-Region profiles)
+  BEDROCK_FALLBACK_MODEL_ID comma-separated, tried in order when a model fails before it has said anything.
+                            Default: global.anthropic.claude-sonnet-4-5-20250929-v1:0,openai.gpt-oss-120b-1:0
+                            (GPT OSS is served in Mumbai). 'none' turns fallback off.
   ASSISTANT_DATABASE_URL    optional SELECT-only Postgres role for the tools
 """
 from __future__ import annotations
@@ -29,9 +30,9 @@ from pnl.utils.logger import get_logger
 
 log = get_logger(__name__)
 
-MODEL_ID_DEFAULT = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
-FALLBACK_MODEL_ID_DEFAULT = 'openai.gpt-oss-120b-1:0'
-PRIMARY_COOLDOWN = 300                    # after the main model fails, go straight to the fallback for 5 minutes
+MODEL_ID_DEFAULT = 'global.anthropic.claude-opus-4-6-v1'
+FALLBACK_MODEL_IDS_DEFAULT = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0,openai.gpt-oss-120b-1:0'
+MODEL_COOLDOWN = 300                      # a model that failed goes to the back of the line for 5 minutes
 REGION_DEFAULT = 'ap-south-1'
 MAX_ROUNDS = 6
 MAX_OUTPUT_TOKENS = 4096                  # per model call; the model's own ceiling is 16K
@@ -80,26 +81,30 @@ def model_id() -> str:
     return os.environ.get('BEDROCK_MODEL_ID') or MODEL_ID_DEFAULT
 
 
-def fallback_model_id() -> str | None:
-    v = os.environ.get('BEDROCK_FALLBACK_MODEL_ID', FALLBACK_MODEL_ID_DEFAULT).strip()
-    return None if v.lower() in ('', 'none', 'off') or v == model_id() else v
+def fallback_model_ids() -> list[str]:
+    raw = os.environ.get('BEDROCK_FALLBACK_MODEL_ID', FALLBACK_MODEL_IDS_DEFAULT)
+    if raw.strip().lower() in ('', 'none', 'off'):
+        return []
+    out = []
+    for m in (x.strip() for x in raw.split(',')):
+        if m and m != model_id() and m not in out:
+            out.append(m)
+    return out
 
 
-_primary_down_until = 0.0
+_down_until: dict[str, float] = {}
 
 
 def models_to_try() -> list[str]:
-    """Main model first, then the fallback. While the main model is cooling down after a failure,
-    the fallback goes first so every question doesn't wait for a call that will fail again."""
-    main, fb = model_id(), fallback_model_id()
-    if not fb:
-        return [main]
-    return [fb, main] if time.monotonic() < _primary_down_until else [main, fb]
+    """Main model first, then the fallbacks in order. Models that failed in the last few minutes
+    move to the back, so a question doesn't wait for a call that will fail again."""
+    chain = [model_id(), *fallback_model_ids()]
+    now = time.monotonic()
+    return [m for m in chain if _down_until.get(m, 0) <= now] + [m for m in chain if _down_until.get(m, 0) > now]
 
 
-def _primary_failed() -> None:
-    global _primary_down_until
-    _primary_down_until = time.monotonic() + PRIMARY_COOLDOWN
+def _model_failed(model: str) -> None:
+    _down_until[model] = time.monotonic() + MODEL_COOLDOWN
 
 
 class DemoClient:
@@ -330,8 +335,7 @@ def chat(username: str, text: str, context: dict | None = None, sid: str | None 
                 if not emitted and len(models) > 1:
                     log.warning(f"Assistant model {models[0]} failed, switching to {models[1]} [ref {ref}]: "
                                 f"{type(e).__name__}: {str(e)[:300]}")
-                    if models[0] == model_id():
-                        _primary_failed()
+                    _model_failed(models[0])
                     models = models[1:]
                     continue
                 log.exception(f"Assistant model call failed ({models[0]}) [ref {ref}]")
