@@ -108,9 +108,9 @@ The look follows the AutomatonsX brand used across AX documents: navy structure,
 | `canvas` | #F4F4F9 | #100F26 | Page background |
 | `surface` | #FFFFFF | #1A1936 | Panels, tables, dialogs |
 | `sunk` | #EEEDF5 | #232248 | Table footers, lever strip, chat bubbles |
-| `ink` / `ink-2` / `ink-3` | #17163A / #5B5A7E / #8A89A8 | #EDECF8 / #A9A8CB / #7C7BA0 | Text hierarchy |
+| `ink` / `ink-2` / `ink-3` | #17163A / #5B5A7E / #686787 | #EDECF8 / #A9A8CB / #9493B8 | Text hierarchy (ink-3 darkened in Phase 9 to pass WCAG AA on every surface) |
 | `line` / `line-strong` | #E2E1EC / #CFCDE0 | #2E2D57 / #403F70 | Dividers, input borders |
-| `good` / `warn` / `bad` | #1E7F55 / #A35F00 / #BC2C27 | #5FCB97 / #F0B25A / #F08A84 | Margin health and status only |
+| `good` / `warn` / `bad` | #1A7049 / #A35F00 / #BC2C27 | #5FCB97 / #F0B25A / #F08A84 | Margin health and status only |
 
 Rules: magenta appears at most once per region as a filled element. Semantic colours are reserved for margin health and status pills. No gradients except inside the AX logo. All values are in `figma-tokens.json` and mirrored as CSS variables in `static/css/ax.css`.
 

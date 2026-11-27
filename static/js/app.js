@@ -223,6 +223,8 @@ let locationSelect = null;
 
 // ---------- Bootstrap Toast helper ----------
 function showToast(msg, type = 'success') {
+  // The redesign's toast (DESIGN.md 11) when it's on the page; the old Bootstrap toast otherwise.
+  if (window.axUI) { window.axUI.toast(String(msg).replace(/!$/, ''), { error: type === 'danger' }); return; }
   const el = document.getElementById('toast');
   el.className = `toast align-items-center bg-${type}`;
   document.getElementById('toast-body').textContent = msg;
@@ -1396,12 +1398,12 @@ function importExcel(input) {
     let json;
     try { json = JSON.parse(xhr.responseText); } catch (e) {
       ui.remove();
-      showToast('Import error: invalid server response', 'danger');
+      showToast("The import couldn't be read. Check the file is a PnL Excel workbook and try again.", 'danger');
       return;
     }
     if (xhr.status !== 200) {
       ui.remove();
-      showToast('Import failed: ' + (json.error || xhr.statusText), 'danger');
+      showToast('The import failed: ' + (json.error || xhr.statusText), 'danger');
       return;
     }
 
@@ -1417,8 +1419,8 @@ function importExcel(input) {
     }, 600);
   };
 
-  xhr.onerror = () => { ui.remove(); showToast('Import error: network failure', 'danger'); };
-  xhr.ontimeout = () => { ui.remove(); showToast('Import error: request timed out', 'danger'); };
+  xhr.onerror = () => { ui.remove(); showToast("The import couldn't reach the server. Check your connection and try again.", 'danger'); };
+  xhr.ontimeout = () => { ui.remove(); showToast('The import took too long. Try a smaller file or try again.', 'danger'); };
 
   xhr.open('POST', '/api/import-excel');
   xhr.send(fd);

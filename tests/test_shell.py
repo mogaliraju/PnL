@@ -147,3 +147,10 @@ class TestExportDialog(BaseTestCase):
         self.assertIn('reference', body)
         self.assertNotIn('boom', body['error'])
         self.assertNotIn('detail', body)
+
+
+class TestHiddenRule(BaseTestCase):
+    def test_hidden_attribute_always_hides(self):
+        # The sign-in page has two forms toggled with `hidden`; without this rule both showed.
+        css = (ROOT / 'static' / 'css' / 'ax.css').read_text()
+        self.assertIn('[hidden] { display: none !important; }', css)

@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+    /* Theme: a saved choice wins; otherwise the system setting (DESIGN.md 12). Runs before paint. */
+    try { const t = localStorage.getItem('ax-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Presales PnL{% endblock %} | AutomatonsX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -61,6 +65,7 @@
       </label>
       <div class="ax-spacer"></div>
       {% block top_actions %}{% endblock %}
+      <button type="button" class="ax-btn ax-btn--ghost ax-btn--icon ax-theme-btn" data-ax-action="theme" aria-label="Switch to dark theme" title="Switch theme">{{ icon('moon') }}</button>
       <button type="button" class="ax-btn ax-btn--assistant" data-ax-action="assistant">{{ icon('spark') }}<span>Ask PnL assistant</span></button>
     </header>
     <main class="ax-page" id="ax-page">
@@ -74,7 +79,7 @@
 </div>
 {% block modals %}{% endblock %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<div hidden>{% for n in ['plus', 'search', 'columns', 'archive', 'x', 'download', 'history', 'alert', 'save', 'check', 'lock', 'copy', 'compare', 'back', 'key', 'trash', 'spark', 'upload'] %}<template id="ax-icon-{{ n }}">{{ icon(n) }}</template>{% endfor %}</div>
+<div hidden>{% for n in ['plus', 'sun', 'moon', 'search', 'columns', 'archive', 'x', 'download', 'history', 'alert', 'save', 'check', 'lock', 'copy', 'compare', 'back', 'key', 'trash', 'spark', 'upload'] %}<template id="ax-icon-{{ n }}">{{ icon(n) }}</template>{% endfor %}</div>
 <script>
   window.AX = {
     thresholds: {{ ax_thresholds|tojson }},

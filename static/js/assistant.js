@@ -85,7 +85,7 @@
         <button type="button" class="ax-btn ax-btn--ghost ax-btn--small" data-act="new" title="Start a new conversation">New chat</button>
         <button type="button" class="ax-btn ax-btn--ghost ax-btn--icon" data-act="close" aria-label="Close assistant">${icon('x')}</button></div>
       <div class="ax-drawer-ctx" id="ax-as-ctx"></div>
-      <div class="ax-chat" id="ax-as-log" aria-live="polite"></div>
+      <div class="ax-chat" id="ax-as-log" aria-live="polite" tabindex="0" role="log" aria-label="Conversation"></div>
       <div class="ax-sugg" id="ax-as-sugg"></div>
       <form class="ax-composer" id="ax-as-form"><textarea class="ax-input" id="ax-as-q" rows="2" placeholder="Ask about projects, versions or rates" aria-label="Message"></textarea>
         <button type="submit" class="ax-btn ax-btn--primary ax-btn--icon" aria-label="Send">${icon('spark')}</button></form>`;

@@ -30,6 +30,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* hidden always wins over component display rules */
 html, body { min-height: 100%; }
 body {
   margin: 0;
@@ -46,7 +47,9 @@ button, input, select, textarea { font: inherit; }
 .num, .ax-num { font-variant-numeric: tabular-nums; }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .ax-i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.ax-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ax-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+/* Visually hidden labels are absolutely positioned: keep them inside their scroll container. */
+.ax-table-wrap, .ax-panel, .ax-tabs { position: relative; }
 
 /* ── Shell: rail + main ───────────────────────────────────────────────── */
 .ax-app { display: grid; grid-template-columns: var(--rail-width) minmax(0, 1fr); min-height: 100vh; }
@@ -59,7 +62,7 @@ button, input, select, textarea { font: inherit; }
 .ax-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; color: #fff; text-decoration: none; }
 .ax-brand img { width: 38px; height: 38px; border-radius: 9px; }
 .ax-brand b { display: block; font-size: 16px; line-height: 1.2; }
-.ax-brand small { display: block; font-size: 12px; color: #9C9AD0; }
+.ax-brand small { display: block; font-size: 12px; color: #B3B1E3; }
 .ax-nav { display: flex; flex-direction: column; gap: 2px; }
 .ax-nav a, .ax-nav button {
   position: relative; display: flex; align-items: center; gap: 12px;
@@ -72,7 +75,7 @@ button, input, select, textarea { font: inherit; }
   content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px;
   border-radius: 0 3px 3px 0; background: var(--magenta);
 }
-.ax-nav-sep { font-size: 12px; color: #8987BF; padding: 18px 12px 6px; }
+.ax-nav-sep { font-size: 12px; color: #B3B1E3; padding: 18px 12px 6px; }
 .ax-me { margin-top: auto; border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
 .ax-me-btn {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0;
@@ -80,9 +83,9 @@ button, input, select, textarea { font: inherit; }
 }
 .ax-me-btn:hover { background: rgba(255,255,255,.06); }
 .ax-me-btn b { display: block; color: #fff; font-size: 14px; }
-.ax-me-btn > div > span { display: block; font-size: 12px; color: #9C9AD0; }
+.ax-me-btn > div > span { display: block; font-size: 12px; color: #B3B1E3; }
 .ax-avatar {
-  width: 32px; height: 32px; border-radius: 50%; background: var(--magenta); color: #fff;
+  width: 32px; height: 32px; border-radius: 50%; background: var(--magenta); color: var(--on-accent);
   display: grid; place-items: center; font-weight: var(--font-weight-bold); font-size: 13px; flex: none;
 }
 .ax-me .dropdown-menu { min-width: 220px; }
@@ -152,8 +155,8 @@ button, input, select, textarea { font: inherit; }
 }
 .ax-btn:hover { border-color: var(--ink-3); color: var(--ink); }
 .ax-btn:disabled { opacity: .5; cursor: not-allowed; }
-.ax-btn--primary { background: var(--magenta); border-color: var(--magenta); color: #fff; }
-.ax-btn--primary:hover { background: var(--magenta-hover); border-color: var(--magenta-hover); color: #fff; }
+.ax-btn--primary { background: var(--magenta); border-color: var(--magenta); color: var(--on-accent); }
+.ax-btn--primary:hover { background: var(--magenta-hover); border-color: var(--magenta-hover); color: var(--on-accent); }
 .ax-btn--ghost { background: none; border-color: transparent; }
 .ax-btn--ghost:hover { background: var(--sunk); border-color: transparent; }
 .ax-btn--danger { color: var(--bad); }
@@ -285,7 +288,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-dialog-b p { margin: 0; }
 .ax-dialog-f { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); }
 .ax-toasts { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1090; display: flex; flex-direction: column; gap: 8px; align-items: center; }
-.ax-toast { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-radius: var(--radius-md); background: var(--navy); color: #fff; box-shadow: var(--shadow-pop); font-size: 14px; }
+.ax-toast { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-radius: var(--radius-md); background: var(--strong-fill); color: #fff; box-shadow: var(--shadow-pop); font-size: 14px; }
 .ax-toast--error { background: var(--bad); }
 .ax-toast button { border: 0; background: none; color: #F7B4EF; font-weight: 700; cursor: pointer; padding: 0; }
 .ax-pop { position: absolute; z-index: 1070; min-width: 230px; max-width: 320px; max-height: 360px; overflow: auto; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); }
@@ -311,8 +314,8 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-table-wrap { overflow-x: auto; }
 .ax-table--list th { position: sticky; top: 0; background: var(--surface); }
 .ax-table--list th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
-.ax-table--list th button[aria-sort="ascending"]::after { content: "↑"; }
-.ax-table--list th button[aria-sort="descending"]::after { content: "↓"; }
+.ax-table--list th[aria-sort="ascending"] button::after { content: "↑"; }
+.ax-table--list th[aria-sort="descending"] button::after { content: "↓"; }
 .ax-table--list tbody tr { cursor: pointer; }
 .ax-table--list tbody tr:hover td, .ax-table--list tbody tr:focus-visible td { background: var(--sunk); }
 .ax-table--list tbody tr:focus-visible { outline: none; box-shadow: inset 3px 0 0 var(--magenta); }
@@ -323,7 +326,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 /* ── Rates and roles (Phase 5) ─────────────────────────────────────────── */
 .ax-seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-control); overflow: hidden; }
 .ax-seg button { border: 0; background: var(--surface); padding: 5px 10px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
-.ax-seg button.is-on { background: var(--navy); color: #fff; }
+.ax-seg button.is-on { background: var(--strong-fill); color: #fff; }
 .ax-lock { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2); }
 .ax-dirty { display: inline-flex; align-items: center; gap: 6px; color: var(--warn); font-weight: 700; font-size: 13.5px; }
 .ax-dirty::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
@@ -335,7 +338,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-rate-in { width: 96px; height: 32px; text-align: right; font-weight: 700; }
 .ax-rate-in.is-changed { background: var(--magenta-soft); border-color: var(--magenta); }
 .ax-was { display: block; font-size: 11.5px; color: var(--ink-3); text-decoration: line-through; font-weight: 400; }
-.ax-row-off td, .ax-row-off th { opacity: .6; }
+.ax-row-off td, .ax-row-off th, .ax-row-off .ax-input { color: var(--ink-3); }   /* switched off: faint text, not opacity (contrast) */
 .ax-two { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 18px; align-items: start; }
 .ax-catlist { overflow: hidden; }
 .ax-catlist > button { display: flex; width: 100%; justify-content: space-between; align-items: center; border: 0; border-left: 3px solid transparent; background: none; padding: 10px 14px; cursor: pointer; text-align: left; color: var(--ink); }
@@ -381,7 +384,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-lr .v { text-align: right; font-variant-numeric: tabular-nums; }
 .ax-lr .sub { display: block; font-size: 12.5px; color: var(--ink-3); }
 .ax-lr.total { border-top: 1px solid var(--line-strong); margin-top: 4px; padding-top: 10px; font-weight: 700; }
-.ax-tcv { margin: 6px 18px 0; padding: 16px 0 14px; border-top: 2px solid var(--navy); }
+.ax-tcv { margin: 6px 18px 0; padding: 16px 0 14px; border-top: 2px solid var(--chart-bar); }
 .ax-tcv .ax-label { display: block; }
 .ax-tcv-amt { font-size: var(--type-contract-value-size); font-weight: 700; line-height: 1.1; letter-spacing: -.02em; color: var(--magenta); font-variant-numeric: tabular-nums; }
 .ax-meter { margin: 0 18px 16px; }
@@ -442,7 +445,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-att a { font-weight: 700; color: var(--ink); }
 .ax-hbar { display: grid; grid-template-columns: 130px minmax(0, 1fr) 90px; gap: 12px; align-items: center; margin: 10px 0; font-size: 14px; }
 .ax-hbar-track { height: 14px; background: var(--sunk); border-radius: 0 4px 4px 0; overflow: hidden; }
-.ax-hbar-fill { height: 100%; background: var(--navy); border-radius: 0 4px 4px 0; min-width: 0; }
+.ax-hbar-fill { height: 100%; background: var(--chart-bar); border-radius: 0 4px 4px 0; min-width: 0; }
 @media (max-width: 1100px) { .ax-dgrid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 860px) { .ax-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ax-kpi:nth-child(3) { border-left: 0; } .ax-kpi:nth-child(n+3) { border-top: 1px solid var(--line); } }
 
@@ -452,7 +455,7 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-assistant[hidden] { display: none; }
 .ax-chat { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .ax-msg { max-width: 94%; font-size: 14.5px; }
-.ax-msg--user { align-self: flex-end; background: var(--navy); color: #fff; padding: 9px 13px; border-radius: 14px 14px 4px 14px; white-space: pre-wrap; }
+.ax-msg--user { align-self: flex-end; background: var(--strong-fill); color: #fff; padding: 9px 13px; border-radius: 14px 14px 4px 14px; white-space: pre-wrap; }
 .ax-msg--assistant { align-self: flex-start; min-width: 0; }
 .ax-msg-body { background: var(--sunk); padding: 11px 13px; border-radius: 14px 14px 14px 4px; display: grid; gap: 8px; }
 .ax-msg-body p, .ax-msg-body ul, .ax-msg-body ol { margin: 0; }
@@ -473,3 +476,36 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-composer { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
 .ax-composer textarea { resize: none; height: 44px; }
 @media (max-width: 860px) { .ax-btn--assistant span { display: none; } .ax-btn--assistant { width: var(--control-height); padding: 0; } }
+
+/* ── Dark mode for the remaining Bootstrap pieces (account menu, legacy modals) ── */
+.dropdown-menu {
+  --bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--ink); --bs-dropdown-border-color: var(--line);
+  --bs-dropdown-link-color: var(--ink); --bs-dropdown-link-hover-color: var(--ink); --bs-dropdown-link-hover-bg: var(--sunk);
+  --bs-dropdown-divider-bg: var(--line);
+}
+.dropdown-item { background: none; border: 0; width: 100%; text-align: left; }
+.modal-content { background: var(--surface); color: var(--ink); }
+.ax-theme-btn .ax-i { width: 18px; height: 18px; }
+
+/* Dark mode: brand magenta becomes the lighter dark-theme accent (contrast with --on-accent),
+   and the generated status tokens (which point at the light palette) use dark values. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --magenta: var(--accent); --magenta-hover: #F07CE5;
+    --status-draft-bg: var(--sunk); --status-draft-fg: var(--ink-2);
+    --status-submitted-bg: #25235A; --status-submitted-fg: #B4B0F5;
+    --status-won-bg: var(--good-soft); --status-won-fg: var(--good);
+    --status-lost-bg: var(--bad-soft); --status-lost-fg: var(--bad);
+    --status-on-hold-bg: var(--warn-soft); --status-on-hold-fg: var(--warn);
+  }
+}
+:root[data-theme="dark"] {
+  --magenta: var(--accent); --magenta-hover: #F07CE5;
+  --status-draft-bg: var(--sunk); --status-draft-fg: var(--ink-2);
+  --status-submitted-bg: #25235A; --status-submitted-fg: #B4B0F5;
+  --status-won-bg: var(--good-soft); --status-won-fg: var(--good);
+  --status-lost-bg: var(--bad-soft); --status-lost-fg: var(--bad);
+  --status-on-hold-bg: var(--warn-soft); --status-on-hold-fg: var(--warn);
+}
+
+.app-footer-label { color: var(--ink-2); }

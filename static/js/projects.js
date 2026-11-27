@@ -218,7 +218,7 @@
     } else {
       const head = cols.map(c => {
         const on = state.sort.key === c.key;
-        return `<th class="${c.num ? 'r' : ''}"><button type="button" data-sort="${c.key}" aria-sort="${on ? (state.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${c.label}</button></th>`;
+        return `<th class="${c.num ? 'r' : ''}" aria-sort="${on ? (state.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${c.label}</button></th>`;
       }).join('');
       const rows = list.map(p => `<tr tabindex="0" data-id="${esc(p.id)}">
           ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${c.cell(p)}</td>`).join('')}

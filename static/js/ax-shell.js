@@ -139,5 +139,27 @@
     if (e.target.closest('[data-ax-action="change-password"]')) { e.preventDefault(); changePassword(); }
   });
 
+  // Theme toggle: remembers the choice in this browser; without one the system setting applies.
+  const isDark = () => {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  };
+  function paintThemeButton() {
+    const b = document.querySelector('[data-ax-action="theme"]');
+    if (!b) return;
+    const dark = isDark();
+    const tpl = document.getElementById('ax-icon-' + (dark ? 'sun' : 'moon'));
+    if (tpl) b.innerHTML = tpl.innerHTML;
+    b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-ax-action="theme"]')) return;
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('ax-theme', next); } catch { /* private mode: this page only */ }
+    paintThemeButton();
+  });
+  paintThemeButton();
+
   window.axShell = { show, openInitialTab, openUsers, search, changePassword, get current() { return current; } };
 })();

@@ -52,7 +52,7 @@
         <circle class="ax-dot ax-dot--${health(ax(p))}" cx="${(L + step * (i + .5)).toFixed(1)}" cy="${y(ax(p)).toFixed(1)}" r="${r.toFixed(1)}"><title>${esc(label)}</title></circle>
         <circle class="ax-dot-hit" cx="${(L + step * (i + .5)).toFixed(1)}" cy="${y(ax(p)).toFixed(1)}" r="${Math.max(r, 11).toFixed(1)}"><title>${esc(label)}</title></circle></a>`;
     }).join('');
-    return `<svg class="ax-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="AX margin after discount for each open project">
+    return `<svg class="ax-chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="AX margin after discount for each open project. Each dot links to its project.">
       ${ticks.map(t => `<line class="ax-grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text class="ax-tick" x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${t}%</text>`).join('')}
       <line class="ax-target" x1="${L}" x2="${W - R}" y1="${y(GOOD)}" y2="${y(GOOD)}"/>
       <text class="ax-target-label" x="${W - R}" y="${y(GOOD) - 6}" text-anchor="end">Target ${GOOD}%</text>
@@ -60,8 +60,8 @@
     </svg>
     <div class="ax-legend" aria-hidden="true"><span><i class="ax-dot--good"></i>${GOOD}% or more</span><span><i class="ax-dot--warn"></i>${WARN}% to ${GOOD}%</span>
       <span><i class="ax-dot--bad"></i>Under ${WARN}%</span><span class="ax-faint">Bigger dot = bigger contract. Projects sorted by contract value.</span></div>
-    <table class="ax-sr"><caption>AX margin by project</caption><thead><tr><th>Project</th><th>Status</th><th>AX margin</th><th>Contract value</th></tr></thead>
-      <tbody>${open.map(p => `<tr><td>${esc(p.customer || p.name)}</td><td>${status(p)}</td><td>${pct(ax(p))}</td><td>${money(cv(p))}</td></tr>`).join('')}</tbody></table>`;
+    <div class="ax-sr"><table><caption>AX margin by project</caption><thead><tr><th>Project</th><th>Status</th><th>AX margin</th><th>Contract value</th></tr></thead>
+      <tbody>${open.map(p => `<tr><td>${esc(p.customer || p.name)}</td><td>${status(p)}</td><td>${pct(ax(p))}</td><td>${money(cv(p))}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
   function statusBars(items) {
