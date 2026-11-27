@@ -205,10 +205,10 @@
       }
     }
   }
-  function groupRow(g, cols, open) {
+  function groupRow(g, cols, open, no) {
     return `<tr class="ax-group-row${open ? ' is-open' : ''}" data-group="${esc(g.key)}" tabindex="0" aria-expanded="${open}"
         title="${open ? 'Hide' : 'Show'} the ${g.items.length} projects for ${esc(g.customer)}">
-      ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${groupCell(g, c)}</td>`).join('')}<td></td></tr>`;
+      <td class="ax-sno">${no}</td>${cols.map(c => `<td class="${c.num ? 'r' : ''}">${groupCell(g, c)}</td>`).join('')}<td></td></tr>`;
   }
   const childCell = p => `<div class="ax-two-line ax-child-cell"><b>${mark(p.name)}</b><span>${esc(p.folder || p.stage || '')}</span></div>`;
 
@@ -279,16 +279,17 @@
         const on = state.sort.key === c.key;
         return `<th class="${c.num ? 'r' : ''}" aria-sort="${on ? (state.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" data-sort="${c.key}">${c.label}</button></th>`;
       }).join('');
-      const row = (p, child) => `<tr tabindex="0" data-id="${esc(p.id)}" class="${child ? 'ax-child-row' : ''}">
+      const row = (p, child, no) => `<tr tabindex="0" data-id="${esc(p.id)}" class="${child ? 'ax-child-row' : ''}">
+          <td class="ax-sno">${no}</td>
           ${cols.map(c => `<td class="${c.num ? 'r' : ''}">${child && c.key === 'project' ? childCell(p) : c.cell(p)}</td>`).join('')}
           <td class="r"><button type="button" class="ax-btn ax-btn--ghost ax-btn--small ax-btn--icon" data-archive="${esc(p.id)}" aria-label="Archive ${esc(p.customer || p.name)}" title="Archive">${icon('archive')}</button></td>
         </tr>`;
-      const rows = !state.group ? list.map(p => row(p, false)).join('') : groups(list).map(g => {
-        if (g.items.length === 1) return row(g.items[0], false);
+      const rows = !state.group ? list.map((p, i) => row(p, false, i + 1)).join('') : groups(list).map((g, gi) => {
+        if (g.items.length === 1) return row(g.items[0], false, gi + 1);
         const open = state.expanded.has(g.key) || !!state.q;      // a search opens matching groups
-        return groupRow(g, cols, open) + (open ? g.items.map(p => row(p, true)).join('') : '');
+        return groupRow(g, cols, open, gi + 1) + (open ? g.items.map((p, i) => row(p, true, `${gi + 1}.${i + 1}`)).join('') : '');
       }).join('');
-      table.innerHTML = `<table class="ax-table ax-table--list"><thead><tr>${head}<th><span class="ax-sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`;
+      table.innerHTML = `<table class="ax-table ax-table--list"><thead><tr><th class="ax-sno" scope="col">S.No</th>${head}<th><span class="ax-sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     const note = el.querySelector('#ax-proj-archive-note');
     note.textContent = state.archivedCount ? `${state.archivedCount} archived project${state.archivedCount === 1 ? '' : 's'} not shown. Archived projects keep all their versions.` : '';

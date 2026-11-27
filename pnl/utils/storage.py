@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 import re
 import sqlite3
 from datetime import datetime
@@ -64,6 +65,7 @@ def _sql(sql: str) -> str:
 
 
 _POOL = None
+_POOL_LOCK = threading.Lock()
 
 
 def _pool():
@@ -71,17 +73,19 @@ def _pool():
     (TLS + sign-in) costs several round trips; reusing one costs none."""
     global _POOL
     if _POOL is None:
-        from psycopg_pool import ConnectionPool
-        _POOL = ConnectionPool(
-            _as_db_url(_DATABASE_URL),
-            min_size=1,
-            max_size=int(os.environ.get('PNL_DB_POOL_MAX', '10')),
-            max_idle=240,                      # Neon drops idle connections; recycle before it does
-            kwargs={'row_factory': dict_row,
-                    'prepare_threshold': None},  # Neon's pooler (PgBouncer) can't keep prepared statements
-            check=ConnectionPool.check_connection,
-            open=True,
-        )
+        with _POOL_LOCK:            # two threads starting together must share one pool
+            if _POOL is None:
+                from psycopg_pool import ConnectionPool
+                _POOL = ConnectionPool(
+                    _as_db_url(_DATABASE_URL),
+                    min_size=1,
+                    max_size=int(os.environ.get('PNL_DB_POOL_MAX', '10')),
+                    max_idle=240,                      # Neon drops idle connections; recycle before it does
+                    kwargs={'row_factory': dict_row,
+                            'prepare_threshold': None},  # Neon's pooler (PgBouncer) can't keep prepared statements
+                    check=ConnectionPool.check_connection,
+                    open=True,
+                )
     return _POOL
 
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import threading
 import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -31,19 +32,22 @@ class ToolError(Exception):
 # ── read-only data access ─────────────────────────────────────────────────
 
 _RO_POOL = None
+_RO_POOL_LOCK = threading.Lock()
 
 
 def _ro_pool():
     """Pooled read-only connections: every session runs with default_transaction_read_only=on."""
     global _RO_POOL
     if _RO_POOL is None:
-        from psycopg.rows import dict_row
-        from psycopg_pool import ConnectionPool
-        url = (os.environ.get('ASSISTANT_DATABASE_URL') or storage._DATABASE_URL).replace('postgres://', 'postgresql://', 1)
-        _RO_POOL = ConnectionPool(url, min_size=0, max_size=4, max_idle=240, open=True,
-                                  kwargs={'row_factory': dict_row, 'prepare_threshold': None,
-                                          'options': '-c default_transaction_read_only=on'},
-                                  check=ConnectionPool.check_connection)
+        with _RO_POOL_LOCK:            # two threads starting together must share one pool
+            if _RO_POOL is None:
+                from psycopg.rows import dict_row
+                from psycopg_pool import ConnectionPool
+                url = (os.environ.get('ASSISTANT_DATABASE_URL') or storage._DATABASE_URL).replace('postgres://', 'postgresql://', 1)
+                _RO_POOL = ConnectionPool(url, min_size=0, max_size=4, max_idle=240, open=True,
+                                          kwargs={'row_factory': dict_row, 'prepare_threshold': None,
+                                                  'options': '-c default_transaction_read_only=on'},
+                                          check=ConnectionPool.check_connection)
     return _RO_POOL
 
 
