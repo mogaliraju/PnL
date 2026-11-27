@@ -526,3 +526,6 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 .ax-group-row td.ax-sno { color: var(--ink); font-weight: 600; }
 .ax-child-row td.ax-sno { padding-left: 24px; }
 .ax-child-row td.ax-sno + td { padding-left: 38px; }
+
+/* Assistant: a worked sum on its own line */
+.ax-msg-body .ax-formula { font-variant-numeric: tabular-nums; background: var(--sunk); border-radius: 6px; padding: 6px 10px; }

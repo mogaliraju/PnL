@@ -9,8 +9,24 @@
     'What if the AX margin were 20% and the discount 0?', 'Download this project as Excel'];
 
   // Markdown from the model -> safe HTML (escape first; tables, bold, lists, paragraphs only).
+  // The model sometimes writes LaTeX maths. Turn it into plain text instead of showing \[ \text{...} \].
+  function unlatex(t) {
+    const tex = m => m
+      .replace(/\\(?:text|textbf|mathrm|mathbf|operatorname)\{([^{}]*)\}/g, '$1')
+      .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1) ÷ ($2)')
+      .replace(/\\times/g, '×').replace(/\\cdot/g, '·').replace(/\\div/g, '÷')
+      .replace(/\\approx/g, '≈').replace(/\\(?:le|leq)\b/g, '≤').replace(/\\(?:ge|geq)\b/g, '≥')
+      .replace(/\\(?:right|to)arrow\b|\\to\b/g, '→').replace(/\\left|\\right/g, '')
+      .replace(/\\([$%&#_{}])/g, '$1').replace(/\\[,;:! ]/g, ' ').replace(/\\quad|\\qquad/g, '  ')
+      .replace(/\\[a-zA-Z]+/g, '').replace(/[{}]/g, '').replace(/[ \t]+/g, ' ').trim();
+    return String(t || '')
+      .replace(/\\\[([\s\S]*?)(?:\\\]|$)/g, (_, m) => '\n\u0000' + tex(m) + '\n')   // display maths: its own line
+      .replace(/\$\$([\s\S]*?)(?:\$\$|$)/g, (_, m) => '\n\u0000' + tex(m) + '\n')
+      .replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => tex(m));
+  }
+
   function md(text) {
-    const lines = esc(text || '').split('\n');
+    const lines = esc(unlatex(text)).split('\n');
     const out = [];
     let i = 0;
     const inline = s => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -35,15 +51,24 @@
       }
       if (/^\s*\d+\. /.test(l)) {
         const items = [];
-        while (i < lines.length && /^\s*\d+\. /.test(lines[i])) items.push(inline(lines[i++].replace(/^\s*\d+\. /, '')));
-        out.push(`<ol>${items.map(x => `<li>${x}</li>`).join('')}</ol>`);
+        const next = j => { while (j < lines.length && !lines[j].trim()) j++; return j; };
+        while (i < lines.length && /^\s*\d+\. /.test(lines[i])) {
+          const no = parseInt(lines[i], 10);
+          let body = inline(lines[i++].replace(/^\s*\d+\. /, ''));
+          while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*] |\d+\. )/.test(lines[i])) body += '<br>' + inline(lines[i++].trim());
+          items.push(`<li value="${no}">${body}</li>`);
+          const j = next(i);                                    // a blank line between items keeps the same list
+          if (j < lines.length && /^\s*\d+\. /.test(lines[j])) i = j;
+        }
+        out.push(`<ol>${items.join('')}</ol>`);
         continue;
       }
+      if (l.startsWith('\u0000')) { out.push(`<p class="ax-formula">${inline(l.slice(1))}</p>`); i++; continue; }
       if (/^#{1,4} /.test(l)) { out.push(`<p><b>${inline(l.replace(/^#+ /, ''))}</b></p>`); i++; continue; }
       if (!l.trim()) { i++; continue; }
       // Always take the current line (a half-streamed table row lands here), then any plain lines after it.
       const para = [inline(lines[i++])];
-      while (i < lines.length && lines[i].trim() && !/^\s*([-*] |\d+\. |\|)/.test(lines[i]) && !/^#{1,4} /.test(lines[i])) para.push(inline(lines[i++]));
+      while (i < lines.length && lines[i].trim() && !/^(\s*([-*] |\d+\. |\|)|\u0000)/.test(lines[i]) && !/^#{1,4} /.test(lines[i])) para.push(inline(lines[i++]));
       out.push(`<p>${para.join('<br>')}</p>`);
     }
     return out.join('');
