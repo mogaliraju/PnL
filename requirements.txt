@@ -3,3 +3,4 @@ openpyxl
 gunicorn
 werkzeug
 psycopg[binary]
+boto3>=1.39          # Bedrock Converse for the PnL assistant; 1.39+ reads AWS_BEARER_TOKEN_BEDROCK

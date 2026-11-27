@@ -4,7 +4,8 @@ services:
     plan: free
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    # Threads keep one streaming assistant answer from blocking everyone else.
+    startCommand: gunicorn --worker-class gthread --threads 8 --timeout 120 app:app
     envVars:
       - key: DATABASE_URL
         sync: false          # Set this manually in Render dashboard to your Neon/Supabase URL
@@ -12,7 +13,18 @@ services:
         value: /tmp
       - key: SECRET_KEY
         generateValue: true
+      - key: PNL_ENV
+        value: production    # requires SECRET_KEY; the assistant's local demo mode is off
       - key: PNL_BOOTSTRAP_ADMIN_USERNAME
         value: admin
       - key: PNL_BOOTSTRAP_ADMIN_PASSWORD
-        value: Admin@12345
+        sync: false          # Only used when there are no users. Set it in the dashboard, never in git.
+      # PnL assistant (GPT OSS 120B on Amazon Bedrock, served in Mumbai)
+      - key: AWS_BEARER_TOKEN_BEDROCK
+        sync: false          # Bedrock API key
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: BEDROCK_MODEL_ID
+        value: openai.gpt-oss-120b-1:0
+      - key: ASSISTANT_DATABASE_URL
+        sync: false          # optional: a SELECT-only Postgres role for the assistant's tools

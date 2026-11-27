@@ -56,11 +56,12 @@
     <header class="ax-top">
       <label class="ax-search">
         {{ icon('search') }}
-        <input id="ax-global-search" type="search" placeholder="Search projects" aria-label="Search projects" autocomplete="off" value="{{ request.args.get('q', '') }}">
+        <input id="ax-global-search" type="search" placeholder="Search or ask about projects, versions and rates" aria-label="Search or ask the PnL assistant" autocomplete="off" value="{{ request.args.get('q', '') }}">
         <span class="ax-kbd" aria-hidden="true">/</span>
       </label>
       <div class="ax-spacer"></div>
       {% block top_actions %}{% endblock %}
+      <button type="button" class="ax-btn ax-btn--assistant" data-ax-action="assistant">{{ icon('spark') }}<span>Ask PnL assistant</span></button>
     </header>
     <main class="ax-page" id="ax-page">
       {% block content %}{% endblock %}
@@ -83,5 +84,6 @@
 <script src="{{ url_for('static', filename='js/ax-ui.js') }}"></script>
 {% block scripts %}{% endblock %}
 <script src="{{ url_for('static', filename='js/ax-shell.js') }}"></script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
 </body>
 </html>

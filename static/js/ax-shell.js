@@ -93,7 +93,12 @@
   const input = document.getElementById('ax-global-search');
   if (input) {
     input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); search(input.value); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // DESIGN.md 4.2: Enter asks the assistant (it falls back to a project search if the assistant isn't set up)
+        if (window.axAssistant && input.value.trim()) { window.axAssistant.open(input.value.trim()); input.value = ''; }
+        else search(input.value);
+      }
       if (e.key === 'Escape') input.blur();
     });
   }

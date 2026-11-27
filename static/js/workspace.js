@@ -143,6 +143,7 @@
       W.tab = 'details';
       W.dirty = true;
     }
+    if (W.pid && new URLSearchParams(location.search).has('scenario')) await applyScenario(false);
     fetch('/api/projects/folders').then(r => r.ok ? r.json() : []).then(f => { W.folders = f; }).catch(() => {});
     liveFx(!W.p.fx_rate);
     render();
@@ -517,7 +518,9 @@
       <div class="ax-meter"><div class="ax-meter-top"><span>AX margin after discount</span><span class="ax-health ax-health--${health(ax)}">${pct(ax)}</span></div>
         <div class="ax-meter-track"><div class="ax-meter-fill ax-health--${health(ax)}" style="width:${w}%"></div><div class="ax-meter-tgt" style="left:50%"></div></div>
         <div class="ax-meter-cap"><span>0%</span><span>Target ${AX.thresholds.good}%</span><span>${AX.thresholds.good * 2}%</span></div></div>` : ''}
-      <div class="ax-ledger-f"><button type="button" class="ax-btn ax-btn--small" data-act="export">${icon('download')}Excel</button></div>`;
+      <div class="ax-ledger-f"><button type="button" class="ax-btn ax-btn--small" data-ax-action="assistant"
+          data-question="Explain how ${esc(P().customer || 'this project')} is priced">${icon('spark')}Explain</button>
+        <button type="button" class="ax-btn ax-btn--small" data-act="export">${icon('download')}Excel</button></div>`;
   }
 
   // ── events ────────────────────────────────────────────────────────────
@@ -797,7 +800,18 @@
           <td class="r num">${c.hours_a ? hrs(c.hours_a) : 'none'}</td><td class="r num"><b>${c.hours_b ? hrs(c.hours_b) : 'removed'}</b></td></tr>`).join('')}
       </tbody></table>` : '<p class="ax-faint">No resource changes.</p>'}</div></div>`;
     const dlg = dialog({ title: `Version ${x.version_no} and version ${y.version_no}`, body, confirmLabel: 'Close', cancelLabel: null });
-    document.querySelector('.ax-dialog')?.classList.add('ax-dialog--wide');
+    const box = document.querySelector('.ax-dialog');
+    box?.classList.add('ax-dialog--wide');
+    if (window.axAssistant) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ax-btn';
+      b.innerHTML = `${icon('spark')}Summarise changes`;
+      b.addEventListener('click', () => {
+        box.querySelector('[type=submit]').click();
+        window.axAssistant.open(`What changed between version ${x.version_no} and version ${y.version_no} of ${P().customer || W.pid}?`);
+      });
+      box?.querySelector('.ax-dialog-f').prepend(b);
+    }
     await dlg;
   }
 
@@ -838,6 +852,25 @@
       toast(`Downloaded ${name}.xlsx`);
     } catch { toast("The export couldn't reach the server. Check your connection and try again.", { error: true }); }
   }
+
+  // A what-if from the assistant, loaded as unsaved changes (nothing is saved until Save version).
+  async function applyScenario(rerender = true) {
+    let s = null;
+    try { s = JSON.parse(sessionStorage.getItem('ax-scenario') || 'null'); sessionStorage.removeItem('ax-scenario'); } catch { /* none */ }
+    history.replaceState({}, '', location.pathname);
+    if (!s || s.project_id !== W.pid) return;
+    try {
+      const snap = await api(`/api/projects/${encodeURIComponent(W.pid)}/scenario`, { method: 'POST', body: JSON.stringify({ overrides: s.overrides }) });
+      const meta = W.p._meta;
+      delete snap.published_rate_card_version;
+      W.p = normalise(snap);
+      W.p._meta = meta;
+      W.dirty = true;
+      if (rerender) { render(); calc(); }
+      toast('Scenario loaded as unsaved changes. Save version to keep it.');
+    } catch (e) { toast(e.message, { error: true }); }
+  }
+  W.applyScenario = () => applyScenario(true);
 
   load().catch(e => {
     root.innerHTML = `<div class="ax-panel"><div class="ax-empty"><b>${e.status === 404 ? 'This project does not exist' : "The project couldn't load"}</b>
