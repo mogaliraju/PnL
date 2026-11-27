@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProposalContent",
+  "description": "Variable, client-specific proposal content written by the model. Boilerplate, front matter and commercials are NOT part of this object; the app inserts them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subtitle", "executive_summary", "objectives", "scope_intro", "scope_sections",
+    "out_of_scope", "assumptions", "logical_architecture", "component_diagram",
+    "data_flow", "architecture_layers", "timeline", "conclusion"
+  ],
+  "properties": {
+    "subtitle": { "type": "string", "description": "Cover subtitle, e.g. 'Enterprise Data Platform on Microsoft Fabric'. Max 80 chars." },
+    "executive_summary": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 4, "description": "2 to 4 tailored paragraphs. Inline **bold** allowed." },
+    "objectives": {
+      "type": "array", "minItems": 5, "maxItems": 8,
+      "items": { "type": "object", "additionalProperties": false, "required": ["lead", "text"],
+        "properties": { "lead": { "type": "string" }, "text": { "type": "string" } } }
+    },
+    "scope_intro": { "type": "string" },
+    "scope_sections": {
+      "type": "array", "minItems": 3, "maxItems": 10,
+      "description": "Scope sub-sections in order, e.g. Project Initiation & Planning, Infrastructure, Data Integration, Data Lake & Modelling, Governance & Compliance, Power BI, Training.",
+      "items": { "type": "object", "additionalProperties": false, "required": ["title", "items"],
+        "properties": {
+          "title": { "type": "string" },
+          "intro": { "type": "string" },
+          "items": { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+        } }
+    },
+    "migration_mapping": {
+      "type": "object", "additionalProperties": false,
+      "description": "Required for migration engagements, omit otherwise. Existing to target service mapping.",
+      "required": ["rows"],
+      "properties": {
+        "rows": { "type": "array", "items": { "type": "object", "additionalProperties": false,
+          "required": ["existing", "target", "approach"],
+          "properties": { "existing": { "type": "string" }, "target": { "type": "string" }, "approach": { "type": "string" }, "notes": { "type": "string" } } } }
+      }
+    },
+    "inventory": {
+      "type": "object", "additionalProperties": false,
+      "description": "Object inventory table. Use ONLY counts given in the intake; never invent counts.",
+      "required": ["rows"],
+      "properties": {
+        "rows": { "type": "array", "items": { "type": "object", "additionalProperties": false,
+          "required": ["object_type", "count"],
+          "properties": { "object_type": { "type": "string" }, "count": { "type": "string" }, "notes": { "type": "string" } } } }
+      }
+    },
+    "out_of_scope": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
+    "assumptions": { "type": "array", "items": { "type": "string" }, "minItems": 5 },
+    "logical_architecture": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 3, "description": "Paragraphs describing the logical layers for this client." },
+    "component_diagram": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sources", "ingestion", "layers", "engines", "consumption", "orchestration", "supporting", "platform_label"],
+      "properties": {
+        "title": { "type": "string" },
+        "sources": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 7 },
+        "ingestion": { "type": "string" },
+        "layers": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 5 },
+        "engines": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 3 },
+        "consumption": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 },
+        "orchestration": { "type": "string" },
+        "supporting": { "type": "array", "items": { "type": "string" }, "maxItems": 6 },
+        "platform_label": { "type": "string" }
+      }
+    },
+    "data_flow": { "type": "array", "items": { "type": "string" }, "minItems": 4, "maxItems": 9, "description": "Numbered flow steps, each '**Step name**: explanation'." },
+    "architecture_layers": {
+      "type": "array", "minItems": 3,
+      "items": { "type": "object", "additionalProperties": false, "required": ["layer", "description", "components"],
+        "properties": { "layer": { "type": "string" }, "description": { "type": "string" }, "components": { "type": "string" } } }
+    },
+    "timeline": {
+      "type": "object", "additionalProperties": false, "required": ["intro", "stages"],
+      "properties": {
+        "intro": { "type": "string" },
+        "stages": { "type": "array", "minItems": 3, "maxItems": 10,
+          "items": { "type": "object", "additionalProperties": false,
+            "required": ["activity", "client_raci", "vendor_raci", "timeline"],
+            "properties": {
+              "activity": { "type": "string" },
+              "client_raci": { "type": "string", "description": "R, A, C, I or a combination like 'A, C'" },
+              "vendor_raci": { "type": "string" },
+              "timeline": { "type": "string", "description": "e.g. 'Weeks 1 to 2'. Must fit inside the duration given in the PnL context." }
+            } } }
+      }
+    },
+    "governance_cadence": {
+      "type": "array", "description": "Only when 'Project Governance Structure' was requested.",
+      "items": { "type": "object", "additionalProperties": false, "required": ["meeting", "frequency", "stakeholders", "agenda"],
+        "properties": { "meeting": { "type": "string" }, "frequency": { "type": "string" }, "stakeholders": { "type": "string" }, "agenda": { "type": "string" } } }
+    },
+    "risks": {
+      "type": "array", "description": "Only when 'Risk & Mitigation' was requested.",
+      "items": { "type": "object", "additionalProperties": false, "required": ["risk", "impact", "mitigation"],
+        "properties": { "risk": { "type": "string" }, "impact": { "type": "string" }, "mitigation": { "type": "string" } } }
+    },
+    "conclusion": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 3 },
+    "open_questions": { "type": "array", "items": { "type": "string" }, "description": "Gaps the reviewer must close before sending. Shown in the app, never printed in the document." }
+  }
+}

@@ -9,5 +9,6 @@
 <noscript><p>The project workspace needs JavaScript.</p></noscript>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/proposals-tab.js') }}"></script>
 <script src="{{ url_for('static', filename='js/workspace.js') }}"></script>
 {% endblock %}

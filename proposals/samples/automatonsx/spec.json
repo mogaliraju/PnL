@@ -1,0 +1,856 @@
+{
+  "brand": "automatonsx",
+  "client": "Crestline Realty",
+  "clientShort": "Crestline",
+  "docType": "Techno-Commercial Proposal",
+  "subtitle": "Enterprise Data Platform on Microsoft Fabric",
+  "version": "V0.1",
+  "date": "27 November 2026",
+  "footerSection": "Techno-Commercial Proposal",
+  "assetsDir": "/home/claude/pnl-proposals/proposals/skill/assets",
+  "toc": true,
+  "body": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Document Control"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Corporate Information"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Field",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Company name",
+          "AutomatonsX"
+        ],
+        [
+          "Type of Entity / Office",
+          ""
+        ],
+        [
+          "Company website address",
+          ""
+        ]
+      ],
+      "widths": [
+        3000,
+        6360
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Account Manager Details"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Field",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Contact name",
+          ""
+        ],
+        [
+          "Designation",
+          ""
+        ],
+        [
+          "Email",
+          ""
+        ],
+        [
+          "Mobile number",
+          ""
+        ]
+      ],
+      "widths": [
+        3000,
+        6360
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Prepared By"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Field",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Contact name",
+          "Srikar Mogaliraju"
+        ],
+        [
+          "Designation",
+          "Principal Architect - Data Engineering"
+        ],
+        [
+          "Email",
+          ""
+        ],
+        [
+          "Mobile number",
+          ""
+        ]
+      ],
+      "widths": [
+        3000,
+        6360
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document Version"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Version",
+        "Date",
+        "Prepared By",
+        "Designation",
+        "Reviewed By",
+        "Designation",
+        "Comments"
+      ],
+      "rows": [
+        [
+          "V0.1",
+          "27 November 2026",
+          "Srikar Mogaliraju",
+          "Principal Architect - Data Engineering",
+          "Amair Soofi",
+          "Principal Solution Architect",
+          "First version (SAMPLE, fictional client)"
+        ]
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "1. Confidentiality and Disclaimer Statement"
+    },
+    {
+      "type": "para",
+      "text": "This document contains confidential and proprietary information of AutomatonsX. The contents of this document and all information provided with this document may only be used for the purpose of evaluating AutomatonsX's proposal and capabilities, in connection with which such documents and information have been disclosed. The information may only be used by individuals within the Customer organization with a need to know, who are directly involved in the evaluation of the proposal and are subject to an obligation to maintain the confidentiality of its contents. This document and all information contained herein may only be disclosed to third parties or reproduced with the prior written consent of AutomatonsX. In the event the underlying proposal is not accepted, the Customer agrees to return this document and any copies produced thereof to AutomatonsX."
+    },
+    {
+      "type": "para",
+      "text": "This document does not constitute a formal offer, commitment, or contract by AutomatonsX and is submitted with the understanding that AutomatonsX and the Customer would negotiate and conclude a mutually acceptable binding agreement regarding the subject matter contemplated or discussed in this document."
+    },
+    {
+      "type": "para",
+      "text": "In preparing this proposal, AutomatonsX has relied on information provided by the Customer and assumes no responsibility for any inaccuracy or error, or any action taken or not taken in reliance on the contents of this proposal. AutomatonsX has not sought to independently confirm the completeness or accuracy of the information provided by the Customer and will not be responsible for any omission or misrepresentation in its proposal arising out of reliance on that information. AutomatonsX will not provide any legal services or advice as part of the project. Without limiting the foregoing, AutomatonsX is not providing an interpretation of laws or regulations that may be applicable to the Customer, nor is it responsible for the validation of systems or deliverables, as that will be the responsibility of the Customer."
+    },
+    {
+      "type": "para",
+      "text": "This document refers to trademarks that may be owned by others. The use of such trademarks is not an assertion of ownership of such trademarks by AutomatonsX and is not intended to represent or imply the existence of an association between AutomatonsX and the lawful owners of such trademarks."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "2. Value Proposition"
+    },
+    {
+      "type": "para",
+      "text": "We firmly believe that AutomatonsX is the ideal partner to support Crestline Realty in delivering top-tier cloud and data services."
+    },
+    {
+      "type": "para",
+      "text": "Born in the cloud, AutomatonsX has experience across Data Engineering and Analytics, Cloud Consulting, Cloud Strategy, Cloud Transformation, Cloud Migration, Cloud Engineering and Automation, Cloud Security, DevSecOps, AIOps and Cloud Optimization services. A large base of satisfied clients has positioned AutomatonsX as a preferred partner for creating value for their businesses. Our value proposition is shaped by experience delivering similar projects for key clients across APAC, the Middle East, Europe, LATAM and beyond."
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Global Reach**: global presence with the ability to support Crestline Realty across multiple regions through an extensive network and international operations experience.",
+        "**An Experienced Team**: certified experts and Center of Excellence (CoE) teams who have executed multi-cloud projects across geographies.",
+        "**Differentiated Approach**: extensive project experience applied to service needs, with innovation infused throughout.",
+        "**Cost Optimization**: commitment to cost optimization and resource efficiency, reducing operational expense while maintaining quality.",
+        "**Compliance and Security**: adherence to industry best practices and regulatory standards so Crestline Realty's data and infrastructure stay secure and compliant.",
+        "**Scalability and Flexibility**: solutions designed to scale and adapt as business needs change.",
+        "**Proactive Monitoring and Support**: 24/7 proactive monitoring and support to minimize downtime and disruption.",
+        "**Innovation Ecosystem**: partnerships with leading technology providers, giving Crestline Realty access to cutting-edge solutions.",
+        "**Expertise & Skills**: deep cloud knowledge with functional and technical maturity for clear guidance and effective solutions.",
+        "**Modern Tools and Industry Assets**: proven methodology plus cloud technology assets to accelerate delivery and reduce risk.",
+        "**Customization**: a personalized approach tailored to Crestline Realty's specific goals, challenges and industry demands."
+      ]
+    },
+    {
+      "type": "para",
+      "text": "We are grateful for the opportunity to present our capabilities, recognize that clarifications may be needed and welcome a discussion on any aspect of this proposal."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "3. Scope of Work"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3.1 Executive Summary"
+    },
+    {
+      "type": "para",
+      "text": "Crestline Realty manages leasing in **Yardi Voyager**, finance in **Oracle E-Business Suite** and sales in **Salesforce**, with budgets and forecasts maintained in Excel on SharePoint. Month-end reporting today depends on manual consolidation across these systems and takes six to eight working days, which delays decisions on occupancy, collections and cash flow."
+    },
+    {
+      "type": "para",
+      "text": "AutomatonsX proposes to implement an enterprise data platform on **Microsoft Fabric** that brings all four sources into a single governed OneLake foundation. The platform follows a Bronze, Silver and Gold medallion design, with certified semantic models feeding twelve Power BI dashboards for leasing, collections, sales pipeline and finance."
+    },
+    {
+      "type": "para",
+      "text": "Governance is built in from the start. **Microsoft Purview** will catalog the estate, publish a business glossary, track lineage from source to report and apply sensitivity labels to tenant personal data. The engagement is planned over sixteen weeks and closes with knowledge transfer so Crestline's team can extend the platform with confidence."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3.2 Objective"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Integrate core business systems**: Ingest Yardi Voyager, Oracle EBS, Salesforce and finance workbooks into OneLake on a reliable daily cadence with faster refresh during month end.",
+        "**Establish a governed lakehouse**: Build Bronze, Silver and Gold layers in Fabric with consistent naming, data quality checks and reconciliation against source totals.",
+        "**Shorten month-end reporting**: Replace manual Excel consolidation with automated pipelines so finance can close and report within one to two days.",
+        "**Enable self-service analytics**: Deliver three certified semantic models and twelve Power BI dashboards with row-level security by community and business unit.",
+        "**Protect tenant data**: Classify and label tenant personal data in Purview and restrict access through Entra ID role-based controls.",
+        "**Build internal capability**: Hand over runbooks, documentation and hands-on training so Crestline's team can operate and extend the platform."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3.3 Scope"
+    },
+    {
+      "type": "para",
+      "text": "The scope covers the end-to-end build of the Crestline data platform, from planning and environment setup through ingestion, modelling, governance, reporting and handover."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Project Initiation and Planning"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Kick-off and discovery workshops with leasing, finance and sales stakeholders",
+        "Confirmation of KPIs, success criteria and the dashboard catalogue",
+        "Source system inventory and access readiness checklist",
+        "Detailed project plan, RAID log and communication plan"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Infrastructure and Environment"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Fabric workspaces for Dev, UAT and Prod in UAE North with deployment pipelines",
+        "Fabric capacity sizing recommendation (indicative, confirmed after discovery)",
+        "Entra ID security groups and workspace role design",
+        "Key Vault for source credentials, private connectivity to Oracle EBS through an on-premises data gateway",
+        "Git integration and CI/CD for notebooks, pipelines and semantic models"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Data Integration"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Yardi Voyager**: scheduled extraction through the Yardi export API for about 120 tables",
+        "**Oracle EBS**: incremental extraction of GL, AP and AR using watermark columns for about 80 tables",
+        "**Salesforce**: ingestion of about 25 objects through the native Fabric connector",
+        "**SharePoint Excel**: governed file-drop for budget and forecast workbooks with schema validation",
+        "Metadata-driven ingestion framework with logging, retries and alerting"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Data Lake and Modelling"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Bronze layer holding raw copies of all source data in Delta format",
+        "Silver layer with cleansing, conformance and deduplication rules",
+        "Gold layer star schemas for Leasing, Collections, Sales and Finance",
+        "Reconciliation of Gold totals against source system reports"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Governance and Compliance"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Purview Data Map registration and scanning of the Fabric estate",
+        "Business glossary with up to 60 agreed terms",
+        "End-to-end lineage from source to Power BI report",
+        "Sensitivity labels and classification for tenant personal data"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Power BI and Consumption"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Three certified semantic models in Direct Lake mode",
+        "Twelve dashboards covering Leasing, Occupancy, Collections, Sales Pipeline, Finance P&L and Cash Flow",
+        "Row-level security by community and business unit",
+        "Mobile layouts for the leadership dashboards"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Training and Knowledge Transfer"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Two weeks of knowledge transfer sessions for IT and power users",
+        "Runbooks, architecture documentation and a support handover checklist"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Out of Scope"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Changes to source applications or their data models",
+        "Data cleansing inside source systems",
+        "Procurement of Fabric capacity, Power BI or Purview licenses",
+        "Real-time or streaming ingestion",
+        "Reports beyond the twelve agreed dashboards, which will follow the change request process"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Assumptions"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Crestline will provide timely access to Yardi, Oracle EBS, Salesforce and SharePoint along with service accounts",
+        "Business owners will be available for workshops, KPI sign off and UAT within agreed timelines",
+        "Dev, UAT and Prod workspaces will be available on Crestline's Fabric capacity",
+        "Source data volumes stay within the estimate shared during discovery",
+        "Any change in scope will be handled through a formal change request"
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "4. Solution Overview"
+    },
+    {
+      "type": "para",
+      "text": "AutomatonsX experts help customers get the most out of their public cloud investment, the agility, flexibility and scalability the cloud offers, without it becoming your core business. Public cloud customers trust AutomatonsX for proven expertise in data solutions and a results-obsessed, customer-first approach. AutomatonsX consistently delivers high-quality results and end-to-end support to ensure cloud excellence, prevent downtime and ensure greater resilience. Our proposed solution for Crestline Realty is informed by several key guiding principles:"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Principle",
+        "Description"
+      ],
+      "rows": [
+        [
+          "Quality",
+          "Transform and load data in accordance with defined requirements and data mappings; standardize metrics."
+        ],
+        [
+          "Scalability",
+          "Processes that scale to ever-expanding data via a common extraction framework; data volumes gracefully handled."
+        ],
+        [
+          "Maintainability",
+          "Processes supportable by anyone with base-level skills."
+        ],
+        [
+          "Performance",
+          "Load and access data quickly, minimizing impact on other processes."
+        ],
+        [
+          "Flexibility",
+          "ETL & BI semantic layer easily changed to support evolving requirements."
+        ],
+        [
+          "Robustness",
+          "Effective handling of data-quality, cloud-service and connection problems without significant impact."
+        ],
+        [
+          "Rapid Development",
+          "Fast development of ETL & BI through structural simplicity and reuse of key components."
+        ]
+      ],
+      "widths": [
+        2400,
+        6960
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.1 Reference Architecture"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/skill/assets/reference_architecture.png",
+      "width": 6.2,
+      "caption": "Reference Architecture"
+    },
+    {
+      "type": "para",
+      "text": "**Raw (Bronze) layer:** stores a one-to-one copy of source data in its original, unprocessed form with basic quality gates, a single repository for all data, supporting structured, semi-structured and unstructured formats. Validation is limited to basic quality & completeness checks."
+    },
+    {
+      "type": "para",
+      "text": "**Integrated (Silver) layer:** the curated layer where data is cleaned, transformed and enriched for consistency, accuracy and completeness, used for exploration, preparation and data-quality analysis. More structured than Bronze; the data model is designed business-use-case-agnostic."
+    },
+    {
+      "type": "para",
+      "text": "**Use-case (Gold) layer:** the trusted, ready-to-consume layer where models are prepared for business needs and decision-making. Highly structured, consistent, reliable, the single source of truth for the organization."
+    },
+    {
+      "type": "para",
+      "text": "**Data delivery layer:** provides logic and processes user requests, APIs, web services, downstream systems, visualization, microservices."
+    },
+    {
+      "type": "para",
+      "text": "**Job Orchestration:** managing and coordinating execution of data-processing jobs, scheduling, monitoring, dependency management, error/exception handling."
+    },
+    {
+      "type": "para",
+      "text": "**Traceability & reconciliation:** data lineage and audit trails (where data came from, who accessed it, what processing steps, where stored) plus reconciliation comparing datasets to ensure consistency and accuracy."
+    },
+    {
+      "type": "para",
+      "text": "**Constraint checks:** automated validation that data meets defined rules and relationships."
+    },
+    {
+      "type": "para",
+      "text": "**Runtime Audits:** checks during processing to ensure jobs run efficiently and produce accurate results; surface bottlenecks and resource issues."
+    },
+    {
+      "type": "para",
+      "text": "**Housekeeping:** archiving and purging to keep the lake clean, efficient, performant and cost-optimized."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.2 Logical Architecture"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/skill/assets/logical_architecture.png",
+      "width": 6.2,
+      "caption": "Logical Architecture"
+    },
+    {
+      "type": "para",
+      "text": "For Crestline, the data sources layer covers Yardi Voyager, Oracle EBS, Salesforce and finance workbooks. The ingestion layer uses Fabric Data Pipelines and an on-premises data gateway for Oracle, landing data into OneLake."
+    },
+    {
+      "type": "para",
+      "text": "The lakehouse layer holds Bronze, Silver and Gold zones with Spark notebooks for transformation. Purview provides the governance and metadata layer, while Fabric monitoring and alerting cover orchestration and operations."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.3 Component Architecture and Data Flow"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/samples/automatonsx/component_arch.png",
+      "width": 6.4,
+      "caption": "To-Be Component Architecture"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Source integration**: pipelines extract data from Yardi, Oracle EBS, Salesforce and SharePoint on schedule",
+        "**Landing in OneLake**: raw files and tables land in the landing zone with load metadata",
+        "**Bronze**: data is stored as Delta tables in its original form for audit and replay",
+        "**Silver**: notebooks cleanse, conform and deduplicate the data",
+        "**Gold**: star schemas are built for Leasing, Collections, Sales and Finance",
+        "**Consumption**: Direct Lake semantic models serve Power BI dashboards and mobile reports",
+        "**Governance**: Purview scans, classifies and traces lineage across every layer"
+      ],
+      "numbered": true
+    },
+    {
+      "type": "table",
+      "header": [
+        "Architecture Layer",
+        "Description",
+        "Components"
+      ],
+      "rows": [
+        [
+          "Data Sources",
+          "Operational systems for leasing, finance and sales plus finance workbooks",
+          "Yardi Voyager, Oracle EBS, Salesforce, SharePoint"
+        ],
+        [
+          "Ingestion",
+          "Scheduled and incremental extraction with logging and retries",
+          "Fabric Data Pipelines, On-prem Data Gateway"
+        ],
+        [
+          "Lakehouse",
+          "Medallion storage and transformation",
+          "OneLake, Lakehouse, Spark Notebooks"
+        ],
+        [
+          "Consumption",
+          "Certified models and self-service reporting",
+          "Direct Lake semantic models, Power BI"
+        ],
+        [
+          "Governance and Security",
+          "Catalog, lineage, labelling and access control",
+          "Microsoft Purview, Entra ID, Key Vault"
+        ]
+      ],
+      "widths": [
+        2200,
+        4360,
+        2800
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "5. Timelines"
+    },
+    {
+      "type": "para",
+      "text": "The engagement is planned over sixteen weeks in five stages. Indicative timelines will be confirmed in the project plan after discovery."
+    },
+    {
+      "type": "table",
+      "header": [
+        "Stage",
+        "Activity",
+        "Crestline",
+        "AutomatonsX",
+        "High-Level Timeline"
+      ],
+      "rows": [
+        [
+          "1",
+          "Discovery, KPI confirmation and environment setup",
+          "A, C",
+          "R",
+          "Weeks 1 to 2"
+        ],
+        [
+          "2",
+          "Ingestion framework and Bronze layer for all sources",
+          "C",
+          "R, A",
+          "Weeks 3 to 6"
+        ],
+        [
+          "3",
+          "Silver and Gold modelling with reconciliation",
+          "C",
+          "R, A",
+          "Weeks 5 to 10"
+        ],
+        [
+          "4",
+          "Purview governance setup and labelling",
+          "A, C",
+          "R",
+          "Weeks 7 to 11"
+        ],
+        [
+          "5",
+          "Semantic models and Power BI dashboards",
+          "C",
+          "R, A",
+          "Weeks 8 to 13"
+        ],
+        [
+          "6",
+          "UAT, go-live and knowledge transfer",
+          "A, R",
+          "R",
+          "Weeks 14 to 16"
+        ]
+      ],
+      "widths": [
+        900,
+        4060,
+        1300,
+        1300,
+        1800
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "**R** = Responsible (does the work)",
+        "**A** = Accountable (owns the outcome and decision)",
+        "**C** = Consulted (provides input)",
+        "**I** = Informed (kept in the loop)"
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "6. Commercials"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6.1 One Time Cost"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Sr. No.",
+        "Component",
+        "Cost Type",
+        "Cost (USD)"
+      ],
+      "rows": [
+        [
+          "1",
+          "Data Platform Implementation (Fabric, ingestion, medallion)",
+          "OTC",
+          "58,400"
+        ],
+        [
+          "2",
+          "Power BI Dashboards and Semantic Models",
+          "OTC",
+          "31,200"
+        ],
+        [
+          "3",
+          "Microsoft Purview Governance Setup",
+          "OTC",
+          "9,600"
+        ],
+        [
+          "4",
+          "Microsoft Partner Funding (indicative, subject to approval)",
+          "Funding",
+          "(10,000)"
+        ],
+        [
+          "",
+          "**Net One Time Cost**",
+          "",
+          "**89,200**"
+        ]
+      ],
+      "widths": [
+        1100,
+        4900,
+        1600,
+        1760
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6.2 Optional Managed Services"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Service",
+        "Monthly (USD)",
+        "Months",
+        "Total (USD)"
+      ],
+      "rows": [
+        [
+          "Managed Data Platform Services (optional)",
+          "4,200",
+          "12",
+          "50,400"
+        ]
+      ],
+      "widths": [
+        4160,
+        1800,
+        1400,
+        2000
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6.3 Cloud Consumption"
+    },
+    {
+      "type": "para",
+      "text": "Fabric capacity, Power BI licenses and Purview consumption are procured and borne by Crestline. Capacity sizing is indicative and will be confirmed after the discovery workshops."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6.4 Payment Plan"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Milestone",
+        "Percentage"
+      ],
+      "rows": [
+        [
+          "Advance on PO",
+          "30%"
+        ],
+        [
+          "Completion of data integration (Bronze and Silver)",
+          "30%"
+        ],
+        [
+          "UAT sign off",
+          "30%"
+        ],
+        [
+          "Project closure and handover",
+          "10%"
+        ]
+      ],
+      "widths": [
+        6360,
+        3000
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Payment Terms"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Invoices are payable within 30 days of the invoice date.",
+        "Partner funding is subject to Microsoft approval and is adjusted against the final milestone."
+      ]
+    },
+    {
+      "type": "para",
+      "text": "All figures are in USD and exclude applicable VAT and local taxes."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "7. Risk and Mitigation"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Risk",
+        "Impact",
+        "Mitigation"
+      ],
+      "rows": [
+        [
+          "Delayed access to Oracle EBS through the gateway",
+          "High",
+          "Raise network and gateway requests in week one and track them in the RAID log"
+        ],
+        [
+          "KPI definitions differ across business units",
+          "Medium",
+          "Agree a signed KPI dictionary during discovery and record it in the Purview glossary"
+        ],
+        [
+          "Yardi API limits slow down historical loads",
+          "Medium",
+          "Run the historical load in batches outside business hours"
+        ]
+      ],
+      "widths": [
+        3000,
+        1400,
+        4960
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "8. Conclusion"
+    },
+    {
+      "type": "para",
+      "text": "We thank Crestline Realty for the opportunity to propose this engagement. AutomatonsX is confident that a governed Fabric platform will give Crestline faster month-end reporting and a single trusted view of leasing, sales and finance."
+    },
+    {
+      "type": "para",
+      "text": "We look forward to discussing this proposal and are happy to clarify any part of it."
+    },
+    {
+      "type": "para",
+      "text": "**© 2026 AutomatonsX. All Rights Reserved.**"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "subtitle": "Azure Synapse to Microsoft Fabric Migration",
+  "executive_summary": [
+    "Meridian Logistics runs its analytics on an **Azure Synapse dedicated SQL pool** fed by Azure Data Factory, with data landing in ADLS Gen2 from SAP S/4HANA, Manhattan WMS and the TMS shipment APIs. The platform was built by a previous vendor, documentation is limited and several stored procedures carry critical business logic.",
+    "Cloud4C proposes to migrate this estate to **Microsoft Fabric**, moving 84 pipelines, 36 notebooks, 210 tables and 140 stored procedures onto a Fabric Lakehouse and Warehouse. The approach re-platforms what can move as is and refactors procedures only where Fabric requires it, which keeps risk and effort under control.",
+    "The migration runs over twenty weeks and ends with a four week parallel run with daily reconciliation, so Synapse is decommissioned only after Meridian signs off on matching results. Purview will be rescanned against the new estate so lineage and the catalog stay current."
+  ],
+  "objectives": [
+    {"lead": "Reduce platform cost", "text": "Retire the always-on Synapse dedicated pool in favour of shared Fabric capacity."},
+    {"lead": "Migrate with no loss of logic", "text": "Move every pipeline, table and stored procedure with documented mapping and test evidence."},
+    {"lead": "Prove data parity", "text": "Run Synapse and Fabric in parallel with daily reconciliation before cutover."},
+    {"lead": "Keep reports running", "text": "Repoint all 18 Power BI datasets to Fabric with no change for report users."},
+    {"lead": "Restore documentation", "text": "Produce the inventory, mapping matrix and runbooks the current platform lacks."},
+    {"lead": "Maintain governance", "text": "Rescan the new estate in Purview and rebuild end-to-end lineage."}
+  ],
+  "scope_intro": "The scope covers assessment, migration, validation and cutover of the Meridian analytics platform from Azure Synapse to Microsoft Fabric.",
+  "scope_sections": [
+    {"title": "Assessment and Migration Planning", "items": [
+      "Automated inventory of ADF pipelines, linked services, notebooks, tables and procedures",
+      "Complexity scoring of each stored procedure and dependency mapping",
+      "Wave plan grouping objects by source system and business domain",
+      "Reconciliation approach and test strategy sign off"]},
+    {"title": "Fabric Environment Setup", "items": [
+      "Fabric workspaces for Dev, UAT and Prod in Southeast Asia",
+      "Capacity sizing recommendation (indicative, confirmed after assessment)",
+      "Entra ID groups, workspace roles and Key Vault integration",
+      "Git integration and deployment pipelines"]},
+    {"title": "Migration Execution", "items": [
+      "Re-platform 84 ADF pipelines to Fabric Data Pipelines",
+      "Migrate 36 Spark notebooks with library and runtime updates",
+      "Move 210 tables into the Fabric Lakehouse and Warehouse with history",
+      "Convert 140 stored procedures to Warehouse T-SQL, refactoring to notebooks only where needed"]},
+    {"title": "Validation and Cutover", "items": [
+      "Row count, checksum and KPI level reconciliation per wave",
+      "Four week parallel run with daily reconciliation reports",
+      "Cutover runbook, rollback plan and Synapse decommission checklist"]},
+    {"title": "Power BI and Governance", "items": [
+      "Repoint 18 Power BI datasets and validate key reports with business users",
+      "Purview rescan of the Fabric estate with rebuilt lineage"]}
+  ],
+  "migration_mapping": {"rows": [
+    {"existing": "Synapse dedicated SQL pool", "target": "Fabric Warehouse", "approach": "Re-platform", "notes": "Distribution and index settings removed"},
+    {"existing": "Azure Data Factory pipelines", "target": "Fabric Data Pipelines", "approach": "Re-platform", "notes": "Linked services become connections"},
+    {"existing": "Synapse Spark notebooks", "target": "Fabric Spark notebooks", "approach": "Re-platform", "notes": "Runtime and library updates"},
+    {"existing": "ADLS Gen2 raw zone", "target": "OneLake Lakehouse (Bronze)", "approach": "Re-platform", "notes": "Shortcuts during the parallel run"},
+    {"existing": "Stored procedures", "target": "Warehouse T-SQL or notebooks", "approach": "Refactor where needed", "notes": "Based on complexity scoring"},
+    {"existing": "Power BI Import datasets", "target": "Direct Lake semantic models", "approach": "Repoint", "notes": "Import retained where Direct Lake does not fit"}
+  ]},
+  "inventory": {"rows": [
+    {"object_type": "ADF pipelines", "count": "84"},
+    {"object_type": "Spark notebooks", "count": "36"},
+    {"object_type": "Dedicated pool tables", "count": "210"},
+    {"object_type": "Stored procedures", "count": "140"},
+    {"object_type": "Linked services", "count": "22"},
+    {"object_type": "Power BI datasets", "count": "18"}
+  ]},
+  "out_of_scope": [
+    "New data sources or new reports",
+    "Changes to SAP S/4HANA, Manhattan WMS or TMS",
+    "Redesign of the existing data model beyond what migration requires",
+    "Procurement of Fabric capacity or licenses"
+  ],
+  "assumptions": [
+    "Meridian will provide admin access to the Synapse workspace, ADF and ADLS",
+    "Synapse remains available and unchanged until cutover",
+    "Business users are available for report validation in each wave",
+    "Object counts stay within ten percent of the inventory shared",
+    "Any change in scope will be handled through a formal change request"
+  ],
+  "logical_architecture": [
+    "In the target state, sources continue to land through Fabric Data Pipelines into OneLake. The Lakehouse holds the raw and curated zones while the Fabric Warehouse replaces the dedicated pool for the serving layer, and Purview covers catalog and lineage."
+  ],
+  "component_diagram": {
+    "title": "To-Be Component Architecture",
+    "sources": ["SAP S/4HANA", "Manhattan WMS", "TMS REST APIs"],
+    "ingestion": "Fabric Data Pipelines",
+    "layers": ["Landing Zone", "Bronze", "Silver", "Gold / Warehouse"],
+    "engines": ["Spark Notebooks", "Warehouse T-SQL"],
+    "consumption": ["Power BI Reports", "Downstream Extracts"],
+    "orchestration": "Orchestration using Fabric Data Pipelines",
+    "supporting": ["Entra ID", "Key Vault", "Fabric Monitoring", "Purview"],
+    "platform_label": "Microsoft Fabric"
+  },
+  "data_flow": [
+    "**Ingestion**: pipelines pull SAP, WMS and TMS data into OneLake on the existing schedules",
+    "**Bronze**: raw data lands in the Lakehouse as Delta tables",
+    "**Silver and Gold**: notebooks and Warehouse T-SQL apply the migrated business logic",
+    "**Serving**: the Fabric Warehouse replaces the dedicated pool for reporting",
+    "**Consumption**: Power BI datasets are repointed to Fabric",
+    "**Governance**: Purview scans the new estate and rebuilds lineage"
+  ],
+  "architecture_layers": [
+    {"layer": "Sources", "description": "Operational systems feeding analytics", "components": "SAP S/4HANA, Manhattan WMS, TMS APIs"},
+    {"layer": "Ingestion and Orchestration", "description": "Scheduled pipelines with monitoring", "components": "Fabric Data Pipelines"},
+    {"layer": "Lakehouse and Warehouse", "description": "Storage, transformation and serving", "components": "OneLake, Lakehouse, Fabric Warehouse, Spark"},
+    {"layer": "Consumption", "description": "Reports and downstream extracts", "components": "Power BI"},
+    {"layer": "Governance", "description": "Catalog, lineage and access control", "components": "Purview, Entra ID, Key Vault"}
+  ],
+  "timeline": {
+    "intro": "The migration is planned over twenty weeks in waves, followed by a parallel run and cutover.",
+    "stages": [
+      {"activity": "Assessment, inventory and wave planning", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 1 to 3"},
+      {"activity": "Fabric environment setup", "client_raci": "A", "vendor_raci": "R", "timeline": "Weeks 2 to 4"},
+      {"activity": "Wave 1: SAP finance and procurement objects", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 4 to 8"},
+      {"activity": "Wave 2: WMS and TMS objects", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 7 to 12"},
+      {"activity": "Power BI repointing and Purview rescan", "client_raci": "C", "vendor_raci": "R", "timeline": "Weeks 11 to 14"},
+      {"activity": "UAT and reconciliation sign off", "client_raci": "A, R", "vendor_raci": "R", "timeline": "Weeks 14 to 16"},
+      {"activity": "Parallel run, cutover and decommission", "client_raci": "A", "vendor_raci": "R", "timeline": "Weeks 17 to 20"}
+    ]
+  },
+  "governance_cadence": [
+    {"meeting": "Daily huddle", "frequency": "Daily, 15 min", "stakeholders": "Delivery team, Meridian IT lead", "agenda": "Progress, blockers, access issues"},
+    {"meeting": "Weekly status", "frequency": "Weekly", "stakeholders": "Project managers, data owners", "agenda": "Wave status, reconciliation results, RAID"},
+    {"meeting": "Steering committee", "frequency": "Bi-weekly", "stakeholders": "Meridian sponsor, Cloud4C delivery head", "agenda": "Milestones, decisions, escalations"}
+  ],
+  "conclusion": [
+    "We thank Meridian Logistics for the opportunity to propose this migration. As an Azure Expert MSP, Cloud4C brings proven migration accelerators and a disciplined reconciliation approach that protect business continuity through cutover.",
+    "We welcome the chance to walk through this proposal and answer any questions."
+  ],
+  "open_questions": ["Confirm whether any stored procedures are called by systems outside Synapse"]
+}

@@ -1,0 +1,35 @@
+{
+  "brand": "automatonsx",
+  "client": "Crestline Realty",
+  "client_short": "Crestline",
+  "industry": "Real estate development and property management",
+  "region": "UAE North (data residency in UAE)",
+  "currency": "USD",
+  "engagement_type": "greenfield",
+  "doc_type": "Techno-Commercial Proposal",
+  "version": "V0.1",
+  "date": "27 November 2026",
+  "version_comment": "First version (SAMPLE, fictional client)",
+  "target_technologies": ["Microsoft Fabric", "OneLake", "Power BI", "Microsoft Purview"],
+  "sources": [
+    {"name": "Yardi Voyager", "notes": "Property, lease and tenant data via Yardi export API", "objects": "~120 tables"},
+    {"name": "Oracle E-Business Suite", "notes": "Finance GL, AP, AR via direct JDBC with incremental watermark", "objects": "~80 tables"},
+    {"name": "Salesforce", "notes": "Sales pipeline, leads, bookings", "objects": "~25 objects"},
+    {"name": "SharePoint Excel files", "notes": "Budget and forecast workbooks maintained by finance", "objects": "~15 files"}
+  ],
+  "data_volume": "About 1.5 TB initial, growing roughly 20% a year",
+  "ingestion_cadence": "Daily batch, finance sources every 4 hours during month end",
+  "consumption": "12 Power BI dashboards (Leasing, Occupancy, Collections, Sales Pipeline, Finance P&L, Cash Flow and others), 3 certified semantic models, RLS by community and business unit, mobile layouts for leadership",
+  "medallion_scope": "Full Bronze, Silver and Gold",
+  "governance": {"included": true, "purview_allowed": true, "notes": "Catalog, glossary, lineage and sensitivity labels for tenant PII"},
+  "extra_sections": ["risks"],
+  "include_commercials": true,
+  "brief": "Crestline runs leasing in Yardi, finance in Oracle EBS and sales in Salesforce. Reporting today is manual Excel consolidation that takes 6 to 8 days at month end. Leadership wants a single governed data platform with self-service Power BI and wants tenant data protected.",
+  "document_text": "",
+  "people": {
+    "prepared_by": {"name": "Srikar Mogaliraju", "designation": "Principal Architect - Data Engineering", "email": "", "mobile": ""},
+    "reviewed_by": {"name": "Amair Soofi", "designation": "Principal Solution Architect"},
+    "account_manager": {"name": "", "designation": "", "email": "", "mobile": ""}
+  },
+  "corporate": {"company_name": "AutomatonsX", "entity_office": "", "website": ""}
+}

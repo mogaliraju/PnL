@@ -1,0 +1,37 @@
+{
+  "brand": "cloud4c",
+  "client": "Meridian Logistics",
+  "client_short": "Meridian",
+  "industry": "Third-party logistics and freight forwarding",
+  "region": "Southeast Asia (Singapore)",
+  "currency": "USD",
+  "engagement_type": "migration",
+  "doc_type": "Techno-Commercial Proposal",
+  "version": "V0.1",
+  "date": "27 November 2026",
+  "version_comment": "First version (SAMPLE, fictional client)",
+  "target_technologies": ["Microsoft Fabric", "OneLake", "Power BI", "Microsoft Purview"],
+  "migration": {
+    "source_platform": "Azure Synapse Analytics dedicated SQL pool, Azure Data Factory, ADLS Gen2",
+    "target_platform": "Microsoft Fabric Lakehouse and Warehouse",
+    "inventory": {"adf_pipelines": 84, "spark_notebooks": 36, "sql_pool_tables": 210, "stored_procedures": 140, "power_bi_datasets": 18, "linked_services": 22},
+    "stance": "Re-platform pipelines and tables, refactor stored procedures into Warehouse T-SQL or notebooks where needed",
+    "cutover": "Four week parallel run with daily reconciliation before decommissioning Synapse"
+  },
+  "sources": [
+    {"name": "SAP S/4HANA", "notes": "Already landed to ADLS by existing ADF pipelines"},
+    {"name": "Manhattan WMS", "notes": "SQL Server, nightly batch"},
+    {"name": "TMS REST APIs", "notes": "Shipment events, hourly"}
+  ],
+  "governance": {"included": true, "purview_allowed": true, "notes": "Rescan the new Fabric estate and rebuild lineage"},
+  "extra_sections": ["project_governance"],
+  "include_commercials": true,
+  "brief": "Meridian wants to move off Synapse dedicated pools to cut cost and simplify operations. The current platform was built by a previous vendor, documentation is thin and some stored procedures carry heavy business logic.",
+  "document_text": "",
+  "people": {
+    "prepared_by": {"name": "Srikar Mogaliraju", "designation": "Principal Architect - Data Engineering", "email": "", "mobile": ""},
+    "reviewed_by": {"name": "Krishna Kumar G", "designation": "Head of Data & AI"},
+    "account_manager": {"name": "", "designation": "", "email": "", "mobile": ""}
+  },
+  "corporate": {"company_name": "Cloud4C Services", "entity_office": "", "website": "www.cloud4c.com"}
+}

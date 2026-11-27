@@ -1,0 +1,959 @@
+{
+  "brand": "cloud4c",
+  "client": "Meridian Logistics",
+  "clientShort": "Meridian",
+  "docType": "Techno-Commercial Proposal",
+  "subtitle": "Azure Synapse to Microsoft Fabric Migration",
+  "version": "V0.1",
+  "date": "27 November 2026",
+  "footerSection": "Techno-Commercial Proposal",
+  "assetsDir": "/home/claude/pnl-proposals/proposals/skill/assets",
+  "toc": true,
+  "body": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Document Control"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Document Version"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Version",
+        "Date",
+        "Prepared By",
+        "Designation",
+        "Reviewed By",
+        "Designation",
+        "Comments"
+      ],
+      "rows": [
+        [
+          "V0.1",
+          "27 November 2026",
+          "Srikar Mogaliraju",
+          "Principal Architect - Data Engineering",
+          "Krishna Kumar G",
+          "Head of Data & AI",
+          "First version (SAMPLE, fictional client)"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Corporate Information"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Field",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Company name",
+          "Cloud4C Services"
+        ],
+        [
+          "Office address",
+          ""
+        ],
+        [
+          "Website",
+          "www.cloud4c.com"
+        ]
+      ],
+      "widths": [
+        3000,
+        6360
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Account Manager Details"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Field",
+        "Details"
+      ],
+      "rows": [
+        [
+          "Contact name",
+          ""
+        ],
+        [
+          "Designation",
+          ""
+        ],
+        [
+          "Email",
+          ""
+        ],
+        [
+          "Mobile number",
+          ""
+        ]
+      ],
+      "widths": [
+        3000,
+        6360
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Customer Approval and Signature"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Customer Name",
+        "Position",
+        "Signature"
+      ],
+      "rows": [
+        [
+          "",
+          "",
+          ""
+        ]
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "1. Confidentiality"
+    },
+    {
+      "type": "para",
+      "text": "This document contains confidential and proprietary information about Cloud4C. The contents of this document and all information provided with this document may only be used for the purpose of evaluating Cloud4C's proposal and capabilities, in connection with which such documents and information have been disclosed. The information may only be used by individuals within the Customer Organization with a need to know who are directly involved in the evaluation of the proposal and are subject to an obligation to maintain the confidentiality of its contents. This document and all information contained herein may only be disclosed to third parties or reproduced with the prior written consent of Cloud4C. In the event the underlying proposal is not accepted, the Customer agrees to return this document and any copies produced thereof to Cloud4C."
+    },
+    {
+      "type": "para",
+      "text": "This document does not constitute a formal offer, commitment, or contract by Cloud4C and is submitted with the understanding that Cloud4C and the Customer would negotiate and conclude a mutually acceptable binding agreement regarding the subject matter contemplated or discussed in this document."
+    },
+    {
+      "type": "para",
+      "text": "In preparing this proposal, Cloud4C has relied on information provided by the Customer and assumes no responsibility for any inaccuracy or error, or any action taken or not taken in reliance on the contents of this proposal. Cloud4C has not sought to independently confirm the completeness or accuracy of the information provided by the Customer and will not be responsible for any omission or misrepresentation in its proposal arising out of reliance on that information. Cloud4C will not provide any legal services or advice as part of the project. Without limiting the foregoing, Cloud4C does not provide an interpretation of laws or regulations that may be applicable to the Customer, nor is it responsible for the validation of systems or deliverables, as that will be the responsibility of the Customer."
+    },
+    {
+      "type": "para",
+      "text": "This document refers to trademarks that may be owned by others. The use of such trademarks is not an assertion of ownership of such trademarks by Cloud4C and is not intended to represent or imply the existence of an association between Cloud4C and the lawful owners of such trademarks."
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "2. Copyright"
+    },
+    {
+      "type": "para",
+      "text": "This Document is the Intellectual property of Cloud4C and is provided with strict confidence solely for the purpose for which it has been issued. It is not to be reproduced, wholly or in part, nor used for any other purpose, such as tendering or manufacturing, without a written agreement or explicit consent from Cloud4C. This notice must be included in any authorized reproduction."
+    },
+    {
+      "type": "para",
+      "text": "The contents and subject matter of this document, or any part thereof, are not to be disclosed, whether directly or indirectly, to any third party, including individuals, firms, companies, or their employees, without the prior written consent of Cloud4C."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "3. Introduction to Cloud4C"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "About Us"
+    },
+    {
+      "type": "para",
+      "text": "Cloud4C is a born-in-the-cloud, Application-Focused High-End Cloud Managed Services Player operating globally, a cloud evolution partner providing end-to-end cloud managed services for enterprises, helping them gain total control of the cloud game now and in the future. Cloud4C is a global company with a cloud footprint across the Americas, India, Europe, the Middle East and SEA & ANZ, present in 25+ countries globally."
+    },
+    {
+      "type": "para",
+      "text": "Cloud4C is a global managed services player with 2,000+ employees, including 1,500+ dedicated staff in service delivery and customer support and in-house expertise across a wide range of cloud platforms and workload-migration solutions. Support is delivered through Global NOC & SOC with cloud-certified resources available 24x7x365. Our certified cloud architects and engineers work with customer teams to enable their digital transformation from the inception of their cloud journey through the Cloud Adoption Framework."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Cloud4C Value Levers"
+    },
+    {
+      "type": "list",
+      "items": [
+        "13+ years' experience in cloud & managed hosting; ITIL-based, ISO-certified processes aligned to global standards.",
+        "**Premier Partnerships:** recognized expertise and partnerships with Microsoft, Oracle, Google.",
+        "**Full Lifecycle Support:** assessment, new build, migration (complex DB, K8s, data platform), modernization and ongoing optimization of mission-critical landscapes.",
+        "**Proven Track Record:** managing large, complex application and data environments across clouds.",
+        "**Specialized Tools & Accelerators:** proprietary tools for faster, smoother migrations and operations.",
+        "**Application-aware:** managing not just infrastructure but the platform layer itself.",
+        "**Proprietary AIOps (SHOP™):** Self-Healing Operations Platform integrating AI/ML for proactive & predictive ops, self-healing, improved MTTR and a single pane of glass."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Analyst Recognition"
+    },
+    {
+      "type": "para",
+      "text": "Cloud4C is recognized as a **Visionary in the Gartner® Magic Quadrant™ for Public Cloud IT Transformation Services** (multiple consecutive years). Gartner evaluates vendors on Ability to Execute and Completeness of Vision."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Why Choose Cloud4C"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Azure Expert MSP with Application Focus**: unmatched expertise in mission-critical workloads.",
+        "**AI-Driven Automation (SHOP™)**: proactive, reliable, efficient operations.",
+        "**True Hybrid/Multi-Cloud**: seamless management across any environment.",
+        "**Business-Centric SLAs**: accountability up to the application layer.",
+        "**Global Reach, Local Touch**: worldwide presence meeting local needs.",
+        "**Value Proposition**: reduced TCO, enhanced security & compliance, improved agility, assured application performance, future-proofed IT."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Certifications and Compliances"
+    },
+    {
+      "type": "para",
+      "text": "ISO 27001 (Information Security), ISO 9001:2015 (Quality), ISO 20000-1 (IT Service Management), ISO 22301 (Business Continuity), ISO 27017 (Cloud Security), ISO 27018 (PII in Public Cloud), PCI DSS, SOC-1 & SOC-2, SAP-certified for cloud hosting (SAP Premium / RISE) and industry-specific compliances (HIPAA, GDPR, CSA)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Data Analytics Services Offering"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Data Consulting**: maturity assessment, data roadmap, data strategy aligned to growth, TCO for data adoption, industry-specific consulting.",
+        "**Data Platform Modernization**: legacy → cloud data platforms, SAP → data lake migrations, traditional DWH → cloud, adaptive modernization (Rehost | Replatform | Refactor | Re-architect).",
+        "**Data Engineering**: data discovery & ingestion, integration, data lakes, data warehouses, master data management, visualization (reporting & dashboards).",
+        "**Data Ops**: managed analytics powered by AIOps, incident/problem/change management, operational tuning & automation, data platform security, performance reporting, SLA-backed managed analytics."
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "4. Scope of Work"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.1 Executive Summary"
+    },
+    {
+      "type": "para",
+      "text": "Meridian Logistics runs its analytics on an **Azure Synapse dedicated SQL pool** fed by Azure Data Factory, with data landing in ADLS Gen2 from SAP S/4HANA, Manhattan WMS and the TMS shipment APIs. The platform was built by a previous vendor, documentation is limited and several stored procedures carry critical business logic."
+    },
+    {
+      "type": "para",
+      "text": "Cloud4C proposes to migrate this estate to **Microsoft Fabric**, moving 84 pipelines, 36 notebooks, 210 tables and 140 stored procedures onto a Fabric Lakehouse and Warehouse. The approach re-platforms what can move as is and refactors procedures only where Fabric requires it, which keeps risk and effort under control."
+    },
+    {
+      "type": "para",
+      "text": "The migration runs over twenty weeks and ends with a four week parallel run with daily reconciliation, so Synapse is decommissioned only after Meridian signs off on matching results. Purview will be rescanned against the new estate so lineage and the catalog stay current."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.2 Objective"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Reduce platform cost**: Retire the always-on Synapse dedicated pool in favour of shared Fabric capacity.",
+        "**Migrate with no loss of logic**: Move every pipeline, table and stored procedure with documented mapping and test evidence.",
+        "**Prove data parity**: Run Synapse and Fabric in parallel with daily reconciliation before cutover.",
+        "**Keep reports running**: Repoint all 18 Power BI datasets to Fabric with no change for report users.",
+        "**Restore documentation**: Produce the inventory, mapping matrix and runbooks the current platform lacks.",
+        "**Maintain governance**: Rescan the new estate in Purview and rebuild end-to-end lineage."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4.3 Scope"
+    },
+    {
+      "type": "para",
+      "text": "The scope covers assessment, migration, validation and cutover of the Meridian analytics platform from Azure Synapse to Microsoft Fabric."
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Assessment and Migration Planning"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Automated inventory of ADF pipelines, linked services, notebooks, tables and procedures",
+        "Complexity scoring of each stored procedure and dependency mapping",
+        "Wave plan grouping objects by source system and business domain",
+        "Reconciliation approach and test strategy sign off"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Fabric Environment Setup"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Fabric workspaces for Dev, UAT and Prod in Southeast Asia",
+        "Capacity sizing recommendation (indicative, confirmed after assessment)",
+        "Entra ID groups, workspace roles and Key Vault integration",
+        "Git integration and deployment pipelines"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Migration Execution"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Re-platform 84 ADF pipelines to Fabric Data Pipelines",
+        "Migrate 36 Spark notebooks with library and runtime updates",
+        "Move 210 tables into the Fabric Lakehouse and Warehouse with history",
+        "Convert 140 stored procedures to Warehouse T-SQL, refactoring to notebooks only where needed"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Validation and Cutover"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Row count, checksum and KPI level reconciliation per wave",
+        "Four week parallel run with daily reconciliation reports",
+        "Cutover runbook, rollback plan and Synapse decommission checklist"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Power BI and Governance"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Repoint 18 Power BI datasets and validate key reports with business users",
+        "Purview rescan of the Fabric estate with rebuilt lineage"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Service Mapping Matrix"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Existing Service",
+        "Target Service",
+        "Approach",
+        "Notes"
+      ],
+      "rows": [
+        [
+          "Synapse dedicated SQL pool",
+          "Fabric Warehouse",
+          "Re-platform",
+          "Distribution and index settings removed"
+        ],
+        [
+          "Azure Data Factory pipelines",
+          "Fabric Data Pipelines",
+          "Re-platform",
+          "Linked services become connections"
+        ],
+        [
+          "Synapse Spark notebooks",
+          "Fabric Spark notebooks",
+          "Re-platform",
+          "Runtime and library updates"
+        ],
+        [
+          "ADLS Gen2 raw zone",
+          "OneLake Lakehouse (Bronze)",
+          "Re-platform",
+          "Shortcuts during the parallel run"
+        ],
+        [
+          "Stored procedures",
+          "Warehouse T-SQL or notebooks",
+          "Refactor where needed",
+          "Based on complexity scoring"
+        ],
+        [
+          "Power BI Import datasets",
+          "Direct Lake semantic models",
+          "Repoint",
+          "Import retained where Direct Lake does not fit"
+        ]
+      ],
+      "widths": [
+        2600,
+        2600,
+        1700,
+        2460
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Migration Inventory"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Object Type",
+        "Count",
+        "Notes"
+      ],
+      "rows": [
+        [
+          "ADF pipelines",
+          "84",
+          ""
+        ],
+        [
+          "Spark notebooks",
+          "36",
+          ""
+        ],
+        [
+          "Dedicated pool tables",
+          "210",
+          ""
+        ],
+        [
+          "Stored procedures",
+          "140",
+          ""
+        ],
+        [
+          "Linked services",
+          "22",
+          ""
+        ],
+        [
+          "Power BI datasets",
+          "18",
+          ""
+        ]
+      ],
+      "widths": [
+        3400,
+        1400,
+        4560
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Out of Scope"
+    },
+    {
+      "type": "list",
+      "items": [
+        "New data sources or new reports",
+        "Changes to SAP S/4HANA, Manhattan WMS or TMS",
+        "Redesign of the existing data model beyond what migration requires",
+        "Procurement of Fabric capacity or licenses"
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Assumptions"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Meridian will provide admin access to the Synapse workspace, ADF and ADLS",
+        "Synapse remains available and unchanged until cutover",
+        "Business users are available for report validation in each wave",
+        "Object counts stay within ten percent of the inventory shared",
+        "Any change in scope will be handled through a formal change request"
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "5. Solution Overview"
+    },
+    {
+      "type": "para",
+      "text": "Cloud4C experts help customers get the most out of their public cloud investment, the agility, flexibility and scalability the cloud offers, without it becoming your core business. Public cloud customers trust Cloud4C for proven expertise in data solutions and a results-obsessed, customer-first approach. Cloud4C consistently delivers high-quality results and end-to-end support to ensure cloud excellence, prevent downtime and ensure greater resilience. Our proposed solution for Meridian Logistics is informed by several key guiding principles:"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Principle",
+        "Description"
+      ],
+      "rows": [
+        [
+          "Quality",
+          "Transform and load data in accordance with defined requirements and data mappings; standardize metrics."
+        ],
+        [
+          "Scalability",
+          "Processes that scale to ever-expanding data via a common extraction framework; data volumes gracefully handled."
+        ],
+        [
+          "Maintainability",
+          "Processes supportable by anyone with base-level skills."
+        ],
+        [
+          "Performance",
+          "Load and access data quickly, minimizing impact on other processes."
+        ],
+        [
+          "Flexibility",
+          "ETL & BI semantic layer easily changed to support evolving requirements."
+        ],
+        [
+          "Robustness",
+          "Effective handling of data-quality, cloud-service and connection problems without significant impact."
+        ],
+        [
+          "Rapid Development",
+          "Fast development of ETL & BI through structural simplicity and reuse of key components."
+        ]
+      ],
+      "widths": [
+        2400,
+        6960
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "5.1 Reference Architecture"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/skill/assets/reference_architecture.png",
+      "width": 6.2,
+      "caption": "Reference Architecture"
+    },
+    {
+      "type": "para",
+      "text": "**Raw (Bronze) layer:** stores a one-to-one copy of source data in its original, unprocessed form with basic quality gates, a single repository for all data, supporting structured, semi-structured and unstructured formats. Validation is limited to basic quality & completeness checks."
+    },
+    {
+      "type": "para",
+      "text": "**Integrated (Silver) layer:** the curated layer where data is cleaned, transformed and enriched for consistency, accuracy and completeness, used for exploration, preparation and data-quality analysis. More structured than Bronze; the data model is designed business-use-case-agnostic."
+    },
+    {
+      "type": "para",
+      "text": "**Use-case (Gold) layer:** the trusted, ready-to-consume layer where models are prepared for business needs and decision-making. Highly structured, consistent, reliable, the single source of truth for the organization."
+    },
+    {
+      "type": "para",
+      "text": "**Data delivery layer:** provides logic and processes user requests, APIs, web services, downstream systems, visualization, microservices."
+    },
+    {
+      "type": "para",
+      "text": "**Job Orchestration:** managing and coordinating execution of data-processing jobs, scheduling, monitoring, dependency management, error/exception handling."
+    },
+    {
+      "type": "para",
+      "text": "**Traceability & reconciliation:** data lineage and audit trails (where data came from, who accessed it, what processing steps, where stored) plus reconciliation comparing datasets to ensure consistency and accuracy."
+    },
+    {
+      "type": "para",
+      "text": "**Constraint checks:** automated validation that data meets defined rules and relationships."
+    },
+    {
+      "type": "para",
+      "text": "**Runtime Audits:** checks during processing to ensure jobs run efficiently and produce accurate results; surface bottlenecks and resource issues."
+    },
+    {
+      "type": "para",
+      "text": "**Housekeeping:** archiving and purging to keep the lake clean, efficient, performant and cost-optimized."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "5.2 Logical Architecture"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/skill/assets/logical_architecture.png",
+      "width": 6.2,
+      "caption": "Logical Architecture"
+    },
+    {
+      "type": "para",
+      "text": "In the target state, sources continue to land through Fabric Data Pipelines into OneLake. The Lakehouse holds the raw and curated zones while the Fabric Warehouse replaces the dedicated pool for the serving layer and Purview covers catalog and lineage."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "5.3 Component Architecture and Data Flow"
+    },
+    {
+      "type": "image",
+      "path": "/home/claude/pnl-proposals/proposals/samples/cloud4c/component_arch.png",
+      "width": 6.4,
+      "caption": "To-Be Component Architecture"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Ingestion**: pipelines pull SAP, WMS and TMS data into OneLake on the existing schedules",
+        "**Bronze**: raw data lands in the Lakehouse as Delta tables",
+        "**Silver and Gold**: notebooks and Warehouse T-SQL apply the migrated business logic",
+        "**Serving**: the Fabric Warehouse replaces the dedicated pool for reporting",
+        "**Consumption**: Power BI datasets are repointed to Fabric",
+        "**Governance**: Purview scans the new estate and rebuilds lineage"
+      ],
+      "numbered": true
+    },
+    {
+      "type": "table",
+      "header": [
+        "Architecture Layer",
+        "Description",
+        "Components"
+      ],
+      "rows": [
+        [
+          "Sources",
+          "Operational systems feeding analytics",
+          "SAP S/4HANA, Manhattan WMS, TMS APIs"
+        ],
+        [
+          "Ingestion and Orchestration",
+          "Scheduled pipelines with monitoring",
+          "Fabric Data Pipelines"
+        ],
+        [
+          "Lakehouse and Warehouse",
+          "Storage, transformation and serving",
+          "OneLake, Lakehouse, Fabric Warehouse, Spark"
+        ],
+        [
+          "Consumption",
+          "Reports and downstream extracts",
+          "Power BI"
+        ],
+        [
+          "Governance",
+          "Catalog, lineage and access control",
+          "Purview, Entra ID, Key Vault"
+        ]
+      ],
+      "widths": [
+        2200,
+        4360,
+        2800
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "6. Timelines"
+    },
+    {
+      "type": "para",
+      "text": "The migration is planned over twenty weeks in waves, followed by a parallel run and cutover."
+    },
+    {
+      "type": "table",
+      "header": [
+        "Stage",
+        "Activity",
+        "Meridian",
+        "Cloud4C",
+        "High-Level Timeline"
+      ],
+      "rows": [
+        [
+          "1",
+          "Assessment, inventory and wave planning",
+          "C",
+          "R, A",
+          "Weeks 1 to 3"
+        ],
+        [
+          "2",
+          "Fabric environment setup",
+          "A",
+          "R",
+          "Weeks 2 to 4"
+        ],
+        [
+          "3",
+          "Wave 1: SAP finance and procurement objects",
+          "C",
+          "R, A",
+          "Weeks 4 to 8"
+        ],
+        [
+          "4",
+          "Wave 2: WMS and TMS objects",
+          "C",
+          "R, A",
+          "Weeks 7 to 12"
+        ],
+        [
+          "5",
+          "Power BI repointing and Purview rescan",
+          "C",
+          "R",
+          "Weeks 11 to 14"
+        ],
+        [
+          "6",
+          "UAT and reconciliation sign off",
+          "A, R",
+          "R",
+          "Weeks 14 to 16"
+        ],
+        [
+          "7",
+          "Parallel run, cutover and decommission",
+          "A",
+          "R",
+          "Weeks 17 to 20"
+        ]
+      ],
+      "widths": [
+        900,
+        4060,
+        1300,
+        1300,
+        1800
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "**R** = Responsible (does the work)",
+        "**A** = Accountable (owns the outcome and decision)",
+        "**C** = Consulted (provides input)",
+        "**I** = Informed (kept in the loop)"
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "7. Commercials"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "7.1 One Time Cost"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Sr. No.",
+        "Component",
+        "Cost Type",
+        "Cost (USD)"
+      ],
+      "rows": [
+        [
+          "1",
+          "Assessment and Migration Planning",
+          "OTC",
+          "12,800"
+        ],
+        [
+          "2",
+          "Synapse to Fabric Migration (pipelines, tables, procedures)",
+          "OTC",
+          "71,500"
+        ],
+        [
+          "3",
+          "Power BI Dataset Repointing and Validation",
+          "OTC",
+          "9,900"
+        ],
+        [
+          "4",
+          "Purview Rescan and Lineage Rebuild",
+          "OTC",
+          "6,400"
+        ],
+        [
+          "",
+          "**Net One Time Cost**",
+          "",
+          "**100,600**"
+        ]
+      ],
+      "widths": [
+        1100,
+        4900,
+        1600,
+        1760
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "7.2 Cloud Consumption"
+    },
+    {
+      "type": "para",
+      "text": "Fabric capacity and Purview consumption are borne by Meridian. Synapse dedicated pool costs during the parallel run are also borne by Meridian."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "7.3 Payment Plan"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Milestone",
+        "Percentage"
+      ],
+      "rows": [
+        [
+          "Advance on PO",
+          "20%"
+        ],
+        [
+          "Assessment and migration plan sign off",
+          "20%"
+        ],
+        [
+          "Migration completed in UAT",
+          "40%"
+        ],
+        [
+          "Cutover and closure",
+          "20%"
+        ]
+      ],
+      "widths": [
+        6360,
+        3000
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Payment Terms"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Invoices are payable within 30 days of the invoice date."
+      ]
+    },
+    {
+      "type": "para",
+      "text": "All figures are in USD and exclude GST and other applicable local taxes."
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "8. Project Governance Structure"
+    },
+    {
+      "type": "table",
+      "header": [
+        "Meeting",
+        "Frequency",
+        "Stakeholders",
+        "Agenda"
+      ],
+      "rows": [
+        [
+          "Daily huddle",
+          "Daily, 15 min",
+          "Delivery team, Meridian IT lead",
+          "Progress, blockers, access issues"
+        ],
+        [
+          "Weekly status",
+          "Weekly",
+          "Project managers, data owners",
+          "Wave status, reconciliation results, RAID"
+        ],
+        [
+          "Steering committee",
+          "Bi-weekly",
+          "Meridian sponsor, Cloud4C delivery head",
+          "Milestones, decisions, escalations"
+        ]
+      ],
+      "widths": [
+        2000,
+        1600,
+        2600,
+        3160
+      ]
+    },
+    {
+      "type": "pagebreak"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "9. Conclusion"
+    },
+    {
+      "type": "para",
+      "text": "We thank Meridian Logistics for the opportunity to propose this migration. As an Azure Expert MSP, Cloud4C brings proven migration accelerators and a disciplined reconciliation approach that protect business continuity through cutover."
+    },
+    {
+      "type": "para",
+      "text": "We welcome the chance to walk through this proposal and answer any questions."
+    },
+    {
+      "type": "para",
+      "text": "**© 2026 Cloud4C. All Rights Reserved.**"
+    }
+  ]
+}

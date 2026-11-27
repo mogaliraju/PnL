@@ -32,6 +32,9 @@ MODULES_TO_RELOAD = [
     'pnl.routes.import_excel',
     'pnl.routes.funnel',
     'pnl.routes.bookings',
+    'pnl.proposal_commercials',
+    'pnl.proposals_service',
+    'pnl.routes.proposals',
     'pnl.routes',
     'pnl',
 ]

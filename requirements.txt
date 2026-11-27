@@ -4,3 +4,7 @@ gunicorn
 werkzeug
 psycopg[binary,pool]   # pool: reuse Neon connections instead of reconnecting per query
 boto3>=1.39          # Bedrock Converse for the PnL assistant; 1.39+ reads AWS_BEARER_TOKEN_BEDROCK
+jsonschema>=4.22    # validates the proposal content the model returns
+resvg-py>=0.5       # component architecture diagram, SVG to PNG (no system libraries)
+pypdf>=4.2          # text from an uploaded BRD or SOW (PDF)
+python-docx>=1.1    # text from an uploaded BRD or SOW (Word)

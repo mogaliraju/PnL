@@ -1,0 +1,123 @@
+{
+  "subtitle": "Enterprise Data Platform on Microsoft Fabric",
+  "executive_summary": [
+    "Crestline Realty manages leasing in **Yardi Voyager**, finance in **Oracle E-Business Suite** and sales in **Salesforce**, with budgets and forecasts maintained in Excel on SharePoint. Month-end reporting today depends on manual consolidation across these systems and takes six to eight working days, which delays decisions on occupancy, collections and cash flow.",
+    "AutomatonsX proposes to implement an enterprise data platform on **Microsoft Fabric** that brings all four sources into a single governed OneLake foundation. The platform follows a Bronze, Silver and Gold medallion design, with certified semantic models feeding twelve Power BI dashboards for leasing, collections, sales pipeline and finance.",
+    "Governance is built in from the start. **Microsoft Purview** will catalog the estate, publish a business glossary, track lineage from source to report and apply sensitivity labels to tenant personal data. The engagement is planned over sixteen weeks and closes with knowledge transfer so Crestline's team can extend the platform with confidence."
+  ],
+  "objectives": [
+    {"lead": "Integrate core business systems", "text": "Ingest Yardi Voyager, Oracle EBS, Salesforce and finance workbooks into OneLake on a reliable daily cadence with faster refresh during month end."},
+    {"lead": "Establish a governed lakehouse", "text": "Build Bronze, Silver and Gold layers in Fabric with consistent naming, data quality checks and reconciliation against source totals."},
+    {"lead": "Shorten month-end reporting", "text": "Replace manual Excel consolidation with automated pipelines so finance can close and report within one to two days."},
+    {"lead": "Enable self-service analytics", "text": "Deliver three certified semantic models and twelve Power BI dashboards with row-level security by community and business unit."},
+    {"lead": "Protect tenant data", "text": "Classify and label tenant personal data in Purview and restrict access through Entra ID role-based controls."},
+    {"lead": "Build internal capability", "text": "Hand over runbooks, documentation and hands-on training so Crestline's team can operate and extend the platform."}
+  ],
+  "scope_intro": "The scope covers the end-to-end build of the Crestline data platform, from planning and environment setup through ingestion, modelling, governance, reporting and handover.",
+  "scope_sections": [
+    {"title": "Project Initiation and Planning", "items": [
+      "Kick-off and discovery workshops with leasing, finance and sales stakeholders",
+      "Confirmation of KPIs, success criteria and the dashboard catalogue",
+      "Source system inventory and access readiness checklist",
+      "Detailed project plan, RAID log and communication plan"]},
+    {"title": "Infrastructure and Environment", "items": [
+      "Fabric workspaces for Dev, UAT and Prod in UAE North with deployment pipelines",
+      "Fabric capacity sizing recommendation (indicative, confirmed after discovery)",
+      "Entra ID security groups and workspace role design",
+      "Key Vault for source credentials, private connectivity to Oracle EBS through an on-premises data gateway",
+      "Git integration and CI/CD for notebooks, pipelines and semantic models"]},
+    {"title": "Data Integration", "items": [
+      "**Yardi Voyager**: scheduled extraction through the Yardi export API for about 120 tables",
+      "**Oracle EBS**: incremental extraction of GL, AP and AR using watermark columns for about 80 tables",
+      "**Salesforce**: ingestion of about 25 objects through the native Fabric connector",
+      "**SharePoint Excel**: governed file-drop for budget and forecast workbooks with schema validation",
+      "Metadata-driven ingestion framework with logging, retries and alerting"]},
+    {"title": "Data Lake and Modelling", "items": [
+      "Bronze layer holding raw copies of all source data in Delta format",
+      "Silver layer with cleansing, conformance and deduplication rules",
+      "Gold layer star schemas for Leasing, Collections, Sales and Finance",
+      "Reconciliation of Gold totals against source system reports"]},
+    {"title": "Governance and Compliance", "items": [
+      "Purview Data Map registration and scanning of the Fabric estate",
+      "Business glossary with up to 60 agreed terms",
+      "End-to-end lineage from source to Power BI report",
+      "Sensitivity labels and classification for tenant personal data"]},
+    {"title": "Power BI and Consumption", "items": [
+      "Three certified semantic models in Direct Lake mode",
+      "Twelve dashboards covering Leasing, Occupancy, Collections, Sales Pipeline, Finance P&L and Cash Flow",
+      "Row-level security by community and business unit",
+      "Mobile layouts for the leadership dashboards"]},
+    {"title": "Training and Knowledge Transfer", "items": [
+      "Two weeks of knowledge transfer sessions for IT and power users",
+      "Runbooks, architecture documentation and a support handover checklist"]}
+  ],
+  "out_of_scope": [
+    "Changes to source applications or their data models",
+    "Data cleansing inside source systems",
+    "Procurement of Fabric capacity, Power BI or Purview licenses",
+    "Real-time or streaming ingestion",
+    "Reports beyond the twelve agreed dashboards, which will follow the change request process"
+  ],
+  "assumptions": [
+    "Crestline will provide timely access to Yardi, Oracle EBS, Salesforce and SharePoint along with service accounts",
+    "Business owners will be available for workshops, KPI sign off and UAT within agreed timelines",
+    "Dev, UAT and Prod workspaces will be available on Crestline's Fabric capacity",
+    "Source data volumes stay within the estimate shared during discovery",
+    "Any change in scope will be handled through a formal change request"
+  ],
+  "logical_architecture": [
+    "For Crestline, the data sources layer covers Yardi Voyager, Oracle EBS, Salesforce and finance workbooks. The ingestion layer uses Fabric Data Pipelines and an on-premises data gateway for Oracle, landing data into OneLake.",
+    "The lakehouse layer holds Bronze, Silver and Gold zones with Spark notebooks for transformation. Purview provides the governance and metadata layer, while Fabric monitoring and alerting cover orchestration and operations."
+  ],
+  "component_diagram": {
+    "title": "To-Be Component Architecture",
+    "sources": ["Yardi Voyager", "Oracle EBS", "Salesforce", "SharePoint Excel"],
+    "ingestion": "Data Pipelines + On-prem Gateway",
+    "layers": ["Landing Zone", "Bronze", "Silver", "Gold / Star Schema"],
+    "engines": ["Spark Notebooks"],
+    "consumption": ["Power BI Dashboards", "Mobile Reports", "Excel (Analyze in Excel)"],
+    "orchestration": "Orchestration using Fabric Data Pipelines",
+    "supporting": ["Entra ID", "Key Vault", "Fabric Monitoring", "Purview"],
+    "platform_label": "Microsoft Fabric"
+  },
+  "data_flow": [
+    "**Source integration**: pipelines extract data from Yardi, Oracle EBS, Salesforce and SharePoint on schedule",
+    "**Landing in OneLake**: raw files and tables land in the landing zone with load metadata",
+    "**Bronze**: data is stored as Delta tables in its original form for audit and replay",
+    "**Silver**: notebooks cleanse, conform and deduplicate the data",
+    "**Gold**: star schemas are built for Leasing, Collections, Sales and Finance",
+    "**Consumption**: Direct Lake semantic models serve Power BI dashboards and mobile reports",
+    "**Governance**: Purview scans, classifies and traces lineage across every layer"
+  ],
+  "architecture_layers": [
+    {"layer": "Data Sources", "description": "Operational systems for leasing, finance and sales plus finance workbooks", "components": "Yardi Voyager, Oracle EBS, Salesforce, SharePoint"},
+    {"layer": "Ingestion", "description": "Scheduled and incremental extraction with logging and retries", "components": "Fabric Data Pipelines, On-prem Data Gateway"},
+    {"layer": "Lakehouse", "description": "Medallion storage and transformation", "components": "OneLake, Lakehouse, Spark Notebooks"},
+    {"layer": "Consumption", "description": "Certified models and self-service reporting", "components": "Direct Lake semantic models, Power BI"},
+    {"layer": "Governance and Security", "description": "Catalog, lineage, labelling and access control", "components": "Microsoft Purview, Entra ID, Key Vault"}
+  ],
+  "timeline": {
+    "intro": "The engagement is planned over sixteen weeks in five stages. Indicative timelines will be confirmed in the project plan after discovery.",
+    "stages": [
+      {"activity": "Discovery, KPI confirmation and environment setup", "client_raci": "A, C", "vendor_raci": "R", "timeline": "Weeks 1 to 2"},
+      {"activity": "Ingestion framework and Bronze layer for all sources", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 3 to 6"},
+      {"activity": "Silver and Gold modelling with reconciliation", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 5 to 10"},
+      {"activity": "Purview governance setup and labelling", "client_raci": "A, C", "vendor_raci": "R", "timeline": "Weeks 7 to 11"},
+      {"activity": "Semantic models and Power BI dashboards", "client_raci": "C", "vendor_raci": "R, A", "timeline": "Weeks 8 to 13"},
+      {"activity": "UAT, go-live and knowledge transfer", "client_raci": "A, R", "vendor_raci": "R", "timeline": "Weeks 14 to 16"}
+    ]
+  },
+  "risks": [
+    {"risk": "Delayed access to Oracle EBS through the gateway", "impact": "High", "mitigation": "Raise network and gateway requests in week one and track them in the RAID log"},
+    {"risk": "KPI definitions differ across business units", "impact": "Medium", "mitigation": "Agree a signed KPI dictionary during discovery and record it in the Purview glossary"},
+    {"risk": "Yardi API limits slow down historical loads", "impact": "Medium", "mitigation": "Run the historical load in batches outside business hours"}
+  ],
+  "conclusion": [
+    "We thank Crestline Realty for the opportunity to propose this engagement. AutomatonsX is confident that a governed Fabric platform will give Crestline faster month-end reporting and a single trusted view of leasing, sales and finance.",
+    "We look forward to discussing this proposal and are happy to clarify any part of it."
+  ],
+  "open_questions": [
+    "Confirm whether Crestline already owns a Fabric capacity or needs a sizing recommendation with pricing",
+    "Confirm the Yardi API license tier and call limits"
+  ]
+}

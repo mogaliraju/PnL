@@ -3,7 +3,8 @@ services:
     name: pnl-automatonsx
     plan: free
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    # npm installs the docx package the proposal builder (proposals/skill/scripts/build_proposal.js) needs.
+    buildCommand: pip install -r requirements.txt && npm ci --omit=dev
     # Threads keep one streaming assistant answer from blocking everyone else.
     startCommand: gunicorn --worker-class gthread --threads 8 --timeout 120 app:app
     envVars:
@@ -28,5 +29,8 @@ services:
         value: global.anthropic.claude-opus-4-6-v1
       - key: BEDROCK_FALLBACK_MODEL_ID
         value: global.anthropic.claude-sonnet-4-5-20250929-v1:0,openai.gpt-oss-120b-1:0
+      # Proposal writer (design/PROPOSALS.md): Opus 4.6, Sonnet 4.5 if Opus fails
+      - key: BEDROCK_PROPOSAL_MODEL_ID
+        value: global.anthropic.claude-opus-4-6-v1
       - key: ASSISTANT_DATABASE_URL
         sync: false          # optional: a SELECT-only Postgres role for the assistant's tools

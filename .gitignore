@@ -18,3 +18,5 @@ data/versions/
 
 # Claude Code guardrails are shared with the team (DESIGN.md 2.5)
 !.claude/settings.json
+
+node_modules/

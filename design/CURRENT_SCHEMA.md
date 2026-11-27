@@ -62,6 +62,12 @@ These conflict with DESIGN.md section 2.3. Each one gets replaced in the phase s
 | `scripts/migrate_sqlite_to_postgres.py` | Upserts (`ON CONFLICT DO UPDATE`) local SQLite rows into Postgres | Never run against production |
 | `migrate_postgres_to_sqlite.py` | Reads Postgres, writes SQLite | Safe for production (read only), but don't use it as a backup: use `scripts/backup_snapshot.py` |
 
+Added later, and limited to rows the feature owns:
+
+| Code | What it writes | Why it is safe |
+|---|---|---|
+| `pnl/proposals_service.py` `_set`, `_mark_stuck` | Updates the status, stage, content, file and check columns of its own `proposal` row while the job runs; marks rows left running for 15+ minutes as failed | Only the `proposal` table (migrations 0006, 0007). No project, version, user or rate data is written. Rows are never deleted |
+
 `seed_data.py` only writes when the projects table is empty. It also can't read the files in `data_backup/`, because they start with a UTF-8 BOM and it decodes them as `utf-8`. So in practice it restores nothing.
 
 ## Known drift between SQLite and Postgres

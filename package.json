@@ -1,0 +1,8 @@
+{
+  "name": "pnl-proposal-builder",
+  "private": true,
+  "description": "Node dependency for proposals/skill/scripts/build_proposal.js",
+  "dependencies": {
+    "docx": "9.8.1"
+  }
+}

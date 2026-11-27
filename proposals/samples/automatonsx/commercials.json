@@ -1,0 +1,33 @@
+{
+  "currency": "USD",
+  "source": {"project": "Crestline Realty (SAMPLE)", "version_no": 3, "rate_card": "v5"},
+  "duration_weeks": 16,
+  "team": [
+    {"role": "Solution Architect", "count": 1, "allocation": "50%"},
+    {"role": "Senior Data Engineer", "count": 2, "allocation": "100%"},
+    {"role": "Power BI Developer", "count": 2, "allocation": "100%"},
+    {"role": "Governance Consultant", "count": 1, "allocation": "40%"},
+    {"role": "Project Manager", "count": 1, "allocation": "50%"}
+  ],
+  "otc_items": [
+    {"component": "Data Platform Implementation (Fabric, ingestion, medallion)", "cost_type": "OTC", "amount": 58400},
+    {"component": "Power BI Dashboards and Semantic Models", "cost_type": "OTC", "amount": 31200},
+    {"component": "Microsoft Purview Governance Setup", "cost_type": "OTC", "amount": 9600}
+  ],
+  "funding": [
+    {"label": "Microsoft Partner Funding (indicative, subject to approval)", "amount": 10000}
+  ],
+  "managed_services": {"label": "Managed Data Platform Services (optional)", "monthly": 4200, "months": 12},
+  "consumption_note": "Fabric capacity, Power BI licenses and Purview consumption are procured and borne by Crestline. Capacity sizing is indicative and will be confirmed after the discovery workshops.",
+  "payment_plan": [
+    {"milestone": "Advance on PO", "percent": 30},
+    {"milestone": "Completion of data integration (Bronze and Silver)", "percent": 30},
+    {"milestone": "UAT sign off", "percent": 30},
+    {"milestone": "Project closure and handover", "percent": 10}
+  ],
+  "payment_terms": [
+    "Invoices are payable within 30 days of the invoice date.",
+    "Partner funding is subject to Microsoft approval and is adjusted against the final milestone."
+  ],
+  "tax_note": "All figures are in USD and exclude applicable VAT and local taxes."
+}

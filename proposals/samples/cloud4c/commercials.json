@@ -1,0 +1,29 @@
+{
+  "currency": "USD",
+  "source": {"project": "Meridian Logistics (SAMPLE)", "version_no": 2, "rate_card": "v5"},
+  "duration_weeks": 20,
+  "team": [
+    {"role": "Solution Architect", "count": 1, "allocation": "50%"},
+    {"role": "Senior Data Engineer", "count": 3, "allocation": "100%"},
+    {"role": "Power BI Developer", "count": 1, "allocation": "100%"},
+    {"role": "QA and Reconciliation Analyst", "count": 1, "allocation": "100%"},
+    {"role": "Project Manager", "count": 1, "allocation": "50%"}
+  ],
+  "otc_items": [
+    {"component": "Assessment and Migration Planning", "cost_type": "OTC", "amount": 12800},
+    {"component": "Synapse to Fabric Migration (pipelines, tables, procedures)", "cost_type": "OTC", "amount": 71500},
+    {"component": "Power BI Dataset Repointing and Validation", "cost_type": "OTC", "amount": 9900},
+    {"component": "Purview Rescan and Lineage Rebuild", "cost_type": "OTC", "amount": 6400}
+  ],
+  "funding": [],
+  "managed_services": null,
+  "consumption_note": "Fabric capacity and Purview consumption are borne by Meridian. Synapse dedicated pool costs during the parallel run are also borne by Meridian.",
+  "payment_plan": [
+    {"milestone": "Advance on PO", "percent": 20},
+    {"milestone": "Assessment and migration plan sign off", "percent": 20},
+    {"milestone": "Migration completed in UAT", "percent": 40},
+    {"milestone": "Cutover and closure", "percent": 20}
+  ],
+  "payment_terms": ["Invoices are payable within 30 days of the invoice date."],
+  "tax_note": "All figures are in USD and exclude GST and other applicable local taxes."
+}

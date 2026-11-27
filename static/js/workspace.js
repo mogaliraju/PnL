@@ -288,7 +288,7 @@
 
   function render() {
     const tabs = [['resources', 'Resources', W.p.resources.length], ['costs', 'Other costs', W.p.one_time_costs.length],
-      ['details', 'Details', null], ['notes', 'Notes', null]];
+      ['details', 'Details', null], ['notes', 'Notes', null], ...(W.pid && window.axProposals ? [['proposals', 'Proposals', null]] : [])];
     root.innerHTML = `
       <div id="ax-ws-headwrap">${headHtml()}</div>
       <div id="ax-ws-banners">${banners()}</div>
@@ -302,6 +302,7 @@
       </div>`;
     renderLedger();
     paintLineCosts();
+    mountTab();
     document.title = `${wsName()} | AutomatonsX`;
   }
 
@@ -320,7 +321,11 @@
   }
 
   function tabBody() {
-    return { resources: resourcesTab, costs: costsTab, details: detailsTab, notes: notesTab }[W.tab]();
+    return { resources: resourcesTab, costs: costsTab, details: detailsTab, notes: notesTab,
+             proposals: () => '<div class="ax-section" id="ax-proposals"></div>' }[W.tab]();
+  }
+  function mountTab() {                     // tabs that load their own data (proposals-tab.js)
+    if (W.tab === 'proposals' && window.axProposals) window.axProposals.mount(W.pid);
   }
   function rerenderTab() {
     const el = document.getElementById('ax-ws-tab');
@@ -332,6 +337,7 @@
     const counts = { resources: W.p.resources.length, costs: W.p.one_time_costs.length };
     root.querySelectorAll('[data-tab] .ax-count').forEach(c => { c.textContent = counts[c.parentElement.dataset.tab]; });
     paintLineCosts();
+    mountTab();
   }
 
   // ── Resources ─────────────────────────────────────────────────────────

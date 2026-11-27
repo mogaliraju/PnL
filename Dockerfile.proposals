@@ -1,0 +1,15 @@
+# Render: switch the service to Docker (Settings > Runtime) if `node --version` fails in the Render shell.
+FROM python:3.12-slim
+
+# Node for build_proposal.js, cairo + fonts for the component diagram PNG
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends nodejs npm libcairo2 fonts-dejavu fonts-liberation \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt package.json package-lock.json* ./
+RUN pip install --no-cache-dir -r requirements.txt && npm install --omit=dev
+
+COPY . .
+# Keep the app's existing start command here (gunicorn or python app.py). Example:
+CMD gunicorn app:app --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120
