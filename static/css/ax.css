@@ -529,3 +529,17 @@ textarea.ax-input { height: auto; padding: 8px 10px; resize: vertical; }
 
 /* Assistant: a worked sum on its own line */
 .ax-msg-body .ax-formula { font-variant-numeric: tabular-nums; background: var(--sunk); border-radius: 6px; padding: 6px 10px; }
+
+/* Assistant: resizable width and full screen */
+.ax-assistant { width: min(var(--as-width, var(--drawer-width)), 100%); }
+.ax-assistant.is-full { width: 100%; border-left: 0; }
+.ax-assistant.is-full .ax-chat, .ax-assistant.is-full .ax-sugg, .ax-assistant.is-full .ax-composer {
+  width: 100%; max-width: 980px; margin-inline: auto; }
+.ax-assistant.is-full .ax-msg { max-width: 88%; }
+.ax-as-resize { position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 2; touch-action: none; }
+.ax-as-resize::after { content: ""; position: absolute; left: 3px; top: 50%; width: 2px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--line-strong); opacity: 0; transition: opacity .15s; }
+.ax-as-resize:hover::after, .ax-as-resize:focus-visible::after, .ax-assistant.is-resizing .ax-as-resize::after { opacity: 1; background: var(--magenta); }
+.ax-as-resize:focus-visible { outline: none; }
+.ax-assistant.is-resizing { user-select: none; }
+.ax-assistant.is-full .ax-as-resize { display: none; }
+@media (max-width: 640px) { .ax-as-resize, .ax-as-full { display: none; } .ax-assistant { width: 100%; } }

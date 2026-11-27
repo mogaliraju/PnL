@@ -108,7 +108,10 @@
     el.innerHTML = `<div class="ax-drawer-h">${icon('spark')}<div style="flex:1"><h2 class="ax-h2">PnL assistant</h2>
         <div class="ax-caption">Reads projects, versions and rate cards. Can't change saved data.</div></div>
         <button type="button" class="ax-btn ax-btn--ghost ax-btn--small" data-act="new" title="Start a new conversation">New chat</button>
+        <button type="button" class="ax-btn ax-btn--ghost ax-btn--icon ax-as-full" data-act="full" aria-pressed="false" aria-label="Full screen" title="Full screen"></button>
         <button type="button" class="ax-btn ax-btn--ghost ax-btn--icon" data-act="close" aria-label="Close assistant">${icon('x')}</button></div>
+      <div class="ax-as-resize" role="separator" aria-orientation="vertical" aria-label="Resize the assistant" tabindex="0"
+           title="Drag to resize. Double-click to reset."></div>
       <div class="ax-drawer-ctx" id="ax-as-ctx"></div>
       <div class="ax-chat" id="ax-as-log" aria-live="polite" tabindex="0" role="log" aria-label="Conversation"></div>
       <div class="ax-sugg" id="ax-as-sugg"></div>
@@ -120,6 +123,7 @@
       if (!t) return;
       if (t.dataset.act === 'close') close();
       if (t.dataset.act === 'new') newChat();
+      if (t.dataset.act === 'full') setSize({ full: !size.full });
       if (t.dataset.sugg) ask(t.dataset.sugg);
       if (t.dataset.scenario) openScenario(JSON.parse(t.dataset.scenario));
     });
@@ -128,7 +132,58 @@
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.querySelector('#ax-as-form').requestSubmit(); }
     });
     el.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
+    wireResize(el);
+    applySize();
     return el;
+  }
+
+  // ── size: drag the left edge, or go full screen. Remembered in this browser only. ──
+  const SIZE_KEY = 'ax-assistant-size', MIN_W = 360, DEFAULT_W = 480;
+  let size = { w: DEFAULT_W, full: false };
+  try { size = { ...size, ...JSON.parse(localStorage.getItem(SIZE_KEY) || '{}') }; } catch { /* storage blocked */ }
+  const maxW = () => Math.max(MIN_W, window.innerWidth - 80);
+  const clampW = w => Math.round(Math.min(maxW(), Math.max(MIN_W, Number(w) || DEFAULT_W)));
+  function setSize(patch) {
+    size = { ...size, ...patch };
+    try { localStorage.setItem(SIZE_KEY, JSON.stringify(size)); } catch { /* storage blocked */ }
+    applySize();
+  }
+  function applySize() {
+    const el = document.getElementById('ax-assistant');
+    if (!el) return;
+    el.classList.toggle('is-full', !!size.full);
+    el.style.setProperty('--as-width', clampW(size.w) + 'px');
+    const b = el.querySelector('[data-act="full"]');
+    b.innerHTML = icon(size.full ? 'minimize' : 'maximize');
+    b.setAttribute('aria-pressed', String(!!size.full));
+    b.setAttribute('aria-label', size.full ? 'Exit full screen' : 'Full screen');
+    b.title = size.full ? 'Exit full screen' : 'Full screen';
+    const h = el.querySelector('.ax-as-resize');
+    h.setAttribute('aria-valuemin', MIN_W); h.setAttribute('aria-valuemax', maxW()); h.setAttribute('aria-valuenow', clampW(size.w));
+  }
+  function wireResize(el) {
+    const h = el.querySelector('.ax-as-resize');
+    h.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      h.setPointerCapture(e.pointerId);
+      el.classList.add('is-resizing');
+      const move = ev => { el.style.setProperty('--as-width', clampW(window.innerWidth - ev.clientX) + 'px'); };
+      const up = ev => {
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+        el.classList.remove('is-resizing');
+        setSize({ w: clampW(window.innerWidth - ev.clientX), full: false });
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+    });
+    h.addEventListener('dblclick', () => setSize({ w: DEFAULT_W, full: false }));
+    h.addEventListener('keydown', e => {
+      const step = e.shiftKey ? 120 : 40;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setSize({ w: clampW(size.w) + step, full: false }); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setSize({ w: clampW(size.w) - step, full: false }); }
+      if (e.key === 'Home') { e.preventDefault(); setSize({ w: DEFAULT_W, full: false }); }
+    });
+    window.addEventListener('resize', applySize);
   }
 
   function render() {
